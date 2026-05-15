@@ -153,12 +153,15 @@ export default function ShareOfShelfPage() {
   const [trendData,   setTrendData]   = useState<Record<string, unknown>[]>([])
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
 
-  // sync when market changes
+  // sync when market changes — prefer "Newsan" as default
   useEffect(() => {
-    if (SELLERS[0]) {
-      setSelectedSeller(SELLERS[0])
-      setSelectedSellers(SELLERS.slice(0, 4))
-    }
+    if (SELLERS.length === 0) return
+    const preferred = SELLERS.includes("Newsan") ? "Newsan" : SELLERS[0]
+    setSelectedSeller(preferred)
+    const top4 = SELLERS.includes("Newsan")
+      ? [preferred, ...SELLERS.filter(s => s !== preferred).slice(0, 3)]
+      : SELLERS.slice(0, 4)
+    setSelectedSellers(top4)
   }, [SELLERS[0]])
 
   // ── Cargar rango de fechas disponible ─────────────────────
