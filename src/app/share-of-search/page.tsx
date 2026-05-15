@@ -233,11 +233,23 @@ export default function ShareOfShelfPage() {
 
   const ownEntry  = sellerData.find((e) => e.seller === selectedSeller) as Record<string, unknown> | undefined
   const ownColor  = COLORS[selectedSeller] || "#a427ff"
-  const stackedData = sellerData.map(e => ({
-    label: String(e.seller),
-    value: Number(page === "p1" ? e.sos_p1 : e.sos_total),
-    color: String(e.color),
-  }))
+
+  // Top 15 sellers by current page SOS; the rest collapsed into "Otros"
+  const TOP_N = 15
+  const sortedSellers = [...sellerData].sort(
+    (a, b) => Number(page === "p1" ? b.sos_p1 : b.sos_total) - Number(page === "p1" ? a.sos_p1 : a.sos_total)
+  )
+  const top15    = sortedSellers.slice(0, TOP_N)
+  const rest     = sortedSellers.slice(TOP_N)
+  const otrosVal = rest.reduce((sum, e) => sum + Number(page === "p1" ? e.sos_p1 : e.sos_total), 0)
+  const stackedData = [
+    ...top15.map(e => ({
+      label: String(e.seller),
+      value: Number(page === "p1" ? e.sos_p1 : e.sos_total),
+      color: String(e.color),
+    })),
+    ...(rest.length > 0 ? [{ label: "Otros", value: Math.round(otrosVal * 10) / 10, color: "#d1d5db" }] : []),
+  ]
   const maxSOS    = Math.max(...sellerData.map(e => Number(e.sos_p1)), 1)
   const maxChannel = Math.max(...channelData.map(e => Number(e.sos_p1)), 1)
 
