@@ -652,7 +652,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[560px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["ID", "Título", "Seller", "SOS Pág 1", "Δ", "SOS Total", "Pos. típica"].map(h => (
+                  {["Título", "Seller", "SOS Pág 1", "Δ", "SOS Total", "Pos. típica"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -665,7 +665,6 @@ export default function ShareOfShelfPage() {
               <tbody>
                 {tituloData.slice(0, visibleCount).map(t => (
                   <tr key={String(t.titulo_id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                    <td className="px-2 py-2.5 text-[10px] font-mono text-gray-400">{String(t.titulo_id)}</td>
                     <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[220px] truncate">{String(t.titulo)}</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{String(t.seller)}</td>
                     <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(t.sos_p1)}%</td>
