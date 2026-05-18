@@ -152,11 +152,19 @@ export default function ShareOfShelfPage() {
   const trendInitRef = useRef(false)
   const [visibleCount, setVisibleCount] = useState(10)
 
-  // Close dropdown when clicking outside
+  const [sellerDropdownOpen, setSellerDropdownOpen] = useState(false)
+  const [sellerSearch, setSellerSearch] = useState("")
+  const sellerDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (trendRef.current && !trendRef.current.contains(e.target as Node)) {
         setTrendOpen(false)
+      }
+      if (sellerDropdownRef.current && !sellerDropdownRef.current.contains(e.target as Node)) {
+        setSellerDropdownOpen(false)
+        setSellerSearch("")
       }
     }
     document.addEventListener("mousedown", handleClick)
@@ -340,6 +348,54 @@ export default function ShareOfShelfPage() {
           </select>
         </div>
 
+        {/* Seller con buscador */}
+        <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Seller</span>
+          <div className="relative" ref={sellerDropdownRef}>
+            <button
+              onClick={() => { setSellerDropdownOpen(prev => !prev); setSellerSearch("") }}
+              className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[140px] justify-between"
+            >
+              <span className="truncate">{selectedSeller || "Seleccionar"}</span>
+              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {sellerDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg w-64">
+                <div className="p-2 border-b border-gray-100">
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Buscar seller..."
+                    value={sellerSearch}
+                    onChange={e => setSellerSearch(e.target.value)}
+                    className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400"
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => { setSelectedSeller(s); setSellerDropdownOpen(false); setSellerSearch("") }}
+                      className={clsx(
+                        "w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors",
+                        selectedSeller === s ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-700"
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                  {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-3 text-xs text-gray-400 text-center">Sin resultados</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
           {(["p1", "total"] as PageCtx[]).map(p => (
             <button
@@ -510,13 +566,6 @@ export default function ShareOfShelfPage() {
             {category || "Todas las categorías"} · {channel || "Todos los canales"}
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={selectedSeller}
-              onChange={e => setSelectedSeller(e.target.value)}
-              className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-            >
-              {SELLERS.map(s => <option key={s}>{s}</option>)}
-            </select>
             <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
               {(["seller", "brand", "titulo"] as DrillLevel[]).map(l => (
                 <button
