@@ -150,6 +150,7 @@ export default function ShareOfShelfPage() {
   const [trendOpen, setTrendOpen] = useState(false)
   const trendRef    = useRef<HTMLDivElement>(null)
   const trendInitRef = useRef(false)
+  const [visibleCount, setVisibleCount] = useState(10)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -185,6 +186,9 @@ export default function ShareOfShelfPage() {
       setSelectedSellers(sellerData.slice(0, 5).map(e => String(e.seller)))
     }
   }, [sellerData.length])
+
+  // Reset visible count when drill level or data changes
+  useEffect(() => { setVisibleCount(10) }, [drill, sellerData, brandData, tituloData])
 
   // ── Cargar rango de fechas disponible ─────────────────────
   useEffect(() => {
@@ -547,7 +551,7 @@ export default function ShareOfShelfPage() {
                 </tr>
               </thead>
               <tbody>
-                {sellerData.map((e, i) => {
+                {sellerData.slice(0, visibleCount).map((e, i) => {
                   const isOwn = e.seller === selectedSeller
                   return (
                     <tr
@@ -589,6 +593,14 @@ export default function ShareOfShelfPage() {
                 })}
               </tbody>
             </table>
+            {visibleCount < sellerData.length && (
+              <button
+                onClick={() => setVisibleCount(prev => Math.min(prev + 50, sellerData.length))}
+                className="mt-3 w-full text-xs text-purple-600 hover:text-purple-800 font-medium py-2 border border-dashed border-purple-200 hover:border-purple-400 rounded-lg transition-colors"
+              >
+                Ver más ({Math.min(50, sellerData.length - visibleCount)} de {sellerData.length - visibleCount} restantes)
+              </button>
+            )}
           </div>
         )}
 
@@ -609,7 +621,7 @@ export default function ShareOfShelfPage() {
                 </tr>
               </thead>
               <tbody>
-                {brandData.map(b => (
+                {brandData.slice(0, visibleCount).map(b => (
                   <tr key={String(b.brand)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-2 py-2.5 text-sm font-medium text-gray-800">{String(b.brand)}</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{String(b.seller)}</td>
@@ -623,6 +635,14 @@ export default function ShareOfShelfPage() {
                 ))}
               </tbody>
             </table>
+            {visibleCount < brandData.length && (
+              <button
+                onClick={() => setVisibleCount(prev => Math.min(prev + 50, brandData.length))}
+                className="mt-3 w-full text-xs text-purple-600 hover:text-purple-800 font-medium py-2 border border-dashed border-purple-200 hover:border-purple-400 rounded-lg transition-colors"
+              >
+                Ver más ({Math.min(50, brandData.length - visibleCount)} de {brandData.length - visibleCount} restantes)
+              </button>
+            )}
           </div>
         )}
 
@@ -643,7 +663,7 @@ export default function ShareOfShelfPage() {
                 </tr>
               </thead>
               <tbody>
-                {tituloData.map(t => (
+                {tituloData.slice(0, visibleCount).map(t => (
                   <tr key={String(t.titulo_id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-400">{String(t.titulo_id)}</td>
                     <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[220px] truncate">{String(t.titulo)}</td>
@@ -670,6 +690,14 @@ export default function ShareOfShelfPage() {
                 ))}
               </tbody>
             </table>
+            {visibleCount < tituloData.length && (
+              <button
+                onClick={() => setVisibleCount(prev => Math.min(prev + 50, tituloData.length))}
+                className="mt-3 w-full text-xs text-purple-600 hover:text-purple-800 font-medium py-2 border border-dashed border-purple-200 hover:border-purple-400 rounded-lg transition-colors"
+              >
+                Ver más ({Math.min(50, tituloData.length - visibleCount)} de {tituloData.length - visibleCount} restantes)
+              </button>
+            )}
           </div>
         )}
       </div>
