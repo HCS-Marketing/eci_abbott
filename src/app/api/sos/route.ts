@@ -483,6 +483,60 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── pricing live ──────────────────────────────────────
+    if (action === "pricing") {
+      const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
+      const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const p: unknown[] = [dateParam]
+      let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL`
+      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
+      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
+      const sellerCond = seller ? ` AND (${sellerInSql(seller, p)})` : ""
+      const sql = `
+        SELECT
+          id,
+          MAX(producto)                         AS producto,
+          MAX(marca)                            AS marca,
+          ${NORM_SELLER}                        AS seller,
+          MAX(plataforma)                       AS plataforma,
+          MAX(subcategoria)                     AS subcategoria,
+          ROUND(AVG(precio_venta)::numeric, 0)  AS precio_venta,
+          ROUND(AVG(precio)::numeric, 0)        AS precio,
+          ROUND(AVG(descuento)::numeric, 1)     AS descuento,
+          MAX(cuotas_sin_interes)               AS cuotas_sin_interes,
+          MAX(envio)                            AS envio,
+          MAX(tienda_oficial)                   AS tienda_oficial,
+          MAX(url_producto)                     AS url_producto
+        FROM eci.sos
+        WHERE ${w} AND id IS NOT NULL ${sellerCond}
+        GROUP BY id, ${NORM_SELLER}
+        ORDER BY precio_venta ASC
+        LIMIT ${limit}
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        id: string; producto: string; marca: string; seller: string
+        plataforma: string; subcategoria: string
+        precio_venta: number; precio: number; descuento: number
+        cuotas_sin_interes: string | number | null; envio: string
+        tienda_oficial: string; url_producto: string
+      }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        id:                 r.id,
+        producto:           r.producto,
+        marca:              r.marca,
+        seller:             r.seller,
+        plataforma:         r.plataforma,
+        subcategoria:       r.subcategoria,
+        precio_venta:       Number(r.precio_venta),
+        precio:             Number(r.precio),
+        descuento:          Number(r.descuento),
+        cuotas_sin_interes: r.cuotas_sin_interes != null ? Number(r.cuotas_sin_interes) : null,
+        envio:              r.envio,
+        tienda_oficial:     r.tienda_oficial,
+        url_producto:       r.url_producto,
+      })))
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error"
