@@ -399,6 +399,64 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── bestsellers ────────────────────────────────────────
+    if (action === "bestsellers") {
+      const pageFilter = searchParams.get("page_filter") || "p1"
+      const limit = Math.min(100, parseInt(searchParams.get("limit") || "20", 10))
+      const p: unknown[] = []
+      const w = buildWhere(p)
+      const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
+      const sellerCond = seller ? ` AND (${sellerInSql(seller, p)})` : ""
+      const sql = `
+        SELECT
+          id,
+          MAX(producto)      AS titulo,
+          MAX(marca)         AS marca,
+          ${NORM_SELLER}     AS seller,
+          MAX(subcategoria)  AS subcategoria,
+          MAX(plataforma)    AS plataforma,
+          ROUND(AVG(precio_venta)::numeric, 0)   AS precio_venta,
+          ROUND(AVG(precio)::numeric, 0)         AS precio,
+          ROUND(AVG(descuento)::numeric, 1)      AS descuento,
+          MAX(url_producto)  AS url_producto,
+          MAX(envio)         AS envio,
+          MAX(tienda_oficial) AS tienda_oficial,
+          ROUND(AVG(ranking)::numeric, 0)        AS best_ranking,
+          COUNT(*) FILTER (WHERE pagina = 1)     AS appearances_p1,
+          COUNT(*)                               AS appearances_total
+        FROM eci.sos
+        WHERE ${w} ${pageClause} AND id IS NOT NULL AND ranking IS NOT NULL ${sellerCond}
+        GROUP BY id, ${NORM_SELLER}
+        ORDER BY best_ranking DESC
+        LIMIT ${limit}
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        id: string; titulo: string; marca: string; seller: string
+        subcategoria: string; plataforma: string
+        precio_venta: number; precio: number; descuento: number
+        url_producto: string; envio: string; tienda_oficial: string
+        best_ranking: number; appearances_p1: number; appearances_total: number
+      }[]>(sql, ...p)
+      return NextResponse.json(rows.map((r, i) => ({
+        id:               r.id,
+        rank:             i + 1,
+        titulo:           r.titulo,
+        marca:            r.marca,
+        seller:           r.seller,
+        subcategoria:     r.subcategoria,
+        plataforma:       r.plataforma,
+        precio_venta:     Number(r.precio_venta),
+        precio:           Number(r.precio),
+        descuento:        Number(r.descuento),
+        url_producto:     r.url_producto,
+        envio:            r.envio,
+        tienda_oficial:   r.tienda_oficial,
+        ranking:          Number(r.best_ranking),
+        appearances_p1:   Number(r.appearances_p1),
+        appearances_total: Number(r.appearances_total),
+      })))
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error"
