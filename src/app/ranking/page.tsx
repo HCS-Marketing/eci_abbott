@@ -244,15 +244,16 @@ export default function RankingPage() {
       page_filter: pageFilter,
       limit:       String(topN),
     })
-    if (channel)   p.set("channel",   channel)
-    if (category)  p.set("category",  category)
-    if (startDate) p.set("startDate", startDate)
-    if (endDate)   p.set("endDate",   endDate)
+    if (channel)        p.set("channel",   channel)
+    if (category)       p.set("category",  category)
+    if (startDate)      p.set("startDate", startDate)
+    if (endDate)        p.set("endDate",   endDate)
+    if (selectedSeller) p.set("seller",    selectedSeller)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, startDate, endDate, pageFilter, topN])
+  }, [channel, category, startDate, endDate, pageFilter, topN, selectedSeller])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -264,13 +265,14 @@ export default function RankingPage() {
     e.marca?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // KPIs
-  const ownProducts   = data.filter(e => e.seller === selectedSeller)
-  const ownTop3       = ownProducts.filter(e => e.ranking <= 3).length
-  const ownTop10      = ownProducts.filter(e => e.ranking <= 10).length
-  const ownBestRank   = ownProducts.length ? Math.min(...ownProducts.map(e => e.ranking)) : null
-  const ownCapture    = ownProducts.length
-    ? Math.round(ownProducts.reduce((s, e) => s + posWeight(e.ranking), 0) / Math.max(data.length, 1))
+  // KPIs — adaptan según si hay seller seleccionado o se muestran todos
+  const isAllSellers   = selectedSeller === ""
+  const kpiProducts    = isAllSellers ? data : data.filter(e => e.seller === selectedSeller)
+  const ownTop3        = kpiProducts.filter(e => e.ranking <= 3).length
+  const ownTop10       = kpiProducts.filter(e => e.ranking <= 10).length
+  const ownBestRank    = kpiProducts.length ? Math.min(...kpiProducts.map(e => e.ranking)) : null
+  const ownCapture     = kpiProducts.length
+    ? Math.round(kpiProducts.reduce((s, e) => s + posWeight(e.ranking), 0) / Math.max(data.length, 1))
     : 0
 
   // Sellers presentes en resultados (para colores)
@@ -334,7 +336,7 @@ export default function RankingPage() {
               onClick={() => { setSellerOpen(p => !p); setSellerSearch("") }}
               className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[140px] justify-between"
             >
-              <span className="truncate">{selectedSeller || "Seleccionar"}</span>
+              <span className="truncate">{selectedSeller || "Todos los sellers"}</span>
               <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -348,6 +350,15 @@ export default function RankingPage() {
                   />
                 </div>
                 <div className="max-h-64 overflow-y-auto">
+                  {/* Opción todos */}
+                  {"todos los sellers".includes(sellerSearch.toLowerCase()) || sellerSearch === "" ? (
+                    <button
+                      onClick={() => { setSelectedSeller(""); setSellerOpen(false); setSellerSearch("") }}
+                      className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors border-b border-gray-100",
+                        selectedSeller === "" ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-500"
+                      )}
+                    >Todos los sellers</button>
+                  ) : null}
                   {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
                     <button key={s}
                       onClick={() => { setSelectedSeller(s); setSellerOpen(false); setSellerSearch("") }}
@@ -391,12 +402,12 @@ export default function RankingPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: `Mejor posición · ${selectedSeller || "—"}`,
+            label: isAllSellers ? "Mejor posición general" : `Mejor posición · ${selectedSeller}`,
             value: ownBestRank !== null ? `#${ownBestRank}` : "—",
             color: ownBestRank !== null && ownBestRank <= 3 ? "#16a34a" : ownBestRank !== null && ownBestRank <= 10 ? "#d97706" : "#6b7280",
           },
           {
-            label: "Captura ponderada",
+            label: isAllSellers ? "Captura ponderada total" : "Captura ponderada",
             value: `${ownCapture}%`,
             sub: "vs potencial posición #1",
           },
