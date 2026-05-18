@@ -3,8 +3,25 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { Search, ChevronLeft, ChevronRight, ListOrdered } from "lucide-react"
+import {
+  Search, ChevronLeft, ChevronRight, ListOrdered,
+  Trophy, Tag, MessageSquare, Zap, Star, Package, BarChart2, Activity, Layers,
+} from "lucide-react"
 import { useClient } from "@/lib/client-context"
+
+const NAV = [
+  { href: "/share-of-search", label: "Share of Shelf",   icon: Search       },
+  { href: "/ranking",         label: "Ranking",           icon: ListOrdered  },
+  { href: "/bestsellers",     label: "Bestsellers",       icon: Trophy       },
+  { href: "/pricing",         label: "Pricing Live",      icon: Tag          },
+  { href: "/price-index",     label: "Price Index",       icon: BarChart2    },
+  { href: "/buybox",          label: "BuyBox",            icon: Zap          },
+  { href: "/assortment",      label: "Assortment",        icon: Layers       },
+  { href: "/inventory",       label: "Inventario",        icon: Package      },
+  { href: "/traffic",         label: "Tráfico",           icon: Activity     },
+  { href: "/reviews",         label: "Reviews",           icon: Star         },
+  { href: "/brand-sentiment", label: "Brand Sentiment",   icon: MessageSquare },
+]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
   return (
@@ -25,8 +42,6 @@ export default function Sidebar() {
   if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up")) return null
 
   const W = expanded ? "220px" : "60px"
-  const active = pathname === "/share-of-search"
-  const activeRanking = pathname === "/ranking"
 
   return (
     <>
@@ -65,7 +80,7 @@ export default function Sidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2">
+        <nav className="flex-1 py-3 px-2 overflow-y-auto">
           {expanded && (
             <div
               className="text-[9px] uppercase tracking-widest font-bold px-2 py-1.5"
@@ -74,26 +89,22 @@ export default function Sidebar() {
               Módulos
             </div>
           )}
-          <Link
-            href="/share-of-search"
-            className="flex items-center gap-3 px-2 py-2.5 rounded-xl mb-0.5 transition-all duration-150"
-            style={active ? { backgroundColor: brandColor, color: "#fff" } : { color: "rgba(255,255,255,0.5)" }}
-            onMouseEnter={e => { if (!active) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)" }}
-            onMouseLeave={e => { if (!active) e.currentTarget.style.backgroundColor = "transparent" }}
-          >
-            <Search size={15} className="flex-shrink-0" />
-            {expanded && <span className="text-[13px] font-light truncate">Share of Shelf</span>}
-          </Link>
-          <Link
-            href="/ranking"
-            className="flex items-center gap-3 px-2 py-2.5 rounded-xl mb-0.5 transition-all duration-150"
-            style={activeRanking ? { backgroundColor: brandColor, color: "#fff" } : { color: "rgba(255,255,255,0.5)" }}
-            onMouseEnter={e => { if (!activeRanking) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)" }}
-            onMouseLeave={e => { if (!activeRanking) e.currentTarget.style.backgroundColor = "transparent" }}
-          >
-            <ListOrdered size={15} className="flex-shrink-0" />
-            {expanded && <span className="text-[13px] font-light truncate">Ranking</span>}
-          </Link>
+          {NAV.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname === href
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-3 px-2 py-2.5 rounded-xl mb-0.5 transition-all duration-150"
+                style={isActive ? { backgroundColor: brandColor, color: "#fff" } : { color: "rgba(255,255,255,0.5)" }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)" }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = "transparent" }}
+              >
+                <Icon size={15} className="flex-shrink-0" />
+                {expanded && <span className="text-[13px] font-light truncate">{label}</span>}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* Footer */}
@@ -162,24 +173,21 @@ export default function Sidebar() {
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-3 px-3">
-          <Link
-            href="/share-of-search"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-            style={active ? { backgroundColor: brandColor, color: "#fff" } : { color: "rgba(255,255,255,0.7)" }}
-          >
-            <Search size={15} />
-            <span className="text-sm font-light">Share of Shelf</span>
-          </Link>
-          <Link
-            href="/ranking"
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors"
-            style={activeRanking ? { backgroundColor: brandColor, color: "#fff" } : { color: "rgba(255,255,255,0.7)" }}
-          >
-            <ListOrdered size={15} />
-            <span className="text-sm font-light">Ranking</span>
-          </Link>
+          {NAV.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname === href
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors mb-0.5"
+                style={isActive ? { backgroundColor: brandColor, color: "#fff" } : { color: "rgba(255,255,255,0.7)" }}
+              >
+                <Icon size={15} />
+                <span className="text-sm font-light">{label}</span>
+              </Link>
+            )
+          })}
         </nav>
 
       </div>
