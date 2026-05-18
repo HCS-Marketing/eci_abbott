@@ -70,15 +70,19 @@ export default function BestsellersPage() {
     return () => document.removeEventListener("mousedown", h)
   }, [])
 
-  // Fecha única — defaultea al máximo disponible
+  // Fecha única — re-fetchea cuando cambia el canal para ajustar al max del canal
   useEffect(() => {
-    fetch("/api/sos?action=dates")
+    const p = new URLSearchParams({ action: "dates" })
+    if (channel) p.set("channel", channel)
+    fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
+        if (!d.max) return
         setMinDate(d.min); setMaxDate(d.max)
-        setDate(d.max)   // siempre arranca en la fecha más reciente
+        // Si la fecha actual está fuera del rango del canal, ajustar al máximo
+        setDate(prev => (!prev || prev > d.max) ? d.max : prev)
       })
-  }, [])
+  }, [channel])
 
   // Cascading channels
   useEffect(() => {

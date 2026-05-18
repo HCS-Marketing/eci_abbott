@@ -77,6 +77,19 @@ export async function GET(req: Request) {
   try {
     // ── rango de fechas disponible ────────────────────────
     if (action === "dates") {
+      // Si viene channel, filtrar por plataforma para devolver el max de ese canal
+      if (channel) {
+        const rows = await prisma.$queryRawUnsafe<{ min_d: Date; max_d: Date }[]>(
+          `SELECT MIN(DATE(fecha))::date AS min_d, MAX(DATE(fecha))::date AS max_d FROM eci.sos WHERE plataforma = $1`,
+          channel
+        )
+        const r = rows[0]
+        if (!r?.min_d) return NextResponse.json({ min: "", max: "" })
+        return NextResponse.json({
+          min: r.min_d.toISOString().split("T")[0],
+          max: r.max_d.toISOString().split("T")[0],
+        })
+      }
       const [r] = await prisma.$queryRaw<{ min_d: Date; max_d: Date }[]>`
         SELECT MIN(DATE(fecha))::date AS min_d, MAX(DATE(fecha))::date AS max_d FROM eci.sos
       `
