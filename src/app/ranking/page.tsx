@@ -179,6 +179,7 @@ export default function RankingPage() {
   const [selectedSeller, setSelectedSeller] = useState("")
 
   const [data,    setData]    = useState<RankingProduct[]>([])
+  const [kpiData, setKpiData] = useState<RankingProduct[]>([])
   const [loading, setLoading] = useState(false)
 
   // Seller dropdown
@@ -261,6 +262,27 @@ export default function RankingPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // Fetch KPI data — siempre Newsan vs todos, ignora filtro de seller
+  const KPI_SELLER = "Newsan"
+  const fetchKpiData = useCallback(() => {
+    if (!startDate || !endDate) return
+    const p = new URLSearchParams({
+      action:      "ranking",
+      page_filter: pageFilter,
+      limit:       "200",
+    })
+    if (channel)   p.set("channel",   channel)
+    if (category)  p.set("category",  category)
+    if (startDate) p.set("startDate", startDate)
+    if (endDate)   p.set("endDate",   endDate)
+    // sin seller → trae todos
+    fetch(`/api/sos?${p}`)
+      .then(r => r.json())
+      .then(d => setKpiData(Array.isArray(d) ? d : []))
+  }, [channel, category, startDate, endDate, pageFilter])
+
+  useEffect(() => { fetchKpiData() }, [fetchKpiData])
+
   // Filtrar por búsqueda de texto
   const filtered = data.filter(e =>
     !search ||
@@ -269,17 +291,17 @@ export default function RankingPage() {
     e.marca?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // KPIs — usan posición visual (orden en array) no el valor crudo de ranking
-  const isAllSellers   = selectedSeller === ""
-  const kpiProducts    = isAllSellers ? data : data.filter(e => e.seller === selectedSeller)
-  const ownBestRank    = isAllSellers
-    ? (filtered.length > 0 ? 1 : null)
-    : (() => { const idx = filtered.findIndex(e => e.seller === selectedSeller); return idx >= 0 ? idx + 1 : null })()
-  const ownTop3        = filtered.slice(0, 3).filter(e => isAllSellers || e.seller === selectedSeller).length
-  const ownTop10       = filtered.slice(0, 10).filter(e => isAllSellers || e.seller === selectedSeller).length
-  const ownBestScore   = kpiProducts.length > 0 ? kpiProducts[0].ranking : null
-  const ownCapture     = kpiProducts.length
-    ? Math.round(kpiProducts.reduce((s, e, i) => s + posWeight(i + 1), 0) / Math.max(kpiProducts.length, 1))
+  // KPIs — siempre Newsan vs todos (ignora filtro de seller)
+  const kpiNewsan    = kpiData.filter(e => e.seller === KPI_SELLER)
+  const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => e.seller === KPI_SELLER); return idx >= 0 ? idx + 1 : null })()
+  const kpiTop3      = kpiData.slice(0, 3).filter(e => e.seller === KPI_SELLER).length
+  const kpiTop10     = kpiData.slice(0, 10).filter(e => e.seller === KPI_SELLER).length
+  const kpiBestScore = kpiNewsan.length > 0 ? kpiNewsan[0].ranking : null
+  const kpiCapture   = kpiNewsan.length
+    ? Math.round(kpiNewsan.reduce((s, e) => {
+        const pos = kpiData.findIndex(k => k.id === e.id) + 1
+        return s + posWeight(pos)
+      }, 0) / kpiNewsan.length)
     : 0
 
   // Sellers presentes en resultados (para colores)
@@ -409,27 +431,27 @@ export default function RankingPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: isAllSellers ? "Mejor posición general" : `Mejor posición · ${selectedSeller}`,
-            value: ownBestRank !== null ? `#${ownBestRank}` : "—",
-            color: ownBestRank !== null && ownBestRank <= 3 ? "#16a34a" : ownBestRank !== null && ownBestRank <= 10 ? "#d97706" : "#6b7280",
-            sub: ownBestScore !== null ? `score: ${ownBestScore}` : undefined,
+            label: `Mejor posición · ${KPI_SELLER}`,
+            value: kpiBestRank !== null ? `#${kpiBestRank}` : "—",
+            color: kpiBestRank !== null && kpiBestRank <= 3 ? "#16a34a" : kpiBestRank !== null && kpiBestRank <= 10 ? "#d97706" : "#6b7280",
+            sub: kpiBestScore !== null ? `score prom: ${kpiBestScore}` : undefined,
           },
           {
-            label: isAllSellers ? "Potencial promedio total" : "Potencial promedio",
-            value: `${ownCapture}%`,
-            sub: "basado en posición en resultados",
+            label: `Captura ponderada · ${KPI_SELLER}`,
+            value: `${kpiCapture}%`,
+            sub: `vs todos (${kpiData.length} productos)`,
           },
           {
-            label: "Productos top 3",
-            value: String(ownTop3),
+            label: `Prods. ${KPI_SELLER} en top 3`,
+            value: String(kpiTop3),
             color: "#16a34a",
-            sub: `de ${data.length} en resultados`,
+            sub: `de ${kpiData.length} productos totales`,
           },
           {
-            label: "Productos top 10",
-            value: String(ownTop10),
+            label: `Prods. ${KPI_SELLER} en top 10`,
+            value: String(kpiTop10),
             color: "#d97706",
-            sub: `${data.length ? Math.round(ownTop10 / data.length * 100) : 0}% del total`,
+            sub: kpiData.length ? `${Math.round(kpiTop10 / kpiData.length * 100)}% del total` : "—",
           },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
