@@ -28,139 +28,29 @@ const DEFAULT_SUGGESTIONS = [
   "¿Qué acciones priorizar esta semana?",
 ]
 
-// ─── PAGE CONTEXT BUILDER (fetches real DB data) ───────────────
-async function buildPageContext(pathname: string): Promise<string> {
+// ─── PAGE CONTEXT BUILDER (lightweight — dates/channels/categories only) ────
+// The heavy DB queries are done server-side by Claude via tool calls.
+async function buildLightContext(pathname: string): Promise<string> {
   try {
-    // Always get latest date
     const datesRes = await fetch("/api/sos?action=dates")
-    const dates = await datesRes.json() as { min: string; max: string }
-    const d = dates.max
-    if (!d) return "No se encontraron datos en la base de datos."
+    const dates    = await datesRes.json() as { min: string; max: string }
+    if (!dates.max) return ""
 
-    const lines: string[] = [`Fecha más reciente en la DB: ${d}`]
+    const [chRes, catRes] = await Promise.all([
+      fetch(`/api/sos?action=channels&startDate=${dates.max}&endDate=${dates.max}`),
+      fetch(`/api/sos?action=categories&startDate=${dates.max}&endDate=${dates.max}`),
+    ])
+    const channels   = await chRes.json()  as string[]
+    const categories = await catRes.json() as string[]
 
-    // Fetch channels
-    const chRes = await fetch(`/api/sos?action=channels&startDate=${d}&endDate=${d}`)
-    const channels = await chRes.json() as string[]
-    if (Array.isArray(channels) && channels.length > 0) {
-      lines.push(`Canales disponibles: ${channels.join(", ")}`)
-    }
-
-    // Page-specific context
-    if (pathname.includes("/pricing")) {
-      const r = await fetch(`/api/sos?action=pricing&date=${d}&limit=50`)
-      const rows = await r.json() as { subcategoria: string; precio_venta: number; descuento: number; seller: string }[]
-      if (Array.isArray(rows) && rows.length > 0) {
-        const catMap = new Map<string, { count: number; sumPrice: number; sumDisc: number; sellers: Set<string> }>()
-        rows.forEach(row => {
-          const c = row.subcategoria || "General"
-          const e = catMap.get(c) || { count: 0, sumPrice: 0, sumDisc: 0, sellers: new Set() }
-          e.count++; e.sumPrice += row.precio_venta || 0; e.sumDisc += row.descuento || 0
-          e.sellers.add(row.seller)
-          catMap.set(c, e)
-        })
-        lines.push(`\nDatos de precios (${d}):`)
-        catMap.forEach((v, cat) => {
-          lines.push(`  ${cat}: ${v.count} productos, precio prom $${Math.round(v.sumPrice / v.count).toLocaleString("es-AR")}, desc prom ${Math.round(v.sumDisc / v.count)}%, ${v.sellers.size} sellers`)
-        })
-        const newsan = rows.filter(r => r.seller === "Newsan")
-        if (newsan.length > 0) lines.push(`  Newsan: ${newsan.length} productos listados`)
-      }
-
-    } else if (pathname.includes("/buybox")) {
-      const r = await fetch(`/api/sos?action=buybox&date=${d}&limit=200`)
-      const rows = await r.json() as { newsan_wins: boolean; newsan_present: boolean; subcategoria: string }[]
-      if (Array.isArray(rows) && rows.length > 0) {
-        const wins  = rows.filter(r => r.newsan_wins).length
-        const loses = rows.filter(r => r.newsan_present && !r.newsan_wins).length
-        const gaps  = rows.filter(r => !r.newsan_present).length
-        const wr    = (wins + loses) > 0 ? Math.round(wins / (wins + loses) * 100) : 0
-        lines.push(`\nBuyBox (${d}): ${rows.length} productos`)
-        lines.push(`  Win rate Newsan: ${wr}% | Wins: ${wins} | Pierde: ${loses} | Gaps: ${gaps}`)
-        const catMap = new Map<string, { wins: number; total: number }>()
-        rows.forEach(row => {
-          const c = row.subcategoria || "General"
-          const e = catMap.get(c) || { wins: 0, total: 0 }
-          e.total++; if (row.newsan_wins) e.wins++
-          catMap.set(c, e)
-        })
-        lines.push(`  Por categoría:`)
-        catMap.forEach((v, cat) => {
-          lines.push(`    ${cat}: ${v.wins}/${v.total} wins (${Math.round(v.wins / v.total * 100)}%)`)
-        })
-      }
-
-    } else if (pathname.includes("/assortment")) {
-      const r = await fetch(`/api/sos?action=assortment&date=${d}&limit=500`)
-      const rows = await r.json() as { newsan_present: boolean; marca: string; subcategoria: string }[]
-      if (Array.isArray(rows) && rows.length > 0) {
-        const withN = rows.filter(r => r.newsan_present).length
-        lines.push(`\nAssortment (${d}): ${rows.length} SKUs en mercado`)
-        lines.push(`  Cobertura Newsan: ${Math.round(withN / rows.length * 100)}% (${withN} con Newsan, ${rows.length - withN} gaps)`)
-        const bMap = new Map<string, { total: number; newsan: number }>()
-        rows.forEach(row => {
-          const b = row.marca || "Sin marca"
-          const e = bMap.get(b) || { total: 0, newsan: 0 }
-          e.total++; if (row.newsan_present) e.newsan++
-          bMap.set(b, e)
-        })
-        lines.push(`  Top marcas:`)
-        ;[...bMap.entries()].sort((a, b) => b[1].total - a[1].total).slice(0, 6).forEach(([brand, v]) => {
-          lines.push(`    ${brand}: ${v.total} SKUs, cobertura ${Math.round(v.newsan / v.total * 100)}%`)
-        })
-      }
-
-    } else if (pathname.includes("/inventory")) {
-      const r = await fetch(`/api/sos?action=inventory&date=${d}&limit=300`)
-      const rows = await r.json() as { stock_status: string; is_newsan: boolean; producto: string; subcategoria: string; last_seen: string | null }[]
-      if (Array.isArray(rows) && rows.length > 0) {
-        const inStock = rows.filter(r => r.stock_status === "in_stock").length
-        const breaks  = rows.filter(r => r.stock_status === "break")
-        const newsanBreaks = breaks.filter(r => r.is_newsan)
-        lines.push(`\nInventario (${d}): ${inStock} en stock, ${breaks.length} roturas detectadas`)
-        lines.push(`  Roturas Newsan: ${newsanBreaks.length}`)
-        if (newsanBreaks.length > 0) {
-          lines.push(`  Productos Newsan con rotura:`)
-          newsanBreaks.slice(0, 5).forEach(r => {
-            lines.push(`    - ${r.producto} (${r.subcategoria}) · último visto: ${r.last_seen || "desconocido"}`)
-          })
-        }
-      }
-
-    } else if (pathname.includes("/bestsellers")) {
-      const r = await fetch(`/api/sos?action=bestsellers&date=${d}&limit=10`)
-      const rows = await r.json() as { producto: string; seller: string; precio_venta: number; ranking: number; subcategoria: string }[]
-      if (Array.isArray(rows) && rows.length > 0) {
-        lines.push(`\nTop productos por ranking (${d}):`)
-        rows.slice(0, 10).forEach((row, i) => {
-          lines.push(`  ${i + 1}. ${row.producto} | ${row.seller} | $${(row.precio_venta || 0).toLocaleString("es-AR")} | score ${row.ranking}`)
-        })
-      }
-
-    } else if (pathname.includes("/price-index")) {
-      const r = await fetch(`/api/sos?action=price_index&date=${d}&limit=50`)
-      const rows = await r.json() as { producto: string; price_index: number; subcategoria: string }[]
-      if (Array.isArray(rows) && rows.length > 0) {
-        const avgIdx = rows.reduce((s, r) => s + (r.price_index || 0), 0) / rows.length
-        const aboveParity = rows.filter(r => (r.price_index || 0) > 105).length
-        const belowParity = rows.filter(r => (r.price_index || 0) < 95).length
-        lines.push(`\nPrice Index Newsan (${d}): ${rows.length} productos`)
-        lines.push(`  Índice promedio: ${Math.round(avgIdx)} (100 = paridad)`)
-        lines.push(`  Más caros que comp (+5%): ${aboveParity} productos`)
-        lines.push(`  Más baratos que comp (-5%): ${belowParity} productos`)
-      }
-
-    } else if (pathname.includes("/share-of-search") || pathname.includes("/ranking")) {
-      const catRes = await fetch(`/api/sos?action=categories&startDate=${d}&endDate=${d}`)
-      const cats = await catRes.json() as string[]
-      if (Array.isArray(cats) && cats.length > 0) {
-        lines.push(`\nCategorías con datos (${d}): ${cats.join(", ")}`)
-      }
-    }
-
-    return lines.join("\n")
+    return [
+      `Rango de fechas disponible: ${dates.min} a ${dates.max} (más reciente: ${dates.max})`,
+      `Canales disponibles: ${Array.isArray(channels)   ? channels.join(", ")   : "no disponible"}`,
+      `Categorías disponibles: ${Array.isArray(categories) ? categories.join(", ") : "no disponible"}`,
+      `Página activa del usuario: ${pathname}`,
+    ].join("\n")
   } catch {
-    return "No se pudo cargar el contexto de datos del servidor."
+    return `Página activa: ${pathname}`
   }
 }
 
@@ -209,12 +99,12 @@ export default function AIAdvisor() {
     if (messages.length === 0) setShowSuggestions(true)
   }, [pathname])
 
-  // Fetch DB context when panel opens or page changes
+  // Fetch lightweight context (dates/channels/categories) when panel opens or page changes
   useEffect(() => {
     if (!open) return
     setPageContext("")
     setContextLoading(true)
-    buildPageContext(pathname ?? "/").then(ctx => {
+    buildLightContext(pathname ?? "/").then(ctx => {
       setPageContext(ctx)
       setContextLoading(false)
     })
@@ -332,7 +222,7 @@ export default function AIAdvisor() {
               </div>
               <div className="bg-gray-50 border border-gray-100 rounded-2xl px-3.5 py-3 flex items-center gap-2">
                 <Loader2 size={14} className="text-purple-500 animate-spin" />
-                <span className="text-xs text-gray-400">Analizando datos de Newsan...</span>
+                <span className="text-xs text-gray-400">Pensando... puede estar consultando la DB</span>
               </div>
             </div>
           )}
@@ -379,7 +269,7 @@ export default function AIAdvisor() {
             </button>
           </div>
           <div className="text-[9px] text-gray-400 text-center mt-1.5">
-            Powered by Claude · datos reales de la DB
+            Powered by Claude · consulta la DB en tiempo real
           </div>
         </div>
       </div>
