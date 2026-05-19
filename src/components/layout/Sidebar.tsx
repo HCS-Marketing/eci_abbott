@@ -14,7 +14,7 @@ const NAV = [
   { href: "/ranking",         label: "Ranking",           icon: ListOrdered  },
   { href: "/bestsellers",     label: "Bestsellers",       icon: Trophy       },
   { href: "/pricing",         label: "Pricing Live",      icon: Tag          },
-  { href: "/price-index",     label: "Price Index",       icon: BarChart2    },
+  // { href: "/price-index",     label: "Price Index",       icon: BarChart2    },
   { href: "/buybox",          label: "BuyBox",            icon: Zap          },
   { href: "/assortment",      label: "Assortment",        icon: Layers       },
   { href: "/inventory",       label: "Inventario",        icon: Package      },
