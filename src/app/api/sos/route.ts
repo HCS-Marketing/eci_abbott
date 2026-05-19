@@ -483,6 +483,81 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── price index ───────────────────────────────────────
+    if (action === "price_index") {
+      const limit    = Math.min(500, parseInt(searchParams.get("limit") || "200", 10))
+      const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const show     = searchParams.get("show") || "newsan" // "newsan" | "gaps" | "all"
+      const p: unknown[] = [dateParam]
+      let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL AND id IS NOT NULL`
+      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
+      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
+      const showFilter = show === "newsan" ? "AND newsan_price IS NOT NULL"
+                       : show === "gaps"   ? "AND newsan_price IS NULL"
+                       : ""
+      const sql = `
+        WITH normalized AS (
+          SELECT
+            id,
+            producto,
+            marca,
+            subcategoria,
+            plataforma,
+            precio_venta::numeric          AS precio_venta,
+            cuotas_sin_interes,
+            (${NORM_SELLER})               AS norm_seller
+          FROM eci.sos
+          WHERE ${w}
+        ),
+        base AS (
+          SELECT
+            id,
+            MAX(producto)                                                          AS producto,
+            MAX(marca)                                                             AS marca,
+            MAX(subcategoria)                                                      AS subcategoria,
+            MAX(plataforma)                                                        AS plataforma,
+            ROUND(AVG(precio_venta), 0)                                            AS avg_price,
+            ROUND(MIN(precio_venta), 0)                                            AS min_price,
+            ROUND(AVG(CASE WHEN norm_seller = 'Newsan' THEN precio_venta END), 0)  AS newsan_price,
+            ROUND(AVG(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END), 0) AS comp_avg_price,
+            ROUND(MIN(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END), 0) AS comp_min_price,
+            COUNT(DISTINCT CASE WHEN norm_seller != 'Newsan' THEN norm_seller END) AS competitor_count,
+            MAX(CASE WHEN norm_seller = 'Newsan' THEN cuotas_sin_interes END)      AS newsan_cuotas
+          FROM normalized
+          GROUP BY id
+        )
+        SELECT *,
+          ROUND((newsan_price / NULLIF(comp_avg_price, 0)) * 100, 1) AS price_index
+        FROM base
+        WHERE avg_price IS NOT NULL ${showFilter}
+        ORDER BY
+          CASE WHEN newsan_price IS NOT NULL THEN 0 ELSE 1 END,
+          (newsan_price / NULLIF(comp_avg_price, 0)) * 100 DESC NULLS LAST
+        LIMIT ${limit}
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        id: string; producto: string; marca: string; subcategoria: string; plataforma: string
+        avg_price: number; min_price: number
+        newsan_price: number | null; comp_avg_price: number | null; comp_min_price: number | null
+        competitor_count: number; newsan_cuotas: string | number | null; price_index: number | null
+      }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        id:               r.id,
+        producto:         r.producto,
+        marca:            r.marca,
+        subcategoria:     r.subcategoria,
+        plataforma:       r.plataforma,
+        avg_price:        Number(r.avg_price),
+        min_price:        Number(r.min_price),
+        newsan_price:     r.newsan_price    != null ? Number(r.newsan_price)    : null,
+        comp_avg_price:   r.comp_avg_price  != null ? Number(r.comp_avg_price)  : null,
+        comp_min_price:   r.comp_min_price  != null ? Number(r.comp_min_price)  : null,
+        competitor_count: Number(r.competitor_count),
+        newsan_cuotas:    r.newsan_cuotas   != null ? Number(r.newsan_cuotas)   : null,
+        price_index:      r.price_index     != null ? Number(r.price_index)     : null,
+      })))
+    }
+
     // ── pricing live ──────────────────────────────────────
     if (action === "pricing") {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
