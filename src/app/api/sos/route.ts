@@ -483,6 +483,90 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── inventory ────────────────────────────────────────
+    if (action === "inventory") {
+      const limit      = Math.min(1000, parseInt(searchParams.get("limit")   || "200", 10))
+      const dateParam  = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const show       = searchParams.get("show")     || "all"  // "all" | "in_stock" | "break"
+      const lookback   = Math.min(30, parseInt(searchParams.get("lookback") || "7",   10))
+      const onlyNewsan = searchParams.get("onlyNewsan") === "1"
+      const p: unknown[] = [dateParam]
+      let wCond = `producto IS NOT NULL AND precio_venta IS NOT NULL`
+      if (channel)    { p.push(channel);  wCond += ` AND plataforma = $${p.length}` }
+      if (category)   { p.push(category); wCond += ` AND subcategoria = $${p.length}` }
+      if (onlyNewsan) { wCond += ` AND (${NORM_SELLER}) = 'Newsan'` }
+
+      const todaySub = `
+        SELECT id, (${NORM_SELLER}) AS norm_seller,
+          MAX(producto) AS producto, MAX(marca) AS marca,
+          MAX(subcategoria) AS subcategoria, MAX(plataforma) AS plataforma,
+          ROUND(MAX(precio_venta::numeric), 0) AS precio_venta
+        FROM eci.sos
+        WHERE DATE(fecha) = $1::date AND ${wCond}
+        GROUP BY id, (${NORM_SELLER})
+      `
+      const lbSub = `
+        SELECT id, (${NORM_SELLER}) AS norm_seller,
+          MAX(producto) AS producto, MAX(marca) AS marca,
+          MAX(subcategoria) AS subcategoria, MAX(plataforma) AS plataforma,
+          MAX(DATE(fecha))::text AS last_seen,
+          COUNT(DISTINCT DATE(fecha))::int AS days_seen
+        FROM eci.sos
+        WHERE DATE(fecha) >= ($1::date - INTERVAL '${lookback} days')
+          AND DATE(fecha) < $1::date
+          AND ${wCond}
+        GROUP BY id, (${NORM_SELLER})
+      `
+      const inStockSQL = `
+        SELECT t.id, t.producto, t.marca, t.subcategoria, t.plataforma, t.norm_seller,
+          t.precio_venta, lb.last_seen,
+          COALESCE(lb.days_seen, 0) AS days_seen,
+          'in_stock'::text AS stock_status,
+          (t.norm_seller = 'Newsan') AS is_newsan
+        FROM (${todaySub}) t
+        LEFT JOIN (${lbSub}) lb ON lb.id = t.id AND lb.norm_seller = t.norm_seller
+      `
+      const breakSQL = `
+        SELECT lb.id, lb.producto, lb.marca, lb.subcategoria, lb.plataforma, lb.norm_seller,
+          NULL::numeric AS precio_venta, lb.last_seen, lb.days_seen,
+          'break'::text AS stock_status,
+          (lb.norm_seller = 'Newsan') AS is_newsan
+        FROM (${lbSub}) lb
+        LEFT JOIN (${todaySub}) tod ON tod.id = lb.id AND tod.norm_seller = lb.norm_seller
+        WHERE tod.id IS NULL
+      `
+      const unionSQL = show === "in_stock" ? inStockSQL
+                     : show === "break"    ? breakSQL
+                     : `${inStockSQL} UNION ALL ${breakSQL}`
+      const sql = `
+        SELECT * FROM (${unionSQL}) combined
+        ORDER BY
+          CASE stock_status WHEN 'break' THEN 0 ELSE 1 END,
+          is_newsan DESC,
+          last_seen DESC NULLS LAST,
+          subcategoria, marca, producto
+        LIMIT ${limit}
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        id: string; producto: string; marca: string; subcategoria: string; plataforma: string
+        norm_seller: string; precio_venta: number | null; last_seen: string | null
+        days_seen: number; stock_status: string; is_newsan: boolean
+      }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        id:           r.id,
+        producto:     r.producto,
+        marca:        r.marca,
+        subcategoria: r.subcategoria,
+        plataforma:   r.plataforma,
+        seller:       r.norm_seller,
+        precio_venta: r.precio_venta != null ? Number(r.precio_venta) : null,
+        last_seen:    r.last_seen    != null ? String(r.last_seen).split("T")[0] : null,
+        days_seen:    Number(r.days_seen),
+        stock_status: r.stock_status,
+        is_newsan:    Boolean(r.is_newsan),
+      })))
+    }
+
     // ── assortment ────────────────────────────────────────
     if (action === "assortment") {
       const limit    = Math.min(1000, parseInt(searchParams.get("limit") || "500", 10))
