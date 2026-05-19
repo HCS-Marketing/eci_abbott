@@ -69,7 +69,8 @@ async function executeTool(input: Record<string, unknown>): Promise<string> {
   const category = input.category ? String(input.category) : undefined
   const limit    = Math.min(input.limit ? Number(input.limit) : 30, 100)
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
   const p = new URLSearchParams({ action, limit: String(limit) })
   if (date)     p.set("date",      date)
   if (channel)  p.set("channel",   channel)
