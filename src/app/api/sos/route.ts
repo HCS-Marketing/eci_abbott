@@ -483,6 +483,78 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── assortment ────────────────────────────────────────
+    if (action === "assortment") {
+      const limit    = Math.min(1000, parseInt(searchParams.get("limit") || "500", 10))
+      const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const show     = searchParams.get("show") || "all" // "all" | "newsan" | "gaps"
+      const p: unknown[] = [dateParam]
+      let w = `DATE(fecha) = $1::date AND producto IS NOT NULL AND precio_venta IS NOT NULL`
+      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
+      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
+      const showFilter = show === "newsan" ? `ps.newsan_present = TRUE`
+                       : show === "gaps"   ? `ps.newsan_present = FALSE`
+                       : `TRUE`
+      const sql = `
+        WITH data AS (
+          SELECT DISTINCT ON (id, (${NORM_SELLER}))
+            id, producto, marca, subcategoria, plataforma,
+            (${NORM_SELLER})                AS norm_seller,
+            ROUND(precio_venta::numeric, 0) AS precio_venta
+          FROM eci.sos
+          WHERE ${w}
+          ORDER BY id, (${NORM_SELLER}), ranking::numeric DESC NULLS LAST
+        ),
+        product_summary AS (
+          SELECT
+            id,
+            MAX(producto)                                                       AS producto,
+            MAX(marca)                                                          AS marca,
+            MAX(subcategoria)                                                   AS subcategoria,
+            MAX(plataforma)                                                     AS plataforma,
+            COUNT(DISTINCT norm_seller)                                         AS total_sellers,
+            MAX(CASE WHEN norm_seller = 'Newsan' THEN precio_venta END)         AS newsan_price,
+            MIN(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END)        AS comp_min_price,
+            MAX(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END)        AS comp_max_price,
+            BOOL_OR(norm_seller = 'Newsan')                                     AS newsan_present,
+            MIN(precio_venta)                                                   AS min_price
+          FROM data
+          GROUP BY id
+        ),
+        with_tier AS (
+          SELECT *,
+            NTILE(3) OVER (PARTITION BY subcategoria ORDER BY min_price)        AS tier_num
+          FROM product_summary
+        )
+        SELECT
+          id, producto, marca, subcategoria, plataforma,
+          total_sellers, newsan_price, comp_min_price, comp_max_price, newsan_present,
+          CASE tier_num WHEN 1 THEN 'Entry' WHEN 2 THEN 'Mid' ELSE 'Premium' END AS tier
+        FROM with_tier ps
+        WHERE ${showFilter}
+        ORDER BY subcategoria, marca, producto
+        LIMIT ${limit}
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        id: string; producto: string; marca: string; subcategoria: string; plataforma: string
+        total_sellers: number; newsan_price: number | null; comp_min_price: number | null
+        comp_max_price: number | null; newsan_present: boolean; tier: string
+      }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        id:             r.id,
+        producto:       r.producto,
+        marca:          r.marca,
+        subcategoria:   r.subcategoria,
+        plataforma:     r.plataforma,
+        total_sellers:  Number(r.total_sellers),
+        newsan_price:   r.newsan_price    != null ? Number(r.newsan_price)    : null,
+        comp_min_price: r.comp_min_price  != null ? Number(r.comp_min_price)  : null,
+        comp_max_price: r.comp_max_price  != null ? Number(r.comp_max_price)  : null,
+        newsan_present: Boolean(r.newsan_present),
+        tier:           r.tier,
+      })))
+    }
+
     // ── buybox ────────────────────────────────────────────
     if (action === "buybox") {
       const limit    = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
