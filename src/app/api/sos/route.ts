@@ -483,6 +483,110 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── buybox ────────────────────────────────────────────
+    if (action === "buybox") {
+      const limit    = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
+      const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const show     = searchParams.get("show") || "all" // "all" | "wins" | "loses" | "gaps"
+      const p: unknown[] = [dateParam]
+      let w = `DATE(fecha) = $1::date AND ranking IS NOT NULL AND id IS NOT NULL AND precio_venta IS NOT NULL`
+      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
+      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
+      const showFilter = show === "wins"  ? `w.winner_seller = 'Newsan'`
+                       : show === "loses" ? `s.newsan_price IS NOT NULL AND w.winner_seller != 'Newsan'`
+                       : show === "gaps"  ? `s.newsan_price IS NULL`
+                       : `TRUE`
+      const sql = `
+        WITH normalized AS (
+          SELECT
+            id,
+            producto,
+            marca,
+            subcategoria,
+            plataforma,
+            precio_venta::numeric   AS precio_venta,
+            precio::numeric         AS precio,
+            descuento::numeric      AS descuento,
+            envio,
+            url_producto,
+            cuotas_sin_interes,
+            ranking::numeric        AS ranking,
+            (${NORM_SELLER})        AS norm_seller
+          FROM eci.sos
+          WHERE ${w}
+        ),
+        winner AS (
+          SELECT DISTINCT ON (id)
+            id,
+            MAX(producto)    OVER (PARTITION BY id) AS producto,
+            MAX(marca)       OVER (PARTITION BY id) AS marca,
+            MAX(subcategoria) OVER (PARTITION BY id) AS subcategoria,
+            MAX(plataforma)  OVER (PARTITION BY id) AS plataforma,
+            norm_seller                              AS winner_seller,
+            ROUND(precio_venta, 0)                   AS winner_price,
+            ROUND(precio, 0)                         AS winner_precio_original,
+            ROUND(descuento, 1)                      AS winner_descuento,
+            envio                                    AS winner_envio,
+            url_producto                             AS winner_url,
+            ranking                                  AS winner_ranking
+          FROM normalized
+          ORDER BY id, ranking DESC NULLS LAST, precio_venta ASC
+        ),
+        stats AS (
+          SELECT
+            id,
+            COUNT(DISTINCT norm_seller)                                           AS total_sellers,
+            MAX(CASE WHEN norm_seller = 'Newsan' THEN ROUND(precio_venta, 0) END) AS newsan_price,
+            MAX(CASE WHEN norm_seller = 'Newsan' THEN ranking END)                AS newsan_ranking,
+            MAX(CASE WHEN norm_seller = 'Newsan' THEN envio END)                  AS newsan_envio,
+            MAX(CASE WHEN norm_seller = 'Newsan' THEN cuotas_sin_interes END)     AS newsan_cuotas
+          FROM normalized
+          GROUP BY id
+        )
+        SELECT
+          w.id, w.producto, w.marca, w.subcategoria, w.plataforma,
+          w.winner_seller, w.winner_price, w.winner_precio_original,
+          w.winner_descuento, w.winner_envio, w.winner_url, w.winner_ranking,
+          s.total_sellers, s.newsan_price, s.newsan_ranking, s.newsan_envio, s.newsan_cuotas,
+          (s.newsan_price IS NOT NULL) AS newsan_present,
+          (w.winner_seller = 'Newsan') AS newsan_wins
+        FROM winner w
+        JOIN stats s ON s.id = w.id
+        WHERE ${showFilter}
+        ORDER BY w.winner_ranking DESC NULLS LAST
+        LIMIT ${limit}
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        id: string; producto: string; marca: string; subcategoria: string; plataforma: string
+        winner_seller: string; winner_price: number; winner_precio_original: number
+        winner_descuento: number; winner_envio: string; winner_url: string; winner_ranking: number
+        total_sellers: number; newsan_price: number | null; newsan_ranking: number | null
+        newsan_envio: string | null; newsan_cuotas: string | number | null
+        newsan_present: boolean; newsan_wins: boolean
+      }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        id:                     r.id,
+        producto:               r.producto,
+        marca:                  r.marca,
+        subcategoria:           r.subcategoria,
+        plataforma:             r.plataforma,
+        winner_seller:          r.winner_seller,
+        winner_price:           Number(r.winner_price),
+        winner_precio_original: Number(r.winner_precio_original),
+        winner_descuento:       Number(r.winner_descuento),
+        winner_envio:           r.winner_envio,
+        winner_url:             r.winner_url,
+        winner_ranking:         Number(r.winner_ranking),
+        total_sellers:          Number(r.total_sellers),
+        newsan_price:           r.newsan_price    != null ? Number(r.newsan_price)    : null,
+        newsan_ranking:         r.newsan_ranking  != null ? Number(r.newsan_ranking)  : null,
+        newsan_envio:           r.newsan_envio,
+        newsan_cuotas:          r.newsan_cuotas   != null ? Number(r.newsan_cuotas)   : null,
+        newsan_present:         Boolean(r.newsan_present),
+        newsan_wins:            Boolean(r.newsan_wins),
+      })))
+    }
+
     // ── price index ───────────────────────────────────────
     if (action === "price_index") {
       const limit    = Math.min(500, parseInt(searchParams.get("limit") || "200", 10))
