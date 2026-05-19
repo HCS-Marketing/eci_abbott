@@ -3,15 +3,20 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import clsx from "clsx"
-import { ExternalLink, Search, Truck } from "lucide-react"
+import { ExternalLink, Search, Truck, Zap, Tag, Package } from "lucide-react"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface PriceRow {
   id: string; producto: string; marca: string; seller: string
   plataforma: string; subcategoria: string
   precio_venta: number; precio: number; descuento: number
-  cuotas_sin_interes: number | null; envio: string
-  tienda_oficial: string; url_producto: string
+  cuotas_sin_interes: number | null
+  tiene_cuotas_sin_interes: string | null
+  detalle_cuotas: string | null
+  oferta_relampago: string | null
+  cupon: string | null
+  full_ml: string | null
+  envio: string; tienda_oficial: string; url_producto: string
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
@@ -303,7 +308,8 @@ export default function PricingPage() {
                     Desc% <SortIcon col="descuento" />
                   </th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Cuotas</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Envío</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Envío / Full</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Promo</th>
                   <th className="px-3 py-2.5"></th>
                 </tr>
               </thead>
@@ -312,10 +318,17 @@ export default function PricingPage() {
                   const color    = COLORS[e.seller] || "#9ca3af"
                   const hasDiscount       = e.descuento && e.descuento > 0
                   const hasPrecioOriginal = e.precio && e.precio > e.precio_venta
-                  const envioVal  = e.envio?.toLowerCase()
-                  const hasEnvio  = envioVal && envioVal !== "no" && envioVal.trim() !== ""
-                  const isOficial = e.tienda_oficial?.toLowerCase() === "si"
-                  const diffPct   = avgPrice > 0 ? Math.round(((e.precio_venta - avgPrice) / avgPrice) * 100) : 0
+                  const envioVal        = e.envio?.toLowerCase()
+                  const hasEnvio        = envioVal && envioVal !== "no" && envioVal.trim() !== ""
+                  const isFull          = e.full_ml?.toUpperCase() === "SI"
+                  const isOficial       = e.tienda_oficial?.toLowerCase() === "si"
+                  const isRelampago     = e.oferta_relampago?.toUpperCase() === "SI"
+                  const hasCupon        = !!e.cupon
+                  const diffPct         = avgPrice > 0 ? Math.round(((e.precio_venta - avgPrice) / avgPrice) * 100) : 0
+                  // Cuotas: "Mismo precio" en detalle = s/i real; si tiene cuotas pero sin esa frase = con interés
+                  const esMismoPrecio   = e.detalle_cuotas?.includes("Mismo") ?? false
+                  const tieneCuotas     = e.tiene_cuotas_sin_interes?.toUpperCase() === "SI"
+                  const nCuotas         = e.cuotas_sin_interes
 
                   return (
                     <tr key={`${e.id}-${i}`} className="hover:bg-gray-50 transition-colors">
@@ -325,6 +338,16 @@ export default function PricingPage() {
                           <span className="font-medium text-gray-800 leading-snug">{e.producto}</span>
                           {isOficial && (
                             <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200 flex-shrink-0">Oficial</span>
+                          )}
+                          {isRelampago && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200 flex-shrink-0">
+                              <Zap size={8} />Oferta
+                            </span>
+                          )}
+                          {isFull && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-black px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 flex-shrink-0">
+                              <Package size={8} />Full
+                            </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -370,18 +393,36 @@ export default function PricingPage() {
 
                       {/* Cuotas */}
                       <td className="px-3 py-3 text-center">
-                        {e.cuotas_sin_interes != null && e.cuotas_sin_interes > 0 ? (
-                          <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-100">
-                            {e.cuotas_sin_interes}x s/i
-                          </span>
+                        {tieneCuotas && nCuotas ? (
+                          esMismoPrecio ? (
+                            <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-100">
+                              {nCuotas}x s/i
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full border border-amber-200">
+                              {nCuotas}x c/i
+                            </span>
+                          )
                         ) : <span className="text-gray-300">—</span>}
                       </td>
 
-                      {/* Envío */}
+                      {/* Envío / Full */}
                       <td className="px-3 py-3 text-center">
-                        {hasEnvio ? (
-                          <span className="flex items-center justify-center gap-0.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100">
-                            <Truck size={9} />{e.envio}
+                        <div className="flex flex-col items-center gap-1">
+                          {hasEnvio && (
+                            <span className="flex items-center justify-center gap-0.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100">
+                              <Truck size={9} />{e.envio}
+                            </span>
+                          )}
+                          {!hasEnvio && <span className="text-gray-300">—</span>}
+                        </div>
+                      </td>
+
+                      {/* Promo (cupón) */}
+                      <td className="px-3 py-3 text-center max-w-[120px]">
+                        {hasCupon ? (
+                          <span className="flex items-center justify-center gap-0.5 text-[9px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200 whitespace-nowrap">
+                            <Tag size={8} />{e.cupon}
                           </span>
                         ) : <span className="text-gray-300">—</span>}
                       </td>

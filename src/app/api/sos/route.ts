@@ -839,6 +839,11 @@ export async function GET(req: Request) {
           ROUND(AVG(precio)::numeric, 0)        AS precio,
           ROUND(AVG(descuento)::numeric, 1)     AS descuento,
           MAX(cuotas_sin_interes)               AS cuotas_sin_interes,
+          MAX(tiene_cuotas_sin_interes)         AS tiene_cuotas_sin_interes,
+          MAX(detalle_cuotas)                   AS detalle_cuotas,
+          MAX(oferta_relampago)                 AS oferta_relampago,
+          MAX(cupon)                            AS cupon,
+          MAX("full")                           AS full_ml,
           MAX(envio)                            AS envio,
           MAX(tienda_oficial)                   AS tienda_oficial,
           MAX(url_producto)                     AS url_producto
@@ -852,23 +857,33 @@ export async function GET(req: Request) {
         id: string; producto: string; marca: string; seller: string
         plataforma: string; subcategoria: string
         precio_venta: number; precio: number; descuento: number
-        cuotas_sin_interes: string | number | null; envio: string
-        tienda_oficial: string; url_producto: string
+        cuotas_sin_interes: string | number | null
+        tiene_cuotas_sin_interes: string | null
+        detalle_cuotas: string | null
+        oferta_relampago: string | null
+        cupon: string | null
+        full_ml: string | null
+        envio: string; tienda_oficial: string; url_producto: string
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
-        id:                 r.id,
-        producto:           r.producto,
-        marca:              r.marca,
-        seller:             r.seller,
-        plataforma:         r.plataforma,
-        subcategoria:       r.subcategoria,
-        precio_venta:       Number(r.precio_venta),
-        precio:             Number(r.precio),
-        descuento:          Number(r.descuento),
-        cuotas_sin_interes: r.cuotas_sin_interes != null ? Number(r.cuotas_sin_interes) : null,
-        envio:              r.envio,
-        tienda_oficial:     r.tienda_oficial,
-        url_producto:       r.url_producto,
+        id:                      r.id,
+        producto:                r.producto,
+        marca:                   r.marca,
+        seller:                  r.seller,
+        plataforma:              r.plataforma,
+        subcategoria:            r.subcategoria,
+        precio_venta:            Number(r.precio_venta),
+        precio:                  Number(r.precio),
+        descuento:               Number(r.descuento),
+        cuotas_sin_interes:      r.cuotas_sin_interes != null ? Number(r.cuotas_sin_interes) : null,
+        tiene_cuotas_sin_interes: r.tiene_cuotas_sin_interes,
+        detalle_cuotas:          r.detalle_cuotas,
+        oferta_relampago:        r.oferta_relampago,
+        cupon:                   r.cupon,
+        full_ml:                 r.full_ml,
+        envio:                   r.envio,
+        tienda_oficial:          r.tienda_oficial,
+        url_producto:            r.url_producto,
       })))
     }
 
