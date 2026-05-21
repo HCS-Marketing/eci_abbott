@@ -97,21 +97,6 @@ export default function BuyboxPage() {
 
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
-        {/* Fecha */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Fecha</span>
-            <input type="date" value={date} min={minDate} max={maxDate}
-              onChange={e => setDate(e.target.value)}
-              className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white" />
-          </div>
-          {date === maxDate && maxDate && (
-            <span className="text-[10px] text-green-600 font-semibold mt-0.5 pl-9">✓ Última actualización disponible</span>
-          )}
-        </div>
-
-        <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
         {/* Canal */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>
@@ -130,25 +115,6 @@ export default function BuyboxPage() {
             <option value="">Todas las categorías</option>
             {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
-        </div>
-
-        <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        {/* Show toggle */}
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {([
-            ["all",    "Todos"],
-            ["wins",   "Newsan gana"],
-            ["loses",  "Newsan pierde"],
-            ["gaps",   "Gaps"],
-            ["lost7d", "� Newsan 7d"],
-          ] as const).map(([val, label]) => (
-            <button key={val} onClick={() => setShow(val)}
-              className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-                show === val ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-              {label}
-            </button>
-          ))}
         </div>
 
         {/* Límite */}
@@ -308,7 +274,6 @@ export default function BuyboxPage() {
                 </tbody>
               </table>
             </div>
-          )
         )}
       </div>
     </div>
