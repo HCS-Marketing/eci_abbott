@@ -3,7 +3,7 @@ import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus, Download } from "lucide-react"
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -367,6 +367,58 @@ export default function ShareOfShelfPage() {
     ])
   }, [api])
 
+  function downloadCSV() {
+    const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"
+    const chanPart = (channel || "todos-canales").replace(/\s+/g, "-")
+    const catPart  = (category || "todas-categorias").replace(/\s+/g, "-")
+
+    let headers: string[]
+    let rows: string[][]
+
+    if (drill === "seller") {
+      headers = ["#", "Seller", "SOS Pág 1 (%)", "Δ SOS Pág 1 (pp)", "SOS Total (%)", "Δ SOS Total (pp)", "Prods Pág 1"]
+      rows = sellerData.map((e, i) => [
+        String(i + 1),
+        String(e.seller),
+        String(e.sos_p1),
+        String(e.sos_p1_change),
+        String(e.sos_total),
+        String(e.sos_total_change),
+        String(e.products_p1),
+      ])
+    } else if (drill === "brand") {
+      headers = ["Marca", "Seller", "SOS Pág 1 (%)", "Δ SOS Pág 1 (pp)", "SOS Total (%)", "Prods Pág 1"]
+      rows = brandData.map(b => [
+        String(b.brand),
+        String(b.seller),
+        String(b.sos_p1),
+        String(b.sos_p1_change),
+        String(b.sos_total),
+        String(b.products_p1),
+      ])
+    } else {
+      headers = ["Título", "Seller", "SOS Pág 1 (%)", "Δ SOS Pág 1 (pp)", "SOS Total (%)", "Pos. típica"]
+      rows = tituloData.map(t => [
+        String(t.titulo),
+        String(t.seller),
+        String(t.sos_p1),
+        String(t.sos_p1_change),
+        String(t.sos_total),
+        String(t.ranking_pos),
+      ])
+    }
+
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
+    const csv = [headers, ...rows].map(row => row.map(esc).join(",")).join("\n")
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `sos_${drill}_${datePart}_${chanPart}_${catPart}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const ownEntry  = sellerData.find((e) => e.seller === selectedSeller) as Record<string, unknown> | undefined
   const ownColor  = COLORS[selectedSeller] || "#a427ff"
 
@@ -667,6 +719,14 @@ export default function ShareOfShelfPage() {
             {category || "Todas las categorías"} · {channel || "Todos los canales"}
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={downloadCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+              title="Descargar CSV con los filtros actuales"
+            >
+              <Download size={12} />
+              <span>CSV</span>
+            </button>
             <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
               {(["seller", "brand", "titulo"] as DrillLevel[]).map(l => (
                 <button
