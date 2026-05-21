@@ -15,12 +15,18 @@ interface BuyboxRow {
   newsan_present: boolean; newsan_wins: boolean
 }
 
+interface BuyboxLostRow {
+  id: string; producto: string; marca: string; subcategoria: string; plataforma: string
+  current_winner: string; current_price: number; current_envio: string | null
+  winner_url: string | null; days_won: number; newsan_price: number | null; latest_date: string
+}
+
 function fmtARS(n: number | null) {
   if (n == null || n === 0) return "—"
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
 }
 
-type ShowMode = "all" | "wins" | "loses" | "gaps"
+type ShowMode = "all" | "wins" | "loses" | "gaps" | "lost7d"
 
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function BuyboxPage() {
@@ -37,8 +43,9 @@ export default function BuyboxPage() {
 
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
-  const [data,    setData]    = useState<BuyboxRow[]>([])
-  const [loading, setLoading] = useState(false)
+  const [data,     setData]     = useState<BuyboxRow[]>([])
+  const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
+  const [loading,  setLoading]  = useState(false)
 
   // Fecha canal-aware
   useEffect(() => {
@@ -79,15 +86,25 @@ export default function BuyboxPage() {
 
   // Fetch buybox
   const fetchData = useCallback(() => {
-    if (!date) return
     setLoading(true)
-    const p = new URLSearchParams({ action: "buybox", limit: String(topN), date, show })
-    if (channel)  p.set("channel",  channel)
-    if (category) p.set("category", category)
-    fetch(`/api/sos?${p}`)
-      .then(r => r.json())
-      .then(d => setData(Array.isArray(d) ? d : []))
-      .finally(() => setLoading(false))
+    if (show === "lost7d") {
+      const p = new URLSearchParams({ action: "buybox_lost", limit: String(topN) })
+      if (channel)  p.set("channel",  channel)
+      if (category) p.set("category", category)
+      fetch(`/api/sos?${p}`)
+        .then(r => r.json())
+        .then(d => setLostData(Array.isArray(d) ? d : []))
+        .finally(() => setLoading(false))
+    } else {
+      if (!date) { setLoading(false); return }
+      const p = new URLSearchParams({ action: "buybox", limit: String(topN), date, show })
+      if (channel)  p.set("channel",  channel)
+      if (category) p.set("category", category)
+      fetch(`/api/sos?${p}`)
+        .then(r => r.json())
+        .then(d => setData(Array.isArray(d) ? d : []))
+        .finally(() => setLoading(false))
+    }
   }, [channel, category, date, topN, show])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -99,11 +116,24 @@ export default function BuyboxPage() {
     e.marca?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // KPIs
+  // KPIs — modo normal
   const wins   = filtered.filter(e => e.newsan_wins).length
   const loses  = filtered.filter(e => e.newsan_present && !e.newsan_wins).length
   const gaps   = filtered.filter(e => !e.newsan_present).length
   const winRate = (wins + loses) > 0 ? Math.round(wins / (wins + loses) * 100) : 0
+
+  // KPIs — modo lost7d
+  const lostFiltered = lostData.filter(e =>
+    !search ||
+    e.producto?.toLowerCase().includes(search.toLowerCase()) ||
+    e.current_winner?.toLowerCase().includes(search.toLowerCase()) ||
+    e.marca?.toLowerCase().includes(search.toLowerCase())
+  )
+  const lostWithPrice = lostFiltered.filter(e => e.newsan_price != null).length
+  const lostGaps      = lostFiltered.filter(e => e.newsan_price == null).length
+  const avgDays       = lostFiltered.length > 0
+    ? Math.round(lostFiltered.reduce((s, e) => s + e.days_won, 0) / lostFiltered.length)
+    : 0
 
   return (
     <div className="space-y-4">
@@ -154,10 +184,11 @@ export default function BuyboxPage() {
         {/* Show toggle */}
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
           {([
-            ["all",   "Todos"],
-            ["wins",  "Newsan gana"],
-            ["loses", "Newsan pierde"],
-            ["gaps",  "Gaps"],
+            ["all",    "Todos"],
+            ["wins",   "Newsan gana"],
+            ["loses",  "Newsan pierde"],
+            ["gaps",   "Gaps"],
+            ["lost7d", "📉 Perdió (7d)"],
           ] as const).map(([val, label]) => (
             <button key={val} onClick={() => setShow(val)}
               className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
@@ -181,7 +212,38 @@ export default function BuyboxPage() {
 
       {/* ── KPIs ─────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
+        {show === "lost7d" ? [
+          {
+            label: "Perdieron BuyBox",
+            value: String(lostFiltered.length),
+            color: "#dc2626",
+            sub: "tuvieron BB en 7d, hoy ya no",
+          },
+          {
+            label: "Newsan aún presente",
+            value: String(lostWithPrice),
+            color: "#d97706",
+            sub: "están en el listing pero no ganan",
+          },
+          {
+            label: "Newsan desapareció",
+            value: String(lostGaps),
+            color: "#6b7280",
+            sub: "no están en el listing hoy",
+          },
+          {
+            label: "Días promedio con BB",
+            value: String(avgDays),
+            color: "#7c3aed",
+            sub: "promedio en los 7 días anteriores",
+          },
+        ].map(k => (
+          <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
+            <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
+            <div className="text-2xl font-bold" style={{ color: k.color }}>{k.value}</div>
+            {k.sub && <div className="text-xs text-gray-400 mt-1">{k.sub}</div>}
+          </div>
+        )) : [
           {
             label: "Win Rate BuyBox",
             value: `${winRate}%`,
@@ -222,7 +284,9 @@ export default function BuyboxPage() {
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
               {category || "Todas las categorías"} · {channel || "Todos los canales"}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">{filtered.length} productos</div>
+            <div className="text-xs text-gray-500 mt-0.5">
+              {show === "lost7d" ? lostFiltered.length : filtered.length} productos
+            </div>
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
@@ -236,6 +300,82 @@ export default function BuyboxPage() {
           <div className="flex items-center justify-center py-16">
             <div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : show === "lost7d" ? (
+          lostFiltered.length === 0 ? (
+            <div className="text-center py-14 text-gray-400 text-sm">Sin productos que perdieron BuyBox en los últimos 7 días</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-left">
+                    <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Días con BB</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Nuevo Winner</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Winner</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Newsan hoy</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Diferencia</th>
+                    <th className="px-3 py-2.5"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {lostFiltered.map((e, i) => {
+                    const diff = e.newsan_price != null
+                      ? Math.round(((e.newsan_price - e.current_price) / e.current_price) * 100)
+                      : null
+                    return (
+                      <tr key={`${e.id}-${i}`} className="hover:bg-red-50/30 transition-colors">
+                        <td className="px-4 py-3 max-w-xs">
+                          <div className="font-medium text-gray-800 leading-snug mb-0.5">{e.producto}</div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {e.marca        && <span className="text-[10px] text-gray-400">{e.marca}</span>}
+                            {e.subcategoria && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">· {e.subcategoria}</span>}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                            {e.days_won}d
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+                            {e.current_winner}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          <div className="font-black text-gray-900 font-mono">{fmtARS(e.current_price)}</div>
+                        </td>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          {e.newsan_price != null
+                            ? <div className="font-mono text-gray-700">{fmtARS(e.newsan_price)}</div>
+                            : <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Sin Newsan</span>
+                          }
+                        </td>
+                        <td className="px-3 py-3 text-right whitespace-nowrap">
+                          {diff != null && diff !== 0 ? (
+                            <span className={clsx("text-[10px] font-bold", diff > 0 ? "text-red-500" : "text-green-600")}>
+                              {diff > 0 ? "+" : ""}{diff}%
+                            </span>
+                          ) : <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          {e.winner_url && (
+                            <a href={e.winner_url} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center justify-center gap-1 text-[9px] text-gray-400 hover:text-purple-600 transition-colors bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">
+                              <ExternalLink size={8} />ver
+                            </a>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
         ) : filtered.length === 0 ? (
           <div className="text-center py-14 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
         ) : (
