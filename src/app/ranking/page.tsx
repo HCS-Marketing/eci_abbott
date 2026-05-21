@@ -3,7 +3,7 @@ import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Trophy, LayoutGrid, List, Search } from "lucide-react"
+import { TrendingUp, TrendingDown, Trophy, LayoutGrid, List, Search, Download } from "lucide-react"
 
 // ── CLICK SHARE CURVE ─────────────────────────────────────────
 const CLICK_SHARE: Record<number, number> = {
@@ -307,6 +307,35 @@ export default function RankingPage() {
   // Sellers presentes en resultados (para colores)
   const sellersInView = Array.from(new Set(data.map(e => e.seller)))
 
+  function downloadCSV() {
+    const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"
+    const chanPart = (channel || "todos-canales").replace(/\s+/g, "-")
+    const catPart  = (category || "todas-categorias").replace(/\s+/g, "-")
+    const sellPart = (selectedSeller || "todos-sellers").replace(/\s+/g, "-")
+
+    const headers = ["Posición", "Título", "Seller", "Marca", "Score Promedio", "Ap. Pág 1", "Ap. Total", "Potencial (%)"]
+    const rows = filtered.map((e, i) => [
+      String(i + 1),
+      e.titulo,
+      e.seller,
+      e.marca || "",
+      String(e.ranking),
+      String(e.appearances_p1),
+      String(e.appearances_total),
+      String(posWeight(i + 1)),
+    ])
+
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
+    const csv = [headers, ...rows].map(row => row.map(esc).join(",")).join("\n")
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `ranking_${datePart}_${chanPart}_${catPart}_${sellPart}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -485,6 +514,16 @@ export default function RankingPage() {
                 className="text-xs outline-none w-48 text-gray-700"
               />
             </div>
+            {/* Descarga CSV */}
+            <button
+              onClick={downloadCSV}
+              disabled={filtered.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Descargar CSV con los filtros actuales"
+            >
+              <Download size={12} />
+              <span>CSV</span>
+            </button>
             {/* Vista toggle */}
             <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
               <button onClick={() => setView("planograma")}
