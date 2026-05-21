@@ -743,7 +743,7 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── buybox_lost (7-day window) ─────────────────────────
+    // ── buybox_lost (presencia Newsan 7 días) ──────────────
     if (action === "buybox_lost") {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "200", 10))
       const p: unknown[] = [limit]
@@ -760,95 +760,88 @@ export async function GET(req: Request) {
           WHERE s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
             ${channelSql} ${categorySql}
         ),
-        raw_7d AS (
-          SELECT
-            s.id,
-            DATE(s.fecha)              AS day,
-            (${NORM_SELLER})           AS norm_seller,
-            s.precio_venta::numeric    AS precio_venta,
-            s.ranking::numeric         AS ranking,
-            s.envio,
-            s.url_producto,
-            s.producto,
-            s.marca,
-            s.subcategoria,
-            s.plataforma,
-            ROW_NUMBER() OVER (
-              PARTITION BY s.id, DATE(s.fecha)
-              ORDER BY s.ranking::numeric DESC NULLS LAST, s.precio_venta::numeric ASC
-            ) AS rn
+        -- Productos donde Newsan estuvo como seller (cualquier posición) en los últimos 7 días
+        newsan_present_7d AS (
+          SELECT DISTINCT s.id
           FROM eci.sos s, latest_date
           WHERE s.fecha >= latest_date.max_date - INTERVAL '6 days'
             AND s.fecha  < latest_date.max_date + INTERVAL '1 day'
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql}
-        ),
-        winners_per_day AS (
-          SELECT id, day, norm_seller AS winner_seller,
-                 precio_venta AS winner_price, envio AS winner_envio,
-                 url_producto AS winner_url, producto, marca, subcategoria, plataforma
-          FROM raw_7d WHERE rn = 1
-        ),
-        newsan_won_7d AS (
-          SELECT DISTINCT id FROM winners_per_day WHERE winner_seller = 'Newsan'
-        ),
-        latest_day_winners AS (
-          SELECT w.* FROM winners_per_day w, latest_date WHERE w.day = latest_date.max_date
-        ),
-        newsan_days_count AS (
-          SELECT id, COUNT(*)::int AS days_won
-          FROM winners_per_day
-          WHERE winner_seller = 'Newsan'
-          GROUP BY id
-        ),
-        newsan_latest_price AS (
-          SELECT s.id, ROUND(MAX(s.precio_venta::numeric), 0) AS newsan_price
-          FROM eci.sos s, latest_date
-          WHERE DATE(s.fecha) = latest_date.max_date
-            AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL
             AND (${NORM_SELLER}) = 'Newsan'
             ${channelSql} ${categorySql}
-          GROUP BY s.id
+        ),
+        -- BuyBox winner en el último día (seller con mayor ranking)
+        raw_latest AS (
+          SELECT
+            s.id,
+            s.producto,
+            s.marca,
+            s.subcategoria,
+            s.plataforma,
+            (${NORM_SELLER})               AS norm_seller,
+            s.precio_venta::numeric        AS precio_venta,
+            s.ranking::numeric             AS ranking,
+            s.envio,
+            s.url_producto,
+            ROW_NUMBER() OVER (
+              PARTITION BY s.id
+              ORDER BY s.ranking::numeric DESC NULLS LAST, s.precio_venta::numeric ASC
+            ) AS rn
+          FROM eci.sos s, latest_date
+          WHERE DATE(s.fecha) = latest_date.max_date
+            AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
+            ${channelSql} ${categorySql}
+        ),
+        latest_winners AS (
+          SELECT id, producto, marca, subcategoria, plataforma,
+                 norm_seller AS winner_seller, precio_venta AS winner_price,
+                 envio AS winner_envio, url_producto AS winner_url
+          FROM raw_latest WHERE rn = 1
+        ),
+        -- Precio de Newsan en el último día (si está presente)
+        newsan_latest AS (
+          SELECT id, ROUND(MAX(precio_venta), 0) AS newsan_price
+          FROM raw_latest
+          WHERE norm_seller = 'Newsan'
+          GROUP BY id
         )
         SELECT
-          ldw.id,
-          ldw.producto,
-          ldw.marca,
-          ldw.subcategoria,
-          ldw.plataforma,
-          ldw.winner_seller                  AS current_winner,
-          ROUND(ldw.winner_price, 0)         AS current_price,
-          ldw.winner_envio                   AS current_envio,
-          ldw.winner_url,
-          ndc.days_won,
-          nlp.newsan_price,
+          lw.id,
+          lw.producto,
+          lw.marca,
+          lw.subcategoria,
+          lw.plataforma,
+          lw.winner_seller,
+          ROUND(lw.winner_price, 0)              AS winner_price,
+          lw.winner_envio,
+          lw.winner_url,
+          nl.newsan_price,
+          (lw.winner_seller = 'Newsan')          AS newsan_wins,
           (SELECT max_date::text FROM latest_date) AS latest_date
-        FROM newsan_won_7d n7
-        JOIN latest_day_winners ldw ON ldw.id = n7.id
-        JOIN newsan_days_count  ndc ON ndc.id = n7.id
-        LEFT JOIN newsan_latest_price nlp ON nlp.id = n7.id
-        WHERE ldw.winner_seller != 'Newsan'
-        ORDER BY ndc.days_won DESC NULLS LAST, ROUND(ldw.winner_price, 0) DESC NULLS LAST
+        FROM newsan_present_7d np
+        JOIN latest_winners lw ON lw.id = np.id
+        LEFT JOIN newsan_latest nl ON nl.id = np.id
+        ORDER BY (lw.winner_seller = 'Newsan') DESC, ROUND(lw.winner_price, 0) DESC NULLS LAST
         LIMIT $1
       `
       const rows = await prisma.$queryRawUnsafe<{
         id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-        current_winner: string; current_price: number; current_envio: string | null
-        winner_url: string | null; days_won: number; newsan_price: number | null; latest_date: string
+        winner_seller: string; winner_price: number; winner_envio: string | null
+        winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
-        id:             r.id,
-        producto:       r.producto,
-        marca:          r.marca,
-        subcategoria:   r.subcategoria,
-        plataforma:     r.plataforma,
-        current_winner: r.current_winner,
-        current_price:  Number(r.current_price),
-        current_envio:  r.current_envio,
-        winner_url:     r.winner_url,
-        days_won:       Number(r.days_won),
-        newsan_price:   r.newsan_price != null ? Number(r.newsan_price) : null,
-        latest_date:    r.latest_date,
+        id:            r.id,
+        producto:      r.producto,
+        marca:         r.marca,
+        subcategoria:  r.subcategoria,
+        plataforma:    r.plataforma,
+        winner_seller: r.winner_seller,
+        winner_price:  Number(r.winner_price),
+        winner_envio:  r.winner_envio,
+        winner_url:    r.winner_url,
+        newsan_price:  r.newsan_price != null ? Number(r.newsan_price) : null,
+        newsan_wins:   Boolean(r.newsan_wins),
+        latest_date:   r.latest_date,
       })))
     }
 

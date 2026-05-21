@@ -17,8 +17,8 @@ interface BuyboxRow {
 
 interface BuyboxLostRow {
   id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-  current_winner: string; current_price: number; current_envio: string | null
-  winner_url: string | null; days_won: number; newsan_price: number | null; latest_date: string
+  winner_seller: string; winner_price: number; winner_envio: string | null
+  winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
 }
 
 function fmtARS(n: number | null) {
@@ -126,13 +126,14 @@ export default function BuyboxPage() {
   const lostFiltered = lostData.filter(e =>
     !search ||
     e.producto?.toLowerCase().includes(search.toLowerCase()) ||
-    e.current_winner?.toLowerCase().includes(search.toLowerCase()) ||
+    e.winner_seller?.toLowerCase().includes(search.toLowerCase()) ||
     e.marca?.toLowerCase().includes(search.toLowerCase())
   )
-  const lostWithPrice = lostFiltered.filter(e => e.newsan_price != null).length
+  const lostWins      = lostFiltered.filter(e => e.newsan_wins).length
+  const lostLoses     = lostFiltered.filter(e => !e.newsan_wins && e.newsan_price != null).length
   const lostGaps      = lostFiltered.filter(e => e.newsan_price == null).length
-  const avgDays       = lostFiltered.length > 0
-    ? Math.round(lostFiltered.reduce((s, e) => s + e.days_won, 0) / lostFiltered.length)
+  const lostWinRate   = (lostWins + lostLoses) > 0
+    ? Math.round(lostWins / (lostWins + lostLoses) * 100)
     : 0
 
   return (
@@ -188,7 +189,7 @@ export default function BuyboxPage() {
             ["wins",   "Newsan gana"],
             ["loses",  "Newsan pierde"],
             ["gaps",   "Gaps"],
-            ["lost7d", "📉 Perdió (7d)"],
+            ["lost7d", "� Newsan 7d"],
           ] as const).map(([val, label]) => (
             <button key={val} onClick={() => setShow(val)}
               className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
@@ -214,28 +215,28 @@ export default function BuyboxPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {show === "lost7d" ? [
           {
-            label: "Perdieron BuyBox",
+            label: "Productos universo",
             value: String(lostFiltered.length),
-            color: "#dc2626",
-            sub: "tuvieron BB en 7d, hoy ya no",
-          },
-          {
-            label: "Newsan aún presente",
-            value: String(lostWithPrice),
-            color: "#d97706",
-            sub: "están en el listing pero no ganan",
-          },
-          {
-            label: "Newsan desapareció",
-            value: String(lostGaps),
-            color: "#6b7280",
-            sub: "no están en el listing hoy",
-          },
-          {
-            label: "Días promedio con BB",
-            value: String(avgDays),
             color: "#7c3aed",
-            sub: "promedio en los 7 días anteriores",
+            sub: "con presencia Newsan en últimos 7 días",
+          },
+          {
+            label: "Ganó BuyBox hoy",
+            value: String(lostWins),
+            color: "#16a34a",
+            sub: "Newsan es el winner en último día",
+          },
+          {
+            label: "Perdió BuyBox hoy",
+            value: String(lostLoses),
+            color: "#dc2626",
+            sub: "presente pero no gana en último día",
+          },
+          {
+            label: "Win Rate (7d)",
+            value: `${lostWinRate}%`,
+            color: lostWinRate >= 50 ? "#16a34a" : lostWinRate >= 30 ? "#d97706" : "#dc2626",
+            sub: "sobre productos donde Newsan compite",
           },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
@@ -302,7 +303,7 @@ export default function BuyboxPage() {
           </div>
         ) : show === "lost7d" ? (
           lostFiltered.length === 0 ? (
-            <div className="text-center py-14 text-gray-400 text-sm">Sin productos que perdieron BuyBox en los últimos 7 días</div>
+            <div className="text-center py-14 text-gray-400 text-sm">Sin productos de Newsan en los últimos 7 días</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -310,8 +311,8 @@ export default function BuyboxPage() {
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
                     <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Días con BB</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Nuevo Winner</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Estado hoy</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Winner</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Newsan hoy</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Diferencia</th>
@@ -320,11 +321,14 @@ export default function BuyboxPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {lostFiltered.map((e, i) => {
-                    const diff = e.newsan_price != null
-                      ? Math.round(((e.newsan_price - e.current_price) / e.current_price) * 100)
+                    const diff = e.newsan_price != null && !e.newsan_wins
+                      ? Math.round(((e.newsan_price - e.winner_price) / e.winner_price) * 100)
                       : null
                     return (
-                      <tr key={`${e.id}-${i}`} className="hover:bg-red-50/30 transition-colors">
+                      <tr key={`${e.id}-${i}`}
+                        className={clsx("transition-colors",
+                          e.newsan_wins ? "bg-green-50/40 hover:bg-green-50" : "hover:bg-gray-50"
+                        )}>
                         <td className="px-4 py-3 max-w-xs">
                           <div className="font-medium text-gray-800 leading-snug mb-0.5">{e.producto}</div>
                           <div className="flex items-center gap-1.5 flex-wrap">
@@ -335,24 +339,33 @@ export default function BuyboxPage() {
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                         </td>
-                        <td className="px-3 py-3 text-center">
-                          <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
-                            {e.days_won}d
-                          </span>
+                        <td className="px-3 py-3 text-center whitespace-nowrap">
+                          {e.newsan_wins ? (
+                            <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">✓ Ganó BuyBox</span>
+                          ) : e.newsan_price != null ? (
+                            <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">✗ Perdió BuyBox</span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Sin Newsan</span>
+                          )}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
-                            {e.current_winner}
-                          </span>
+                          {e.newsan_wins ? (
+                            <span className="flex items-center gap-1 text-[10px] font-black text-green-700"><Trophy size={9} className="text-amber-500" />Newsan</span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller}</span>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <div className="font-black text-gray-900 font-mono">{fmtARS(e.current_price)}</div>
+                          <div className="font-black text-gray-900 font-mono">{fmtARS(e.winner_price)}</div>
                         </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">
-                          {e.newsan_price != null
-                            ? <div className="font-mono text-gray-700">{fmtARS(e.newsan_price)}</div>
-                            : <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Sin Newsan</span>
-                          }
+                          {e.newsan_wins ? (
+                            <span className="text-gray-300 text-[10px]">= winner</span>
+                          ) : e.newsan_price != null ? (
+                            <div className="font-mono text-gray-700">{fmtARS(e.newsan_price)}</div>
+                          ) : (
+                            <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">—</span>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">
                           {diff != null && diff !== 0 ? (
