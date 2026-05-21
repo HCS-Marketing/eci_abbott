@@ -7,7 +7,10 @@ import AIAdvisor from "@/components/ui/AIAdvisor"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isAuth = pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up")
+  const isAuth =
+    pathname?.startsWith("/sign-in") ||
+    pathname?.startsWith("/sign-up") ||
+    pathname?.startsWith("/login")
 
   if (isAuth) return <>{children}</>
 

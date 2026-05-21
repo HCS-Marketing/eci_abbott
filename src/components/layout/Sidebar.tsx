@@ -1,11 +1,12 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
   Trophy, Tag, MessageSquare, Zap, Star, Package, BarChart2, Activity, Layers,
+  LogOut, LayoutDashboard,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 
@@ -39,7 +40,19 @@ export default function Sidebar() {
   const [expanded, setExpanded] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  if (pathname?.startsWith("/sign-in") || pathname?.startsWith("/sign-up")) return null
+  const router = useRouter()
+
+  if (
+    pathname?.startsWith("/sign-in") ||
+    pathname?.startsWith("/sign-up") ||
+    pathname?.startsWith("/login")
+  ) return null
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" })
+    router.push("/login")
+    router.refresh()
+  }
 
   const W = expanded ? "220px" : "60px"
 
@@ -109,11 +122,41 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div
-          className="flex items-center gap-2 py-3 px-3 flex-shrink-0"
+          className="flex flex-col gap-1 py-3 px-2 flex-shrink-0"
           style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
+          {/* Dashboard link */}
+          <Link
+            href="/main"
+            className="flex items-center gap-3 px-2 py-2 rounded-xl transition-all duration-150"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)")}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+          >
+            <LayoutDashboard size={15} className="flex-shrink-0" />
+            {expanded && <span className="text-[12px] font-light">Panel principal</span>}
+          </Link>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-2 py-2 rounded-xl transition-all duration-150 w-full"
+            style={{ color: "rgba(255,255,255,0.4)" }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.15)"
+              e.currentTarget.style.color = "#f87171"
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = "transparent"
+              e.currentTarget.style.color = "rgba(255,255,255,0.4)"
+            }}
+          >
+            <LogOut size={15} className="flex-shrink-0" />
+            {expanded && <span className="text-[12px] font-light">Cerrar sesión</span>}
+          </button>
+
           {expanded && client && (
-            <div className="min-w-0 flex-1">
+            <div className="px-2 pt-1 min-w-0">
               <div className="text-[11px] font-semibold text-white truncate">{client.name}</div>
               <div className="text-[9px]" style={{ color: "rgba(255,255,255,0.35)" }}>{client.industry}</div>
             </div>
