@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server"
 const PUBLIC_PATHS = ["/login", "/api/auth"]
 
 async function verifyToken(token: string): Promise<boolean> {
-  const validPass = process.env.PASS_APP1
+  // AUTH_SECRET es una variable plain-text en Vercel, accesible en Edge Runtime.
+  // PASS_APP1 / USER_APP1 pueden ser Sensitive y solo las usa la API de login.
+  const validPass = process.env.AUTH_SECRET
   if (!validPass) return false
 
   const lastDot = token.lastIndexOf(".")

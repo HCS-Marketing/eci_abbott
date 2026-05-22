@@ -8,7 +8,9 @@ export async function POST(req: NextRequest) {
   const validUser = process.env.USER_APP1
   const validPass = process.env.PASS_APP1
 
-  if (!validUser || !validPass) {
+  const authSecret = process.env.AUTH_SECRET
+
+  if (!validUser || !validPass || !authSecret) {
     return NextResponse.json(
       { error: "Error de configuración en el servidor" },
       { status: 500 }
@@ -24,7 +26,8 @@ export async function POST(req: NextRequest) {
 
   const timestamp = Date.now().toString()
   const payload = `${username}.${timestamp}`
-  const hmac = createHmac("sha256", validPass).update(payload).digest("hex")
+  // Token firmado con AUTH_SECRET (no con la contraseña)
+  const hmac = createHmac("sha256", authSecret).update(payload).digest("hex")
   const token = `${payload}.${hmac}`
 
   const response = NextResponse.json({ success: true })
