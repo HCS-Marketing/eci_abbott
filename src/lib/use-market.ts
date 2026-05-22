@@ -53,7 +53,7 @@ export function useMarket(): MarketContext {
   }, [])
 
   return {
-    clientBrand: client?.name || "Mi Empresa",
+    clientBrand: client?.name || "Newsan",
     industry:    client?.industry || "Retail",
     sellers,
     categories,

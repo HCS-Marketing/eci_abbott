@@ -21,7 +21,7 @@ const ClientContext = createContext<ClientContextValue>({
 // Default client — will be replaced once DB is wired up
 const DEFAULT_CLIENT: ClientConfig = {
   id: "default",
-  name: "Mi Empresa",
+  name: "Newsan",
   industry: "Retail",
   brand_color: "#A427FF",
 }
