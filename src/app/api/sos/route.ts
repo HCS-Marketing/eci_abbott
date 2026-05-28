@@ -19,7 +19,7 @@ import { prisma } from "@/lib/prisma"
 const PALETTE = ["#003DA5","#00A3E0","#ef4444","#f59e0b","#06b6d4","#84cc16","#ec4899","#14b8a6","#f97316","#8b5cf6"]
 
 // SQL CASE to unify Abbott fabricante variants into "ABBOTT"
-const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'DESCONOCIDO') END`
+const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END`
 
 // Abbott fabricante identifiers
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`

@@ -13,7 +13,7 @@ async function main() {
       pais,
       categoria,
       id AS producto_id,
-      CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'DESCONOCIDO') END AS fabricante,
+      CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END AS fabricante,
       MAX(titulo) AS titulo,
       MAX(marca) AS marca,
       ROUND(AVG(precio_venta::numeric), 0) AS precio_venta,
@@ -30,7 +30,7 @@ async function main() {
     FROM eci.sos
     WHERE id IS NOT NULL AND precio_venta IS NOT NULL
     GROUP BY fecha::date, retail, pais, categoria, id,
-      CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'DESCONOCIDO') END
+      CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END
   `)
   await p.$queryRawUnsafe(`CREATE INDEX idx_mv_product_fecha ON eci.mv_sos_product_latest (fecha)`)
   await p.$queryRawUnsafe(`CREATE INDEX idx_mv_product_composite ON eci.mv_sos_product_latest (fecha, retail, pais, categoria)`)
