@@ -189,9 +189,9 @@ export default function BestsellersPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* Seller */}
+        {/* Fabricante */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Seller</span>
+          <span className="text-xs text-gray-400">Fabricante</span>
           <div className="relative" ref={sellerRef}>
             <button onClick={() => { setSellerOpen(p => !p); setSellerSearch("") }}
               className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
@@ -260,7 +260,7 @@ export default function BestsellersPage() {
           { label: "Descuento promedio",     value: `${avgDiscount}%`,         color: avgDiscount > 15 ? "#16a34a" : "#6b7280", sub: "en resultados" },
           { label: "Con envío / promo",      value: String(freeShipping),       color: "#2563eb", sub: `de ${filtered.length} productos` },
           { label: "Prod. top 3",            value: top3.map(e => e.seller).filter((s, i, a) => a.indexOf(s) === i).join(" · ") || "—",
-            color: "#d97706", sub: "sellers en posiciones 1-3" },
+            color: "#d97706", sub: "fabricantes en posiciones 1-3" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>

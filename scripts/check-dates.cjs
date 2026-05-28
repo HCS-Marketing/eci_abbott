@@ -1,0 +1,5 @@
+const { PrismaClient } = require('@prisma/client')
+const p = new PrismaClient()
+p.$queryRawUnsafe('SELECT MIN(fecha)::text as min_f, MAX(fecha)::text as max_f, COUNT(DISTINCT fecha) as days FROM eci.sos')
+  .then(r => console.log(r))
+  .finally(() => p.$disconnect())

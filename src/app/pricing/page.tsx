@@ -196,9 +196,9 @@ export default function PricingPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* Seller */}
+        {/* Fabricante */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Seller</span>
+          <span className="text-xs text-gray-400">Fabricante</span>
           <div className="relative" ref={sellerRef}>
             <button onClick={() => { setSellerOpen(p => !p); setSellerSearch("") }}
               className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
@@ -256,7 +256,7 @@ export default function PricingPage() {
           { label: "Precio promedio", value: fmtARS(avgPrice),      color: "#7c3aed" },
           { label: "Precio máximo",   value: fmtARS(maxPrice),      color: "#dc2626" },
           { label: "Desc. promedio",  value: `${avgDiscount}%`,     color: avgDiscount > 15 ? "#16a34a" : "#6b7280" },
-          { label: "Sellers",         value: String(uniqueSellers), color: "#d97706" },
+          { label: "Fabricantes",     value: String(uniqueSellers), color: "#d97706" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
@@ -276,7 +276,7 @@ export default function PricingPage() {
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
-            <input type="text" placeholder="Buscar producto, seller, marca..." value={search}
+            <input type="text" placeholder="Buscar producto, fabricante, marca..." value={search}
               onChange={e => setSearch(e.target.value)}
               className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-52" />
           </div>
@@ -296,7 +296,7 @@ export default function PricingPage() {
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold cursor-pointer hover:text-gray-700 select-none"
                     onClick={() => toggleSort("seller")}>
-                    Seller <SortIcon col="seller" />
+                    Fabricante <SortIcon col="seller" />
                   </th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right cursor-pointer hover:text-gray-700 select-none"

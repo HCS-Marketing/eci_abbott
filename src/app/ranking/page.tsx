@@ -313,7 +313,7 @@ export default function RankingPage() {
     const catPart  = (category || "todas-categorias").replace(/\s+/g, "-")
     const sellPart = (selectedSeller || "todos-sellers").replace(/\s+/g, "-")
 
-    const headers = ["Posición", "Título", "Seller", "Marca", "Score Promedio", "Ap. Pág 1", "Ap. Total", "Potencial (%)"]
+    const headers = ["Posición", "Título", "Fabricante", "Marca", "Score Promedio", "Ap. Pág 1", "Ap. Total", "Potencial (%)"]
     const rows = filtered.map((e, i) => [
       String(i + 1),
       e.titulo,
@@ -386,9 +386,9 @@ export default function RankingPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* Seller con buscador */}
+        {/* Fabricante con buscador */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Seller</span>
+          <span className="text-xs text-gray-400">Fabricante</span>
           <div className="relative" ref={sellerRef}>
             <button
               onClick={() => { setSellerOpen(p => !p); setSellerSearch("") }}
@@ -623,7 +623,7 @@ export default function RankingPage() {
         {/* Leyenda sellers */}
         {!loading && data.length > 0 && (
           <div className="mt-5 pt-4 border-t border-gray-100">
-            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Sellers en resultados</div>
+            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Fabricantes en resultados</div>
             <div className="flex flex-wrap gap-2">
               {sellersInView.map(s => (
                 <div key={s} className="flex items-center gap-1.5">
