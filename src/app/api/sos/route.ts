@@ -274,7 +274,7 @@ export async function GET(req: Request) {
           ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1
         FROM seller_daily sd
         JOIN daily_total dt ON sd.day = dt.day
-        ORDER BY sd.day, sd.seller
+        ORDER BY sd.day, sd.fab
       `
       const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; sos_p1: number }[]>(sql, ...p)
       const dayMap = new Map<string, Record<string, unknown>>()
