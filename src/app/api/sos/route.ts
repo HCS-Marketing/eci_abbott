@@ -9,7 +9,8 @@ import { prisma } from "@/lib/prisma"
 //   fabricante, presentacion, fidelizacion, imagen
 //
 // App concept → DB column:
-//   seller/brand → marca
+//   seller       → fabricante (unified)
+//   brand        → marca
 //   channel      → retail
 //   producto     → titulo
 //   precio       → precio_neto
@@ -17,8 +18,11 @@ import { prisma } from "@/lib/prisma"
 
 const PALETTE = ["#003DA5","#00A3E0","#ef4444","#f59e0b","#06b6d4","#84cc16","#ec4899","#14b8a6","#f97316","#8b5cf6"]
 
+// SQL CASE to unify Abbott fabricante variants into "ABBOTT"
+const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'DESCONOCIDO') END`
+
 // Abbott fabricante identifiers
-const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOTT%'`
+const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -80,11 +84,11 @@ export async function GET(req: Request) {
       return w
     }
 
-    // ── sellers list (brands) ─────────────────────────────
+    // ── sellers list (fabricantes unified) ─────────────────
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sql = `SELECT DISTINCT marca AS n FROM eci.sos WHERE ${w} AND marca IS NOT NULL ORDER BY 1`
+      const sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.sos WHERE ${w} AND fabricante IS NOT NULL ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
@@ -121,27 +125,27 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── sellers/brands SOS overview ───────────────────────
+    // ── sellers (fabricante) SOS overview ──────────────────
     if (action === "sellers") {
       const p: unknown[] = []
       const w = buildWhere(p)
       const sql = `
         WITH base AS (
-          SELECT marca, pagina FROM eci.sos WHERE ${w} AND marca IS NOT NULL
+          SELECT ${FABRICANTE_UNIFIED} AS fab, pagina FROM eci.sos WHERE ${w} AND fabricante IS NOT NULL
         ),
         total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
         total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_brand AS (
-          SELECT marca,
+        per_fab AS (
+          SELECT fab,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total
-          FROM base GROUP BY marca
+          FROM base GROUP BY fab
         )
-        SELECT s.marca AS seller,
+        SELECT s.fab AS seller,
           s.products_p1::int, s.products_total::int,
           ROUND(s.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
           ROUND(s.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_brand s, total_p1 tp, total_all ta
+        FROM per_fab s, total_p1 tp, total_all ta
         ORDER BY sos_p1 DESC
         LIMIT 50
       `
@@ -162,31 +166,35 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── brand-level breakdown (products for a given brand) ──
+    // ── brand-level breakdown (marca within a given fabricante) ──
     if (action === "brands") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
       p.push(seller)
-      const sellerCond = `marca = $${p.length}`
+      const sellerCond = seller === "ABBOTT"
+        ? `${ABBOTT_LIKE}`
+        : `fabricante = $${p.length}`
+      // If seller is ABBOTT, pop the unused param
+      if (seller === "ABBOTT") p.pop()
       const sql = `
         WITH base AS (
-          SELECT titulo, pagina FROM eci.sos
-          WHERE ${w} AND ${sellerCond} AND titulo IS NOT NULL
+          SELECT marca, pagina FROM eci.sos
+          WHERE ${w} AND ${sellerCond} AND marca IS NOT NULL
         ),
         total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
         total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_titulo AS (
-          SELECT titulo,
+        per_marca AS (
+          SELECT marca,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total
-          FROM base GROUP BY titulo
+          FROM base GROUP BY marca
         )
-        SELECT b.titulo AS brand,
+        SELECT b.marca AS brand,
           b.products_p1::int, b.products_total::int,
           ROUND(b.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
           ROUND(b.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_titulo b, total_p1 tp, total_all ta
+        FROM per_marca b, total_p1 tp, total_all ta
         ORDER BY sos_p1 DESC
         LIMIT 50
       `
@@ -205,13 +213,16 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── título breakdown ──────────────────────────────────
+    // ── título breakdown (by fabricante) ────────────────────
     if (action === "titulos") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
       p.push(seller)
-      const sellerCond = `marca = $${p.length}`
+      const sellerCond = seller === "ABBOTT"
+        ? `${ABBOTT_LIKE}`
+        : `fabricante = $${p.length}`
+      if (seller === "ABBOTT") p.pop()
       const sql = `
         WITH base AS (
           SELECT id, titulo, pagina, ranking FROM eci.sos
@@ -261,19 +272,19 @@ export async function GET(req: Request) {
       sellerList.forEach(s => p.push(s))
       const sql = `
         WITH base AS (
-          SELECT DATE(fecha) AS day, marca, pagina FROM eci.sos
-          WHERE ${w} AND marca IS NOT NULL
+          SELECT DATE(fecha) AS day, ${FABRICANTE_UNIFIED} AS fab, pagina FROM eci.sos
+          WHERE ${w} AND fabricante IS NOT NULL
         ),
         daily_total AS (
           SELECT day, COUNT(*) FILTER (WHERE pagina = 1) AS total_p1
           FROM base GROUP BY day
         ),
         seller_daily AS (
-          SELECT day, marca, COUNT(*) FILTER (WHERE pagina = 1) AS products_p1
-          FROM base WHERE marca IN (${sellerPlaceholders})
-          GROUP BY day, marca
+          SELECT day, fab, COUNT(*) FILTER (WHERE pagina = 1) AS products_p1
+          FROM base WHERE fab IN (${sellerPlaceholders})
+          GROUP BY day, fab
         )
-        SELECT sd.day::text, sd.marca AS seller,
+        SELECT sd.day::text, sd.fab AS seller,
           ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1
         FROM seller_daily sd
         JOIN daily_total dt ON sd.day = dt.day
@@ -288,13 +299,14 @@ export async function GET(req: Request) {
       return NextResponse.json(Array.from(dayMap.values()))
     }
 
-    // ── SOS by channel (retail) for a single brand ────────
+    // ── SOS by channel (retail) for a single fabricante ──
     if (action === "by_channel") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p, { channel: false, category: true, country: true })
-      p.push(seller)
-      const sellerCond = `marca = $${p.length}`
+      const sellerCond = seller === "ABBOTT"
+        ? ABBOTT_LIKE
+        : (() => { p.push(seller); return `fabricante = $${p.length}` })()
       const sql = `
         WITH base AS (
           SELECT retail, pagina,
@@ -333,7 +345,10 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
       let sellerCond = ""
-      if (seller) { p.push(seller); sellerCond = ` AND marca = $${p.length}` }
+      if (seller) {
+        if (seller === "ABBOTT") { sellerCond = ` AND ${ABBOTT_LIKE}` }
+        else { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+      }
       const sql = `
         SELECT
           id,
@@ -378,7 +393,10 @@ export async function GET(req: Request) {
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
       let sellerCond = ""
-      if (seller) { p.push(seller); sellerCond = ` AND marca = $${p.length}` }
+      if (seller) {
+        if (seller === "ABBOTT") { sellerCond = ` AND ${ABBOTT_LIKE}` }
+        else { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+      }
       const sql = `
         SELECT
           id,
@@ -858,7 +876,10 @@ export async function GET(req: Request) {
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       let sellerCond = ""
-      if (seller) { p.push(seller); sellerCond = ` AND marca = $${p.length}` }
+      if (seller) {
+        if (seller === "ABBOTT") { sellerCond = ` AND ${ABBOTT_LIKE}` }
+        else { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+      }
       const sql = `
         SELECT
           id,

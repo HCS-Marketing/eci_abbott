@@ -235,6 +235,7 @@ export default function ShareOfShelfPage() {
   // Filtros
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
+  const [country,    setCountry]    = useState("")
   const [startDate,  setStartDate]  = useState("")
   const [endDate,    setEndDate]    = useState("")
   const [minDate,    setMinDate]    = useState("")
@@ -243,6 +244,7 @@ export default function ShareOfShelfPage() {
   // Opciones dinámicas de los selects
   const [availableChannels,    setAvailableChannels]    = useState<string[]>([])
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
+  const [availableCountries,   setAvailableCountries]   = useState<string[]>([])
   const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "")
   const [selectedSellers, setSelectedSellers] = useState(SELLERS.slice(0, 4))
   const [page,  setPage]  = useState<PageCtx>("p1")
@@ -308,6 +310,10 @@ export default function ShareOfShelfPage() {
         setStartDate(d.min); setEndDate(d.max)
       })
       .catch(() => {})
+    fetch("/api/sos?action=countries")
+      .then(r => r.json())
+      .then((data: string[]) => { if (Array.isArray(data)) setAvailableCountries(data) })
+      .catch(() => {})
   }, [])
 
   // ── Cascading: canales filtrados por categoría + fechas ───
@@ -346,6 +352,7 @@ export default function ShareOfShelfPage() {
         `/api/sos?action=${action}` +
         `&channel=${encodeURIComponent(channel)}` +
         `&category=${encodeURIComponent(category)}` +
+        `&country=${encodeURIComponent(country)}` +
         `&seller=${encodeURIComponent(selectedSeller)}` +
         `&sellers=${selectedSellers.join(",")}` +
         `&page=${page}` +
@@ -354,7 +361,7 @@ export default function ShareOfShelfPage() {
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, selectedSeller, selectedSellers, page, startDate, endDate]
+    [channel, category, country, selectedSeller, selectedSellers, page, startDate, endDate]
   )
 
   useEffect(() => {
@@ -488,6 +495,19 @@ export default function ShareOfShelfPage() {
           </select>
         </div>
 
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select
+            value={country}
+            onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+          >
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
+
         {/* Categoría */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Categoría</span>
@@ -501,10 +521,10 @@ export default function ShareOfShelfPage() {
           </select>
         </div>
 
-        {/* Seller con buscador */}
+        {/* Fabricante con buscador */}
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Seller</span>
+          <span className="text-xs text-gray-400">Fabricante</span>
           <div className="relative" ref={sellerDropdownRef}>
             <button
               onClick={() => { setSellerDropdownOpen(prev => !prev); setSellerSearch("") }}
@@ -521,7 +541,7 @@ export default function ShareOfShelfPage() {
                   <input
                     autoFocus
                     type="text"
-                    placeholder="Buscar seller..."
+                    placeholder="Buscar fabricante..."
                     value={sellerSearch}
                     onChange={e => setSellerSearch(e.target.value)}
                     className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400"
@@ -737,14 +757,14 @@ export default function ShareOfShelfPage() {
                     drill === l ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
                   )}
                 >
-                  {l === "seller" ? "Seller" : l === "brand" ? "Marca" : "Título"}
+                  {l === "seller" ? "Fabricante" : l === "brand" ? "Marca" : "Título"}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Seller table */}
+        {/* Fabricante table */}
         {drill === "seller" && (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px]">
