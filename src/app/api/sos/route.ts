@@ -34,11 +34,11 @@ export async function GET(req: Request) {
   const country  = searchParams.get("country") || ""
 
   try {
-    // ── date range ────────────────────────────────────────
+    // ── date range (from mv_sos_dimensions — 83 rows) ────
     if (action === "dates") {
       if (channel) {
         const rows = await prisma.$queryRawUnsafe<{ min_d: Date; max_d: Date }[]>(
-          `SELECT MIN(DATE(fecha))::date AS min_d, MAX(DATE(fecha))::date AS max_d FROM eci.sos WHERE retail = $1`,
+          `SELECT MIN(min_fecha) AS min_d, MAX(max_fecha) AS max_d FROM eci.mv_sos_dimensions WHERE retail = $1`,
           channel
         )
         const r = rows[0]
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
         })
       }
       const [r] = await prisma.$queryRaw<{ min_d: Date; max_d: Date }[]>`
-        SELECT MIN(DATE(fecha))::date AS min_d, MAX(DATE(fecha))::date AS max_d FROM eci.sos
+        SELECT MIN(min_fecha) AS min_d, MAX(max_fecha) AS max_d FROM eci.mv_sos_dimensions
       `
       return NextResponse.json({
         min: r.min_d.toISOString().split("T")[0],
@@ -84,43 +84,41 @@ export async function GET(req: Request) {
       return w
     }
 
-    // ── sellers list (fabricantes unified) ─────────────────
+    // ── sellers list (fabricantes unified) — from MV ──────
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.sos WHERE ${w} AND fabricante IS NOT NULL ORDER BY 1`
+      const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_sos_daily_fab WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── categories list ───────────────────────────────────
+    // ── categories list — from mv_sos_dimensions ──────────
     if (action === "categories") {
-      const p: unknown[] = [startD, endD]
-      let sql = `SELECT DISTINCT categoria AS n FROM eci.sos
-                 WHERE fecha >= $1 AND fecha <= $2 AND categoria IS NOT NULL`
-      if (channel) { sql += ` AND retail = $${p.length + 1}`; p.push(channel) }
-      if (country) { sql += ` AND pais = $${p.length + 1}`; p.push(country) }
+      const p: unknown[] = []
+      let sql = `SELECT DISTINCT categoria AS n FROM eci.mv_sos_dimensions WHERE 1=1`
+      if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
+      if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── channels list (retailers) ─────────────────────────
+    // ── channels list (retailers) — from mv_sos_dimensions ─
     if (action === "channels") {
-      const p: unknown[] = [startD, endD]
-      let sql = `SELECT DISTINCT retail AS n FROM eci.sos
-                 WHERE fecha >= $1 AND fecha <= $2 AND retail IS NOT NULL`
-      if (category) { sql += ` AND categoria = $${p.length + 1}`; p.push(category) }
-      if (country)  { sql += ` AND pais = $${p.length + 1}`; p.push(country) }
+      const p: unknown[] = []
+      let sql = `SELECT DISTINCT retail AS n FROM eci.mv_sos_dimensions WHERE 1=1`
+      if (category) { p.push(category); sql += ` AND categoria = $${p.length}` }
+      if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── countries list ────────────────────────────────────
+    // ── countries list — from mv_sos_dimensions ───────────
     if (action === "countries") {
       const rows = await prisma.$queryRaw<{ n: string }[]>`
-        SELECT DISTINCT pais AS n FROM eci.sos WHERE pais IS NOT NULL ORDER BY 1
+        SELECT DISTINCT pais AS n FROM eci.mv_sos_dimensions ORDER BY 1
       `
       return NextResponse.json(rows.map(r => r.n))
     }
@@ -130,22 +128,21 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const w = buildWhere(p)
       const sql = `
-        WITH base AS (
-          SELECT ${FABRICANTE_UNIFIED} AS fab, pagina FROM eci.sos WHERE ${w} AND fabricante IS NOT NULL
+        WITH agg AS (
+          SELECT fabricante AS fab,
+            SUM(count_p1) AS products_p1,
+            SUM(count_total) AS products_total
+          FROM eci.mv_sos_daily_fab WHERE ${w}
+          GROUP BY fabricante
         ),
-        total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
-        total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_fab AS (
-          SELECT fab,
-            COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
-            COUNT(*) AS products_total
-          FROM base GROUP BY fab
+        totals AS (
+          SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
-        SELECT s.fab AS seller,
-          s.products_p1::int, s.products_total::int,
-          ROUND(s.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
-          ROUND(s.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_fab s, total_p1 tp, total_all ta
+        SELECT a.fab AS seller,
+          a.products_p1::int, a.products_total::int,
+          ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
+          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
+        FROM agg a, totals t
         ORDER BY sos_p1 DESC
         LIMIT 50
       `
@@ -166,35 +163,30 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── brand-level breakdown (marca within a given fabricante) ──
+    // ── brand-level breakdown — from mv_sos_daily_marca ────
     if (action === "brands") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
       p.push(seller)
-      const sellerCond = seller === "ABBOTT"
-        ? `${ABBOTT_LIKE}`
-        : `fabricante = $${p.length}`
-      // If seller is ABBOTT, pop the unused param
-      if (seller === "ABBOTT") p.pop()
+      const sellerCond = `fabricante = $${p.length}`
       const sql = `
-        WITH base AS (
-          SELECT marca, pagina FROM eci.sos
-          WHERE ${w} AND ${sellerCond} AND marca IS NOT NULL
-        ),
-        total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
-        total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_marca AS (
+        WITH agg AS (
           SELECT marca,
-            COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
-            COUNT(*) AS products_total
-          FROM base GROUP BY marca
+            SUM(count_p1) AS products_p1,
+            SUM(count_total) AS products_total
+          FROM eci.mv_sos_daily_marca
+          WHERE ${w} AND ${sellerCond}
+          GROUP BY marca
+        ),
+        totals AS (
+          SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
-        SELECT b.marca AS brand,
-          b.products_p1::int, b.products_total::int,
-          ROUND(b.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
-          ROUND(b.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_marca b, total_p1 tp, total_all ta
+        SELECT a.marca AS brand,
+          a.products_p1::int, a.products_total::int,
+          ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
+          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
+        FROM agg a, totals t
         ORDER BY sos_p1 DESC
         LIMIT 50
       `
@@ -219,30 +211,26 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const w = buildWhere(p)
       p.push(seller)
-      const sellerCond = seller === "ABBOTT"
-        ? `${ABBOTT_LIKE}`
-        : `fabricante = $${p.length}`
-      if (seller === "ABBOTT") p.pop()
+      const sellerCond = `fabricante = $${p.length}`
       const sql = `
-        WITH base AS (
-          SELECT id, titulo, pagina, ranking FROM eci.sos
-          WHERE ${w} AND ${sellerCond} AND titulo IS NOT NULL
+        WITH agg AS (
+          SELECT producto_id, MAX(titulo) AS titulo,
+            SUM(count_p1) AS products_p1,
+            SUM(count_total) AS products_total,
+            MIN(best_ranking) AS best_ranking
+          FROM eci.mv_sos_daily_titulo
+          WHERE ${w} AND ${sellerCond}
+          GROUP BY producto_id
         ),
-        total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
-        total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_titulo AS (
-          SELECT id, MAX(titulo) AS titulo,
-            COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
-            COUNT(*) AS products_total,
-            MIN(ranking) AS best_ranking
-          FROM base GROUP BY id
+        totals AS (
+          SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
-        SELECT t.id AS titulo_id, t.titulo,
-          t.products_p1::int, t.products_total::int,
-          t.best_ranking::int,
-          ROUND(t.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
-          ROUND(t.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_titulo t, total_p1 tp, total_all ta
+        SELECT a.producto_id AS titulo_id, a.titulo,
+          a.products_p1::int, a.products_total::int,
+          a.best_ranking::int,
+          ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
+          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
+        FROM agg a, totals t
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
@@ -262,7 +250,7 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── trend diario por marca ────────────────────────────
+    // ── trend diario — from mv_sos_daily_fab ──────────────
     if (action === "trend") {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
@@ -271,18 +259,16 @@ export async function GET(req: Request) {
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
       const sql = `
-        WITH base AS (
-          SELECT DATE(fecha) AS day, ${FABRICANTE_UNIFIED} AS fab, pagina FROM eci.sos
-          WHERE ${w} AND fabricante IS NOT NULL
-        ),
-        daily_total AS (
-          SELECT day, COUNT(*) FILTER (WHERE pagina = 1) AS total_p1
-          FROM base GROUP BY day
+        WITH daily_total AS (
+          SELECT fecha AS day, SUM(count_p1) AS total_p1
+          FROM eci.mv_sos_daily_fab WHERE ${w}
+          GROUP BY fecha
         ),
         seller_daily AS (
-          SELECT day, fab, COUNT(*) FILTER (WHERE pagina = 1) AS products_p1
-          FROM base WHERE fab IN (${sellerPlaceholders})
-          GROUP BY day, fab
+          SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1
+          FROM eci.mv_sos_daily_fab
+          WHERE ${w} AND fabricante IN (${sellerPlaceholders})
+          GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
           ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1
@@ -299,32 +285,27 @@ export async function GET(req: Request) {
       return NextResponse.json(Array.from(dayMap.values()))
     }
 
-    // ── SOS by channel (retail) for a single fabricante ──
+    // ── SOS by channel — from mv_sos_daily_fab ───────────
     if (action === "by_channel") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p, { channel: false, category: true, country: true })
-      const sellerCond = seller === "ABBOTT"
-        ? ABBOTT_LIKE
-        : (() => { p.push(seller); return `fabricante = $${p.length}` })()
+      p.push(seller)
       const sql = `
-        WITH base AS (
-          SELECT retail, pagina,
-            CASE WHEN ${sellerCond} THEN 1 ELSE 0 END AS is_seller
-          FROM eci.sos WHERE ${w} AND retail IS NOT NULL
+        WITH per_retail AS (
+          SELECT retail,
+            SUM(count_p1) AS total_p1,
+            SUM(count_total) AS total_all,
+            SUM(CASE WHEN fabricante = $${p.length} THEN count_p1 ELSE 0 END) AS seller_p1,
+            SUM(CASE WHEN fabricante = $${p.length} THEN count_total ELSE 0 END) AS seller_all
+          FROM eci.mv_sos_daily_fab WHERE ${w}
+          GROUP BY retail
         )
         SELECT retail AS channel,
-          ROUND(
-            SUM(CASE WHEN is_seller = 1 AND pagina = 1 THEN 1 ELSE 0 END) * 100.0
-            / NULLIF(SUM(CASE WHEN pagina = 1 THEN 1 ELSE 0 END), 0), 2
-          ) AS sos_p1,
-          ROUND(
-            SUM(CASE WHEN is_seller = 1 THEN 1 ELSE 0 END) * 100.0
-            / NULLIF(COUNT(*), 0), 2
-          ) AS sos_total
-        FROM base
-        GROUP BY retail
-        HAVING SUM(CASE WHEN is_seller = 1 THEN 1 ELSE 0 END) > 0
+          ROUND(seller_p1 * 100.0 / NULLIF(total_p1, 0), 2) AS sos_p1,
+          ROUND(seller_all * 100.0 / NULLIF(total_all, 0), 2) AS sos_total
+        FROM per_retail
+        WHERE seller_p1 > 0
         ORDER BY sos_p1 DESC
       `
       const rows = await prisma.$queryRawUnsafe<{ channel: string; sos_p1: number; sos_total: number }[]>(sql, ...p)
@@ -337,31 +318,30 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── ranking ──────────────────────────────────────────
+    // ── ranking — from mv_sos_product_latest ────────────
     if (action === "ranking") {
       const pageFilter = searchParams.get("page_filter") || "all"
       const limit = Math.min(200, parseInt(searchParams.get("limit") || "50", 10))
       const p: unknown[] = []
       const w = buildWhere(p)
-      const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
+      const pageClause = pageFilter === "p1" ? "AND appearances_p1 > 0" : ""
       let sellerCond = ""
       if (seller) {
-        if (seller === "ABBOTT") { sellerCond = ` AND ${ABBOTT_LIKE}` }
-        else { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+        p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
       }
       const sql = `
         SELECT
-          id,
+          producto_id AS id,
           MAX(titulo) AS titulo,
           MAX(marca) AS marca,
           MAX(retail) AS seller,
           MAX(fabricante) AS fabricante,
-          ROUND(AVG(ranking)) AS best_ranking,
-          COUNT(*) FILTER (WHERE pagina = 1) AS appearances_p1,
-          COUNT(*) AS appearances_total
-        FROM eci.sos
-        WHERE ${w} ${pageClause} AND id IS NOT NULL AND ranking IS NOT NULL ${sellerCond}
-        GROUP BY id
+          MIN(best_ranking) AS best_ranking,
+          SUM(appearances_p1)::int AS appearances_p1,
+          SUM(appearances_total)::int AS appearances_total
+        FROM eci.mv_sos_product_latest
+        WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}
+        GROUP BY producto_id
         ORDER BY best_ranking ASC
         LIMIT ${limit}
       `
@@ -381,43 +361,41 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── bestsellers ────────────────────────────────────────
+    // ── bestsellers — from mv_sos_product_latest ─────────
     if (action === "bestsellers") {
       const pageFilter = searchParams.get("page_filter") || "p1"
       const limit = Math.min(100, parseInt(searchParams.get("limit") || "20", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const p: unknown[] = [dateParam]
-      let w = `DATE(fecha) = $1::date`
+      let w = `fecha = $1::date`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
-      const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
+      const pageClause = pageFilter === "p1" ? "AND appearances_p1 > 0" : ""
       let sellerCond = ""
       if (seller) {
-        if (seller === "ABBOTT") { sellerCond = ` AND ${ABBOTT_LIKE}` }
-        else { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+        p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
       }
       const sql = `
         SELECT
-          id,
-          MAX(titulo) AS titulo,
-          MAX(marca) AS marca,
-          MAX(retail) AS seller,
-          MAX(fabricante) AS fabricante,
-          MAX(categoria) AS categoria,
-          MAX(retail) AS retail,
-          ROUND(AVG(precio_venta)::numeric, 0) AS precio_venta,
-          ROUND(AVG(precio_neto)::numeric, 0) AS precio_neto,
-          ROUND(AVG(descuento)::numeric, 1) AS descuento,
-          MAX(url_producto) AS url_producto,
-          MAX(presentacion) AS presentacion,
-          MAX(promocion) AS promocion,
-          ROUND(AVG(ranking)::numeric, 0) AS best_ranking,
-          COUNT(*) FILTER (WHERE pagina = 1) AS appearances_p1,
-          COUNT(*) AS appearances_total
-        FROM eci.sos
-        WHERE ${w} ${pageClause} AND id IS NOT NULL AND ranking IS NOT NULL ${sellerCond}
-        GROUP BY id
+          producto_id AS id,
+          titulo,
+          marca,
+          retail AS seller,
+          fabricante,
+          categoria,
+          retail,
+          ROUND(precio_venta::numeric, 0) AS precio_venta,
+          ROUND(precio_neto::numeric, 0) AS precio_neto,
+          ROUND(descuento::numeric, 1) AS descuento,
+          url_producto,
+          presentacion,
+          promocion,
+          best_ranking,
+          appearances_p1::int AS appearances_p1,
+          appearances_total::int AS appearances_total
+        FROM eci.mv_sos_product_latest
+        WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}
         ORDER BY best_ranking ASC
         LIMIT ${limit}
       `
@@ -871,33 +849,31 @@ export async function GET(req: Request) {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const p: unknown[] = [dateParam]
-      let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL`
+      let w = `fecha = $1::date AND precio_venta IS NOT NULL`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       let sellerCond = ""
       if (seller) {
-        if (seller === "ABBOTT") { sellerCond = ` AND ${ABBOTT_LIKE}` }
-        else { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+        p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
       }
       const sql = `
         SELECT
-          id,
-          MAX(titulo) AS producto,
-          MAX(marca) AS marca,
-          MAX(retail) AS seller,
-          MAX(retail) AS plataforma,
-          MAX(categoria) AS subcategoria,
-          MAX(fabricante) AS fabricante,
-          ROUND(AVG(precio_venta)::numeric, 0) AS precio_venta,
-          ROUND(AVG(precio_neto)::numeric, 0) AS precio,
-          ROUND(AVG(descuento)::numeric, 1) AS descuento,
-          MAX(promocion) AS promocion,
-          MAX(presentacion) AS presentacion,
-          MAX(url_producto) AS url_producto
-        FROM eci.sos
-        WHERE ${w} AND id IS NOT NULL ${sellerCond}
-        GROUP BY id, marca
+          producto_id AS id,
+          titulo AS producto,
+          marca,
+          retail AS seller,
+          retail AS plataforma,
+          categoria AS subcategoria,
+          fabricante,
+          ROUND(precio_venta::numeric, 0) AS precio_venta,
+          ROUND(precio_neto::numeric, 0) AS precio,
+          ROUND(descuento::numeric, 1) AS descuento,
+          promocion,
+          presentacion,
+          url_producto
+        FROM eci.mv_sos_product_latest
+        WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}
         ORDER BY precio_venta ASC
         LIMIT ${limit}
       `
