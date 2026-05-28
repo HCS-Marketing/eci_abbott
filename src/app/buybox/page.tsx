@@ -92,7 +92,7 @@ export default function BuyboxPage() {
     <div className="space-y-4">
       <PageHeader
         title="BuyBox"
-        subtitle="Quién gana la posición destacada por producto — Newsan vs competencia"
+        subtitle="Quién gana la posición destacada por producto — Abbott vs competencia"
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -136,13 +136,13 @@ export default function BuyboxPage() {
             label: "Productos universo",
             value: String(lostFiltered.length),
             color: "#7c3aed",
-            sub: "con presencia Newsan en últimos 7 días",
+            sub: "con presencia Abbott en últimos 7 días",
           },
           {
             label: "Ganó BuyBox hoy",
             value: String(lostWins),
             color: "#16a34a",
-            sub: "Newsan es el winner en último día",
+            sub: "Abbott es el winner en último día",
           },
           {
             label: "Perdió BuyBox hoy",
@@ -154,7 +154,7 @@ export default function BuyboxPage() {
             label: "Win Rate (7d)",
             value: `${lostWinRate}%`,
             color: lostWinRate >= 50 ? "#16a34a" : lostWinRate >= 30 ? "#d97706" : "#dc2626",
-            sub: "sobre productos donde Newsan compite",
+            sub: "sobre productos donde Abbott compite",
           },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
@@ -189,7 +189,7 @@ export default function BuyboxPage() {
             <div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : lostFiltered.length === 0 ? (
-          <div className="text-center py-14 text-gray-400 text-sm">Sin productos de Newsan en los últimos 7 días</div>
+          <div className="text-center py-14 text-gray-400 text-sm">Sin productos de Abbott en los últimos 7 días</div>
         ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -200,7 +200,7 @@ export default function BuyboxPage() {
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Estado hoy</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Winner</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Newsan hoy</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Abbott hoy</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Diferencia</th>
                     <th className="px-3 py-2.5"></th>
                   </tr>
@@ -231,12 +231,12 @@ export default function BuyboxPage() {
                           ) : e.newsan_price != null ? (
                             <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">✗ Perdió BuyBox</span>
                           ) : (
-                            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Sin Newsan</span>
+                            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">sin Abbott</span>
                           )}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           {e.newsan_wins ? (
-                            <span className="flex items-center gap-1 text-[10px] font-black text-green-700"><Trophy size={9} className="text-amber-500" />Newsan</span>
+                            <span className="flex items-center gap-1 text-[10px] font-black text-green-700"><Trophy size={9} className="text-amber-500" />Abbott</span>
                           ) : (
                             <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller}</span>
                           )}

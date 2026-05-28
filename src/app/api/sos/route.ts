@@ -1,70 +1,24 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// ── MOCK FALLBACK (used when DB tables are empty) ──────────
+// ── COLUMN MAPPING ──────────────────────────────────────────
+// Abbott DB (eci.sos) columns:
+//   id, pais, fecha, titulo, ean, marca, precio_venta, precio_neto,
+//   promocion, descuento, categoria, subcategoria, subcategoria_1,
+//   retail, skuid, orden, ranking, pagina, en_stock, url_producto,
+//   fabricante, presentacion, fidelizacion, imagen
+//
+// App concept → DB column:
+//   seller/brand → marca
+//   channel      → retail
+//   producto     → titulo
+//   precio       → precio_neto
+// ─────────────────────────────────────────────────────────────
 
-function seededRandom(seed: number) {
-  let s = seed
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff
-    return (s >>> 0) / 0xffffffff
-  }
-}
+const PALETTE = ["#003DA5","#00A3E0","#ef4444","#f59e0b","#06b6d4","#84cc16","#ec4899","#14b8a6","#f97316","#8b5cf6"]
 
-const MOCK_SELLERS    = ["Seller 1", "Seller 2", "Seller 3", "Seller 4", "Seller 5", "Seller 6"]
-const MOCK_CATEGORIES = ["Categoría 1", "Categoría 2", "Categoría 3"]
-const MOCK_CHANNELS   = ["Canal 1", "Canal 2", "Canal 3"]
-const MOCK_COLORS: Record<string, string> = {
-  "Seller 1": "#A427FF",
-  "Seller 2": "#3b82f6",
-  "Seller 3": "#ef4444",
-  "Seller 4": "#f59e0b",
-  "Seller 5": "#06b6d4",
-  "Seller 6": "#84cc16",
-}
-
-function mockSellerEntry(seller: string, idx: number) {
-  const rng = seededRandom(seller.length * 73 + idx * 41)
-  const p1    = Math.round((8 + rng() * 22) * 10) / 10
-  const total = Math.round((p1 + rng() * 8) * 10) / 10
-  return {
-    seller,
-    sos_p1:           p1,
-    sos_total:        total,
-    sos_p1_change:    Math.round((rng() - 0.42) * 8 * 10) / 10,
-    sos_total_change: Math.round((rng() - 0.42) * 6 * 10) / 10,
-    products_p1:      Math.floor(2 + rng() * 8),
-    products_total:   Math.floor(4 + rng() * 15),
-    color:            MOCK_COLORS[seller] || "#888",
-    rank:             0,
-  }
-}
-
-// ── Seller normalization ──────────────────────────────────
-// Add aliases here: { "raw DB name": "canonical name" }
-const SELLER_ALIASES: Record<string, string> = {
-  "Tienda Newsan": "Newsan",
-}
-
-// SQL CASE expression to normalize seller column
-const NORM_SELLER = Object.entries(SELLER_ALIASES)
-  .map(([alias, canonical]) => `WHEN seller = '${alias}' THEN '${canonical}'`)
-  .reduce((acc, c) => acc + " " + c, "CASE") + " ELSE seller END"
-
-// Returns all raw DB names (canonical + aliases) for a canonical seller name
-function expandSeller(canonical: string): string[] {
-  const aliases = Object.entries(SELLER_ALIASES)
-    .filter(([, c]) => c === canonical).map(([a]) => a)
-  return [canonical, ...aliases]
-}
-
-// Builds SQL `seller IN ($N, $N+1, ...)` expanding aliases, appends to params
-function sellerInSql(canonical: string, params: unknown[]): string {
-  const names = expandSeller(canonical)
-  const placeholders = names.map((_, i) => `$${params.length + i + 1}`).join(", ")
-  names.forEach(n => params.push(n))
-  return `seller IN (${placeholders})`
-}
+// Abbott fabricante identifiers
+const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOTT%'`
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -73,14 +27,14 @@ export async function GET(req: Request) {
   const category = searchParams.get("category") || ""
   const seller   = searchParams.get("seller") || ""
   const sellersParam = searchParams.get("sellers")?.split(",").filter(Boolean) || []
+  const country  = searchParams.get("country") || ""
 
   try {
-    // ── rango de fechas disponible ────────────────────────
+    // ── date range ────────────────────────────────────────
     if (action === "dates") {
-      // Si viene channel, filtrar por plataforma para devolver el max de ese canal
       if (channel) {
         const rows = await prisma.$queryRawUnsafe<{ min_d: Date; max_d: Date }[]>(
-          `SELECT MIN(DATE(fecha))::date AS min_d, MAX(DATE(fecha))::date AS max_d FROM eci.sos WHERE plataforma = $1`,
+          `SELECT MIN(DATE(fecha))::date AS min_d, MAX(DATE(fecha))::date AS max_d FROM eci.sos WHERE retail = $1`,
           channel
         )
         const r = rows[0]
@@ -105,94 +59,91 @@ export async function GET(req: Request) {
     const startD = startDate ? new Date(startDate + "T00:00:00Z") : new Date("2000-01-01T00:00:00Z")
     const endD   = endDate   ? new Date(endDate   + "T23:59:59Z") : new Date("2099-12-31T23:59:59Z")
 
-    // helper: build common WHERE clause (fecha + optional channel/category)
     function buildWhere(
       params: unknown[],
-      opts: { channel?: boolean; category?: boolean } = { channel: true, category: true }
+      opts: { channel?: boolean; category?: boolean; country?: boolean } = { channel: true, category: true, country: true }
     ) {
       params.push(startD, endD)
       let w = `fecha >= $${params.length - 1} AND fecha <= $${params.length}`
       if (opts.channel !== false && channel) {
         params.push(channel)
-        w += ` AND plataforma = $${params.length}`
+        w += ` AND retail = $${params.length}`
       }
       if (opts.category !== false && category) {
         params.push(category)
-        w += ` AND subcategoria = $${params.length}`
+        w += ` AND categoria = $${params.length}`
+      }
+      if (opts.country !== false && country) {
+        params.push(country)
+        w += ` AND pais = $${params.length}`
       }
       return w
     }
 
-    // ── sellers list ──────────────────────────────────────
+    // ── sellers list (brands) ─────────────────────────────
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sql = `SELECT DISTINCT ${NORM_SELLER} AS n FROM eci.sos WHERE ${w} AND seller IS NOT NULL ORDER BY 1`
+      const sql = `SELECT DISTINCT marca AS n FROM eci.sos WHERE ${w} AND marca IS NOT NULL ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      if (rows.length === 0) return NextResponse.json(MOCK_SELLERS)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── categories list (filtrada por canal + fechas) ─────
+    // ── categories list ───────────────────────────────────
     if (action === "categories") {
-      const startDate = searchParams.get("startDate") || ""
-      const endDate   = searchParams.get("endDate")   || ""
-      const startD = startDate ? new Date(startDate + "T00:00:00Z") : new Date("2000-01-01T00:00:00Z")
-      const endD   = endDate   ? new Date(endDate   + "T23:59:59Z") : new Date("2099-12-31T23:59:59Z")
-
-      const params: unknown[] = [startD, endD]
-      let sql = `SELECT DISTINCT subcategoria AS n FROM eci.sos
-                 WHERE fecha >= $1 AND fecha <= $2 AND subcategoria IS NOT NULL`
-      if (channel) { sql += ` AND plataforma = $${params.length + 1}`; params.push(channel) }
+      const p: unknown[] = [startD, endD]
+      let sql = `SELECT DISTINCT categoria AS n FROM eci.sos
+                 WHERE fecha >= $1 AND fecha <= $2 AND categoria IS NOT NULL`
+      if (channel) { sql += ` AND retail = $${p.length + 1}`; p.push(channel) }
+      if (country) { sql += ` AND pais = $${p.length + 1}`; p.push(country) }
       sql += " ORDER BY 1"
-
-      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...params)
-      if (rows.length === 0) return NextResponse.json(MOCK_CATEGORIES)
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── channels list (filtrada por categoría + fechas) ───
+    // ── channels list (retailers) ─────────────────────────
     if (action === "channels") {
-      const startDate = searchParams.get("startDate") || ""
-      const endDate   = searchParams.get("endDate")   || ""
-      const startD = startDate ? new Date(startDate + "T00:00:00Z") : new Date("2000-01-01T00:00:00Z")
-      const endD   = endDate   ? new Date(endDate   + "T23:59:59Z") : new Date("2099-12-31T23:59:59Z")
-
-      const params: unknown[] = [startD, endD]
-      let sql = `SELECT DISTINCT plataforma AS n FROM eci.sos
-                 WHERE fecha >= $1 AND fecha <= $2 AND plataforma IS NOT NULL`
-      if (category) { sql += ` AND subcategoria = $${params.length + 1}`; params.push(category) }
+      const p: unknown[] = [startD, endD]
+      let sql = `SELECT DISTINCT retail AS n FROM eci.sos
+                 WHERE fecha >= $1 AND fecha <= $2 AND retail IS NOT NULL`
+      if (category) { sql += ` AND categoria = $${p.length + 1}`; p.push(category) }
+      if (country)  { sql += ` AND pais = $${p.length + 1}`; p.push(country) }
       sql += " ORDER BY 1"
-
-      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...params)
-      if (rows.length === 0) return NextResponse.json(MOCK_CHANNELS)
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    const PALETTE = ["#A427FF","#3b82f6","#ef4444","#f59e0b","#06b6d4","#84cc16","#ec4899","#14b8a6","#f97316","#8b5cf6"]
+    // ── countries list ────────────────────────────────────
+    if (action === "countries") {
+      const rows = await prisma.$queryRaw<{ n: string }[]>`
+        SELECT DISTINCT pais AS n FROM eci.sos WHERE pais IS NOT NULL ORDER BY 1
+      `
+      return NextResponse.json(rows.map(r => r.n))
+    }
 
-    // ── sellers SOS overview ──────────────────────────────
+    // ── sellers/brands SOS overview ───────────────────────
     if (action === "sellers") {
       const p: unknown[] = []
       const w = buildWhere(p)
       const sql = `
         WITH base AS (
-          SELECT ${NORM_SELLER} AS seller, pagina FROM eci.sos WHERE ${w} AND seller IS NOT NULL
+          SELECT marca, pagina FROM eci.sos WHERE ${w} AND marca IS NOT NULL
         ),
         total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
         total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_seller AS (
-          SELECT seller,
+        per_brand AS (
+          SELECT marca,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total
-          FROM base GROUP BY seller
+          FROM base GROUP BY marca
         )
-        SELECT s.seller,
+        SELECT s.marca AS seller,
           s.products_p1::int, s.products_total::int,
           ROUND(s.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
           ROUND(s.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_seller s, total_p1 tp, total_all ta
+        FROM per_brand s, total_p1 tp, total_all ta
         ORDER BY sos_p1 DESC
+        LIMIT 50
       `
       const rows = await prisma.$queryRawUnsafe<{
         seller: string; products_p1: number; products_total: number
@@ -211,31 +162,33 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── brand-level breakdown ─────────────────────────────
+    // ── brand-level breakdown (products for a given brand) ──
     if (action === "brands") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sellerCond = sellerInSql(seller, p)
+      p.push(seller)
+      const sellerCond = `marca = $${p.length}`
       const sql = `
         WITH base AS (
-          SELECT marca, pagina FROM eci.sos
-          WHERE ${w} AND ${sellerCond} AND marca IS NOT NULL
+          SELECT titulo, pagina FROM eci.sos
+          WHERE ${w} AND ${sellerCond} AND titulo IS NOT NULL
         ),
         total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
         total_all AS (SELECT COUNT(*) AS t FROM base),
-        per_brand AS (
-          SELECT marca,
+        per_titulo AS (
+          SELECT titulo,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total
-          FROM base GROUP BY marca
+          FROM base GROUP BY titulo
         )
-        SELECT b.marca AS brand,
+        SELECT b.titulo AS brand,
           b.products_p1::int, b.products_total::int,
           ROUND(b.products_p1 * 100.0 / NULLIF(tp.t, 0), 2) AS sos_p1,
           ROUND(b.products_total * 100.0 / NULLIF(ta.t, 0), 2) AS sos_total
-        FROM per_brand b, total_p1 tp, total_all ta
+        FROM per_titulo b, total_p1 tp, total_all ta
         ORDER BY sos_p1 DESC
+        LIMIT 50
       `
       const rows = await prisma.$queryRawUnsafe<{
         brand: string; products_p1: number; products_total: number
@@ -257,16 +210,17 @@ export async function GET(req: Request) {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sellerCond = sellerInSql(seller, p)
+      p.push(seller)
+      const sellerCond = `marca = $${p.length}`
       const sql = `
         WITH base AS (
-          SELECT id, producto, pagina, ranking FROM eci.sos
-          WHERE ${w} AND ${sellerCond} AND producto IS NOT NULL
+          SELECT id, titulo, pagina, ranking FROM eci.sos
+          WHERE ${w} AND ${sellerCond} AND titulo IS NOT NULL
         ),
         total_p1  AS (SELECT COUNT(*) AS t FROM base WHERE pagina = 1),
         total_all AS (SELECT COUNT(*) AS t FROM base),
         per_titulo AS (
-          SELECT id, MAX(producto) AS titulo,
+          SELECT id, MAX(titulo) AS titulo,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total,
             MIN(ranking) AS best_ranking
@@ -292,36 +246,34 @@ export async function GET(req: Request) {
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,
         sos_total_change: 0,
-        ranking_pos:      Number(r.best_ranking),
+        ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
         products_p1:      Number(r.products_p1),
       })))
     }
 
-    // ── trend diario por seller ───────────────────────────
+    // ── trend diario por marca ────────────────────────────
     if (action === "trend") {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      // Expand each canonical seller name to include its aliases
-      const expandedSellers = sellerList.flatMap(s => expandSeller(s))
-      const sellerPlaceholders = expandedSellers.map((_, i) => `$${p.length + i + 1}`).join(", ")
-      expandedSellers.forEach(s => p.push(s))
+      const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
+      sellerList.forEach(s => p.push(s))
       const sql = `
         WITH base AS (
-          SELECT DATE(fecha) AS day, ${NORM_SELLER} AS seller, pagina FROM eci.sos
-          WHERE ${w} AND seller IS NOT NULL
+          SELECT DATE(fecha) AS day, marca, pagina FROM eci.sos
+          WHERE ${w} AND marca IS NOT NULL
         ),
         daily_total AS (
           SELECT day, COUNT(*) FILTER (WHERE pagina = 1) AS total_p1
           FROM base GROUP BY day
         ),
         seller_daily AS (
-          SELECT day, seller, COUNT(*) FILTER (WHERE pagina = 1) AS products_p1
-          FROM base WHERE seller IN (${sellerPlaceholders})
-          GROUP BY day, seller
+          SELECT day, marca, COUNT(*) FILTER (WHERE pagina = 1) AS products_p1
+          FROM base WHERE marca IN (${sellerPlaceholders})
+          GROUP BY day, marca
         )
-        SELECT sd.day::text, sd.seller,
+        SELECT sd.day::text, sd.marca AS seller,
           ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1
         FROM seller_daily sd
         JOIN daily_total dt ON sd.day = dt.day
@@ -336,20 +288,20 @@ export async function GET(req: Request) {
       return NextResponse.json(Array.from(dayMap.values()))
     }
 
-    // ── SOS by channel for a single seller ────────────────
+    // ── SOS by channel (retail) for a single brand ────────
     if (action === "by_channel") {
       if (!seller) return NextResponse.json([])
-      // channel filter not applied here — the chart already breaks down by channel
       const p: unknown[] = []
-      const w = buildWhere(p, { channel: false, category: true })
-      const sellerCond = sellerInSql(seller, p)
+      const w = buildWhere(p, { channel: false, category: true, country: true })
+      p.push(seller)
+      const sellerCond = `marca = $${p.length}`
       const sql = `
         WITH base AS (
-          SELECT plataforma, pagina,
+          SELECT retail, pagina,
             CASE WHEN ${sellerCond} THEN 1 ELSE 0 END AS is_seller
-          FROM eci.sos WHERE ${w} AND plataforma IS NOT NULL
+          FROM eci.sos WHERE ${w} AND retail IS NOT NULL
         )
-        SELECT plataforma AS channel,
+        SELECT retail AS channel,
           ROUND(
             SUM(CASE WHEN is_seller = 1 AND pagina = 1 THEN 1 ELSE 0 END) * 100.0
             / NULLIF(SUM(CASE WHEN pagina = 1 THEN 1 ELSE 0 END), 0), 2
@@ -359,7 +311,7 @@ export async function GET(req: Request) {
             / NULLIF(COUNT(*), 0), 2
           ) AS sos_total
         FROM base
-        GROUP BY plataforma
+        GROUP BY retail
         HAVING SUM(CASE WHEN is_seller = 1 THEN 1 ELSE 0 END) > 0
         ORDER BY sos_p1 DESC
       `
@@ -373,39 +325,41 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── ranking de productos por posición ────────────────
+    // ── ranking ──────────────────────────────────────────
     if (action === "ranking") {
-      const pageFilter = searchParams.get("page_filter") || "all" // "p1" | "all"
+      const pageFilter = searchParams.get("page_filter") || "all"
       const limit = Math.min(200, parseInt(searchParams.get("limit") || "50", 10))
       const p: unknown[] = []
       const w = buildWhere(p)
       const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
-      const sellerCond = seller ? ` AND (${sellerInSql(seller, p)})` : ""
+      let sellerCond = ""
+      if (seller) { p.push(seller); sellerCond = ` AND marca = $${p.length}` }
       const sql = `
         SELECT
           id,
-          MAX(producto) AS titulo,
+          MAX(titulo) AS titulo,
           MAX(marca) AS marca,
-          ${NORM_SELLER} AS seller,
+          MAX(retail) AS seller,
+          MAX(fabricante) AS fabricante,
           ROUND(AVG(ranking)) AS best_ranking,
           COUNT(*) FILTER (WHERE pagina = 1) AS appearances_p1,
-          COUNT(*) AS appearances_total,
-          MAX(pagina) AS max_page
+          COUNT(*) AS appearances_total
         FROM eci.sos
         WHERE ${w} ${pageClause} AND id IS NOT NULL AND ranking IS NOT NULL ${sellerCond}
-        GROUP BY id, ${NORM_SELLER}
-        ORDER BY best_ranking DESC
+        GROUP BY id
+        ORDER BY best_ranking ASC
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
-        id: string; titulo: string; marca: string; seller: string
-        best_ranking: number; appearances_p1: number; appearances_total: number; max_page: number
+        id: string; titulo: string; marca: string; seller: string; fabricante: string
+        best_ranking: number; appearances_p1: number; appearances_total: number
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         id:               r.id,
         titulo:           r.titulo,
         marca:            r.marca,
         seller:           r.seller,
+        fabricante:       r.fabricante,
         ranking:          Number(r.best_ranking),
         appearances_p1:   Number(r.appearances_p1),
         appearances_total: Number(r.appearances_total),
@@ -416,47 +370,44 @@ export async function GET(req: Request) {
     if (action === "bestsellers") {
       const pageFilter = searchParams.get("page_filter") || "p1"
       const limit = Math.min(100, parseInt(searchParams.get("limit") || "20", 10))
-      // Fecha única (usa param "date", cae a endDate si no viene)
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date`
-      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
-      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
+      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const pageClause = pageFilter === "p1" ? "AND pagina = 1" : ""
-      const sellerCond = seller ? ` AND (${sellerInSql(seller, p)})` : ""
+      let sellerCond = ""
+      if (seller) { p.push(seller); sellerCond = ` AND marca = $${p.length}` }
       const sql = `
         SELECT
           id,
-          MAX(producto)           AS titulo,
-          MAX(marca)              AS marca,
-          ${NORM_SELLER}          AS seller,
-          MAX(subcategoria)       AS subcategoria,
-          MAX(plataforma)         AS plataforma,
-          ROUND(AVG(precio_venta)::numeric, 0)  AS precio_venta,
-          ROUND(AVG(precio)::numeric, 0)        AS precio,
-          ROUND(AVG(descuento)::numeric, 1)     AS descuento,
-          MAX(url_producto)       AS url_producto,
-          MAX(envio)              AS envio,
-          MAX(tienda_oficial)     AS tienda_oficial,
-          MAX("full")             AS full,
-          MAX(oferta_relampago)   AS oferta_relampago,
-          MAX(cuotas_sin_interes) AS cuotas_sin_interes,
-          MAX(cupon)              AS cupon,
-          ROUND(AVG(ranking)::numeric, 0)       AS best_ranking,
-          COUNT(*) FILTER (WHERE pagina = 1)    AS appearances_p1,
-          COUNT(*)                              AS appearances_total
+          MAX(titulo) AS titulo,
+          MAX(marca) AS marca,
+          MAX(retail) AS seller,
+          MAX(fabricante) AS fabricante,
+          MAX(categoria) AS categoria,
+          MAX(retail) AS retail,
+          ROUND(AVG(precio_venta)::numeric, 0) AS precio_venta,
+          ROUND(AVG(precio_neto)::numeric, 0) AS precio_neto,
+          ROUND(AVG(descuento)::numeric, 1) AS descuento,
+          MAX(url_producto) AS url_producto,
+          MAX(presentacion) AS presentacion,
+          MAX(promocion) AS promocion,
+          ROUND(AVG(ranking)::numeric, 0) AS best_ranking,
+          COUNT(*) FILTER (WHERE pagina = 1) AS appearances_p1,
+          COUNT(*) AS appearances_total
         FROM eci.sos
         WHERE ${w} ${pageClause} AND id IS NOT NULL AND ranking IS NOT NULL ${sellerCond}
-        GROUP BY id, ${NORM_SELLER}
-        ORDER BY best_ranking DESC
+        GROUP BY id
+        ORDER BY best_ranking ASC
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
-        id: string; titulo: string; marca: string; seller: string
-        subcategoria: string; plataforma: string
-        precio_venta: number; precio: number; descuento: number
-        url_producto: string; envio: string; tienda_oficial: string
-        full: string; oferta_relampago: string; cuotas_sin_interes: number; cupon: string
+        id: string; titulo: string; marca: string; seller: string; fabricante: string
+        categoria: string; retail: string
+        precio_venta: number; precio_neto: number; descuento: number
+        url_producto: string; presentacion: string; promocion: string
         best_ranking: number; appearances_p1: number; appearances_total: number
       }[]>(sql, ...p)
       return NextResponse.json(rows.map((r, i) => ({
@@ -465,18 +416,21 @@ export async function GET(req: Request) {
         titulo:            r.titulo,
         marca:             r.marca,
         seller:            r.seller,
-        subcategoria:      r.subcategoria,
-        plataforma:        r.plataforma,
+        fabricante:        r.fabricante,
+        subcategoria:      r.categoria,
+        plataforma:        r.retail,
         precio_venta:      Number(r.precio_venta),
-        precio:            Number(r.precio),
+        precio:            r.precio_neto != null ? Number(r.precio_neto) : null,
         descuento:         Number(r.descuento),
         url_producto:      r.url_producto,
-        envio:             r.envio,
-        tienda_oficial:    r.tienda_oficial,
-        full:              r.full,
-        oferta_relampago:  r.oferta_relampago,
-        cuotas_sin_interes: r.cuotas_sin_interes != null ? Number(r.cuotas_sin_interes) : null,
-        cupon:             r.cupon,
+        presentacion:      r.presentacion,
+        promocion:         r.promocion,
+        envio:             null,
+        tienda_oficial:    null,
+        full:              null,
+        oferta_relampago:  null,
+        cuotas_sin_interes: null,
+        cupon:             null,
         ranking:           Number(r.best_ranking),
         appearances_p1:    Number(r.appearances_p1),
         appearances_total: Number(r.appearances_total),
@@ -485,54 +439,57 @@ export async function GET(req: Request) {
 
     // ── inventory ────────────────────────────────────────
     if (action === "inventory") {
-      const limit      = Math.min(1000, parseInt(searchParams.get("limit")   || "200", 10))
+      const limit      = Math.min(1000, parseInt(searchParams.get("limit") || "200", 10))
       const dateParam  = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
-      const show       = searchParams.get("show")     || "all"  // "all" | "in_stock" | "break"
-      const lookback   = Math.min(30, parseInt(searchParams.get("lookback") || "7",   10))
-      const onlyNewsan = searchParams.get("onlyNewsan") === "1"
+      const show       = searchParams.get("show") || "all"
+      const lookback   = Math.min(30, parseInt(searchParams.get("lookback") || "7", 10))
+      const onlyAbbott = searchParams.get("onlyNewsan") === "1"
       const p: unknown[] = [dateParam]
-      let wCond = `producto IS NOT NULL AND precio_venta IS NOT NULL`
-      if (channel)    { p.push(channel);  wCond += ` AND plataforma = $${p.length}` }
-      if (category)   { p.push(category); wCond += ` AND subcategoria = $${p.length}` }
-      if (onlyNewsan) { wCond += ` AND (${NORM_SELLER}) = 'Newsan'` }
+      let wCond = `titulo IS NOT NULL AND precio_venta IS NOT NULL`
+      if (channel)    { p.push(channel);  wCond += ` AND retail = $${p.length}` }
+      if (category)   { p.push(category); wCond += ` AND categoria = $${p.length}` }
+      if (country)    { p.push(country);  wCond += ` AND pais = $${p.length}` }
+      if (onlyAbbott) { wCond += ` AND ${ABBOTT_LIKE}` }
 
       const todaySub = `
-        SELECT id, (${NORM_SELLER}) AS norm_seller,
-          MAX(producto) AS producto, MAX(marca) AS marca,
-          MAX(subcategoria) AS subcategoria, MAX(plataforma) AS plataforma,
+        SELECT id, marca, retail,
+          MAX(titulo) AS titulo, MAX(fabricante) AS fabricante,
+          MAX(categoria) AS categoria,
           ROUND(MAX(precio_venta::numeric), 0) AS precio_venta
         FROM eci.sos
         WHERE DATE(fecha) = $1::date AND ${wCond}
-        GROUP BY id, (${NORM_SELLER})
+        GROUP BY id, marca, retail
       `
       const lbSub = `
-        SELECT id, (${NORM_SELLER}) AS norm_seller,
-          MAX(producto) AS producto, MAX(marca) AS marca,
-          MAX(subcategoria) AS subcategoria, MAX(plataforma) AS plataforma,
+        SELECT id, marca, retail,
+          MAX(titulo) AS titulo, MAX(fabricante) AS fabricante,
+          MAX(categoria) AS categoria,
           MAX(DATE(fecha))::text AS last_seen,
           COUNT(DISTINCT DATE(fecha))::int AS days_seen
         FROM eci.sos
         WHERE DATE(fecha) >= ($1::date - INTERVAL '${lookback} days')
           AND DATE(fecha) < $1::date
           AND ${wCond}
-        GROUP BY id, (${NORM_SELLER})
+        GROUP BY id, marca, retail
       `
       const inStockSQL = `
-        SELECT t.id, t.producto, t.marca, t.subcategoria, t.plataforma, t.norm_seller,
+        SELECT t.id, t.titulo AS producto, t.marca, t.categoria AS subcategoria,
+          t.retail AS plataforma, t.marca AS norm_seller,
           t.precio_venta, lb.last_seen,
           COALESCE(lb.days_seen, 0) AS days_seen,
           'in_stock'::text AS stock_status,
-          (t.norm_seller = 'Newsan') AS is_newsan
+          (${ABBOTT_LIKE.replace('fabricante', 't.fabricante')}) AS is_newsan
         FROM (${todaySub}) t
-        LEFT JOIN (${lbSub}) lb ON lb.id = t.id AND lb.norm_seller = t.norm_seller
+        LEFT JOIN (${lbSub}) lb ON lb.id = t.id AND lb.marca = t.marca AND lb.retail = t.retail
       `
       const breakSQL = `
-        SELECT lb.id, lb.producto, lb.marca, lb.subcategoria, lb.plataforma, lb.norm_seller,
+        SELECT lb.id, lb.titulo AS producto, lb.marca, lb.categoria AS subcategoria,
+          lb.retail AS plataforma, lb.marca AS norm_seller,
           NULL::numeric AS precio_venta, lb.last_seen, lb.days_seen,
           'break'::text AS stock_status,
-          (lb.norm_seller = 'Newsan') AS is_newsan
+          (${ABBOTT_LIKE.replace('fabricante', 'lb.fabricante')}) AS is_newsan
         FROM (${lbSub}) lb
-        LEFT JOIN (${todaySub}) tod ON tod.id = lb.id AND tod.norm_seller = lb.norm_seller
+        LEFT JOIN (${todaySub}) tod ON tod.id = lb.id AND tod.marca = lb.marca AND tod.retail = lb.retail
         WHERE tod.id IS NULL
       `
       const unionSQL = show === "in_stock" ? inStockSQL
@@ -560,7 +517,7 @@ export async function GET(req: Request) {
         plataforma:   r.plataforma,
         seller:       r.norm_seller,
         precio_venta: r.precio_venta != null ? Number(r.precio_venta) : null,
-        last_seen:    r.last_seen    != null ? String(r.last_seen).split("T")[0] : null,
+        last_seen:    r.last_seen != null ? String(r.last_seen).split("T")[0] : null,
         days_seen:    Number(r.days_seen),
         stock_status: r.stock_status,
         is_newsan:    Boolean(r.is_newsan),
@@ -571,52 +528,52 @@ export async function GET(req: Request) {
     if (action === "assortment") {
       const limit    = Math.min(1000, parseInt(searchParams.get("limit") || "500", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
-      const show     = searchParams.get("show") || "all" // "all" | "newsan" | "gaps"
+      const show     = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
-      let w = `DATE(fecha) = $1::date AND producto IS NOT NULL AND precio_venta IS NOT NULL`
-      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
-      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
-      const showFilter = show === "newsan" ? `ps.newsan_present = TRUE`
-                       : show === "gaps"   ? `ps.newsan_present = FALSE`
+      let w = `DATE(fecha) = $1::date AND titulo IS NOT NULL AND precio_venta IS NOT NULL`
+      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      const showFilter = show === "newsan" ? `ps.abbott_present = TRUE`
+                       : show === "gaps"   ? `ps.abbott_present = FALSE`
                        : `TRUE`
       const sql = `
         WITH data AS (
-          SELECT DISTINCT ON (id, (${NORM_SELLER}))
-            id, producto, marca, subcategoria, plataforma,
-            (${NORM_SELLER})                AS norm_seller,
+          SELECT DISTINCT ON (id, marca)
+            id, titulo, marca, categoria, retail, fabricante,
             ROUND(precio_venta::numeric, 0) AS precio_venta
           FROM eci.sos
           WHERE ${w}
-          ORDER BY id, (${NORM_SELLER}), ranking::numeric DESC NULLS LAST
+          ORDER BY id, marca, ranking::numeric ASC NULLS LAST
         ),
         product_summary AS (
           SELECT
             id,
-            MAX(producto)                                                       AS producto,
-            MAX(marca)                                                          AS marca,
-            MAX(subcategoria)                                                   AS subcategoria,
-            MAX(plataforma)                                                     AS plataforma,
-            COUNT(DISTINCT norm_seller)                                         AS total_sellers,
-            MAX(CASE WHEN norm_seller = 'Newsan' THEN precio_venta END)         AS newsan_price,
-            MIN(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END)        AS comp_min_price,
-            MAX(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END)        AS comp_max_price,
-            BOOL_OR(norm_seller = 'Newsan')                                     AS newsan_present,
-            MIN(precio_venta)                                                   AS min_price
+            MAX(titulo) AS producto,
+            MAX(marca) AS marca,
+            MAX(categoria) AS categoria,
+            MAX(retail) AS retail,
+            COUNT(DISTINCT marca) AS total_sellers,
+            MAX(CASE WHEN ${ABBOTT_LIKE} THEN precio_venta END) AS newsan_price,
+            MIN(CASE WHEN NOT (${ABBOTT_LIKE}) THEN precio_venta END) AS comp_min_price,
+            MAX(CASE WHEN NOT (${ABBOTT_LIKE}) THEN precio_venta END) AS comp_max_price,
+            BOOL_OR(${ABBOTT_LIKE}) AS abbott_present,
+            MIN(precio_venta) AS min_price
           FROM data
           GROUP BY id
         ),
         with_tier AS (
           SELECT *,
-            NTILE(3) OVER (PARTITION BY subcategoria ORDER BY min_price)        AS tier_num
+            NTILE(3) OVER (PARTITION BY categoria ORDER BY min_price) AS tier_num
           FROM product_summary
         )
         SELECT
-          id, producto, marca, subcategoria, plataforma,
-          total_sellers, newsan_price, comp_min_price, comp_max_price, newsan_present,
+          id, producto, marca, categoria AS subcategoria, retail AS plataforma,
+          total_sellers, newsan_price, comp_min_price, comp_max_price, abbott_present AS newsan_present,
           CASE tier_num WHEN 1 THEN 'Entry' WHEN 2 THEN 'Mid' ELSE 'Premium' END AS tier
         FROM with_tier ps
         WHERE ${showFilter}
-        ORDER BY subcategoria, marca, producto
+        ORDER BY categoria, marca, producto
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
@@ -641,83 +598,74 @@ export async function GET(req: Request) {
 
     // ── buybox ────────────────────────────────────────────
     if (action === "buybox") {
-      const limit    = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
+      const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
-      const show     = searchParams.get("show") || "all" // "all" | "wins" | "loses" | "gaps"
+      const show = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND ranking IS NOT NULL AND id IS NOT NULL AND precio_venta IS NOT NULL`
-      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
-      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
-      const showFilter = show === "wins"  ? `w.winner_seller = 'Newsan'`
-                       : show === "loses" ? `s.newsan_price IS NOT NULL AND w.winner_seller != 'Newsan'`
-                       : show === "gaps"  ? `s.newsan_price IS NULL`
+      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      const showFilter = show === "wins"  ? `(${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')})`
+                       : show === "loses" ? `s.abbott_price IS NOT NULL AND NOT (${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')})`
+                       : show === "gaps"  ? `s.abbott_price IS NULL`
                        : `TRUE`
       const sql = `
         WITH normalized AS (
           SELECT
-            id,
-            producto,
-            marca,
-            subcategoria,
-            plataforma,
-            precio_venta::numeric   AS precio_venta,
-            precio::numeric         AS precio,
-            descuento::numeric      AS descuento,
-            envio,
-            url_producto,
-            cuotas_sin_interes,
-            ranking::numeric        AS ranking,
-            (${NORM_SELLER})        AS norm_seller
-          FROM eci.sos
-          WHERE ${w}
+            id, titulo, marca, categoria, retail,
+            precio_venta::numeric AS precio_venta,
+            precio_neto::numeric AS precio_neto,
+            descuento::numeric AS descuento,
+            ranking::numeric AS ranking,
+            fabricante, url_producto
+          FROM eci.sos WHERE ${w}
         ),
         winner AS (
           SELECT DISTINCT ON (id)
             id,
-            MAX(producto)    OVER (PARTITION BY id) AS producto,
-            MAX(marca)       OVER (PARTITION BY id) AS marca,
-            MAX(subcategoria) OVER (PARTITION BY id) AS subcategoria,
-            MAX(plataforma)  OVER (PARTITION BY id) AS plataforma,
-            norm_seller                              AS winner_seller,
-            ROUND(precio_venta, 0)                   AS winner_price,
-            ROUND(precio, 0)                         AS winner_precio_original,
-            ROUND(descuento, 1)                      AS winner_descuento,
-            envio                                    AS winner_envio,
-            url_producto                             AS winner_url,
-            ranking                                  AS winner_ranking
+            MAX(titulo) OVER (PARTITION BY id) AS titulo,
+            MAX(marca) OVER (PARTITION BY id) AS marca,
+            MAX(categoria) OVER (PARTITION BY id) AS categoria,
+            MAX(retail) OVER (PARTITION BY id) AS retail,
+            marca AS winner_seller,
+            fabricante AS winner_fabricante,
+            ROUND(precio_venta, 0) AS winner_price,
+            ROUND(precio_neto, 0) AS winner_precio_original,
+            ROUND(descuento, 1) AS winner_descuento,
+            url_producto AS winner_url,
+            ranking AS winner_ranking
           FROM normalized
-          ORDER BY id, ranking DESC NULLS LAST, precio_venta ASC
+          ORDER BY id, ranking ASC NULLS LAST, precio_venta ASC
         ),
         stats AS (
           SELECT
             id,
-            COUNT(DISTINCT norm_seller)                                           AS total_sellers,
-            MAX(CASE WHEN norm_seller = 'Newsan' THEN ROUND(precio_venta, 0) END) AS newsan_price,
-            MAX(CASE WHEN norm_seller = 'Newsan' THEN ranking END)                AS newsan_ranking,
-            MAX(CASE WHEN norm_seller = 'Newsan' THEN envio END)                  AS newsan_envio,
-            MAX(CASE WHEN norm_seller = 'Newsan' THEN cuotas_sin_interes END)     AS newsan_cuotas
+            COUNT(DISTINCT marca) AS total_sellers,
+            MAX(CASE WHEN ${ABBOTT_LIKE} THEN ROUND(precio_venta, 0) END) AS abbott_price,
+            MIN(CASE WHEN ${ABBOTT_LIKE} THEN ranking END) AS abbott_ranking
           FROM normalized
           GROUP BY id
         )
         SELECT
-          w.id, w.producto, w.marca, w.subcategoria, w.plataforma,
-          w.winner_seller, w.winner_price, w.winner_precio_original,
-          w.winner_descuento, w.winner_envio, w.winner_url, w.winner_ranking,
-          s.total_sellers, s.newsan_price, s.newsan_ranking, s.newsan_envio, s.newsan_cuotas,
-          (s.newsan_price IS NOT NULL) AS newsan_present,
-          (w.winner_seller = 'Newsan') AS newsan_wins
+          w.id, w.titulo AS producto, w.marca, w.categoria AS subcategoria, w.retail AS plataforma,
+          w.winner_seller, w.winner_fabricante, w.winner_price, w.winner_precio_original,
+          w.winner_descuento, w.winner_url, w.winner_ranking,
+          s.total_sellers, s.abbott_price AS newsan_price, s.abbott_ranking AS newsan_ranking,
+          (s.abbott_price IS NOT NULL) AS newsan_present,
+          (${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')}) AS newsan_wins
         FROM winner w
         JOIN stats s ON s.id = w.id
         WHERE ${showFilter}
-        ORDER BY w.winner_ranking DESC NULLS LAST
+        ORDER BY w.winner_ranking ASC NULLS LAST
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
         id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-        winner_seller: string; winner_price: number; winner_precio_original: number
-        winner_descuento: number; winner_envio: string; winner_url: string; winner_ranking: number
-        total_sellers: number; newsan_price: number | null; newsan_ranking: number | null
-        newsan_envio: string | null; newsan_cuotas: string | number | null
+        winner_seller: string; winner_fabricante: string; winner_price: number
+        winner_precio_original: number; winner_descuento: number; winner_url: string
+        winner_ranking: number; total_sellers: number
+        newsan_price: number | null; newsan_ranking: number | null
         newsan_present: boolean; newsan_wins: boolean
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
@@ -728,29 +676,31 @@ export async function GET(req: Request) {
         plataforma:             r.plataforma,
         winner_seller:          r.winner_seller,
         winner_price:           Number(r.winner_price),
-        winner_precio_original: Number(r.winner_precio_original),
-        winner_descuento:       Number(r.winner_descuento),
-        winner_envio:           r.winner_envio,
+        winner_precio_original: r.winner_precio_original != null ? Number(r.winner_precio_original) : null,
+        winner_descuento:       r.winner_descuento != null ? Number(r.winner_descuento) : null,
+        winner_envio:           null,
         winner_url:             r.winner_url,
         winner_ranking:         Number(r.winner_ranking),
         total_sellers:          Number(r.total_sellers),
-        newsan_price:           r.newsan_price    != null ? Number(r.newsan_price)    : null,
-        newsan_ranking:         r.newsan_ranking  != null ? Number(r.newsan_ranking)  : null,
-        newsan_envio:           r.newsan_envio,
-        newsan_cuotas:          r.newsan_cuotas   != null ? Number(r.newsan_cuotas)   : null,
+        newsan_price:           r.newsan_price   != null ? Number(r.newsan_price)   : null,
+        newsan_ranking:         r.newsan_ranking != null ? Number(r.newsan_ranking) : null,
+        newsan_envio:           null,
+        newsan_cuotas:          null,
         newsan_present:         Boolean(r.newsan_present),
         newsan_wins:            Boolean(r.newsan_wins),
       })))
     }
 
-    // ── buybox_lost (presencia Newsan 7 días) ──────────────
+    // ── buybox_lost ───────────────────────────────────────
     if (action === "buybox_lost") {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "200", 10))
       const p: unknown[] = [limit]
       let channelSql  = ""
       let categorySql = ""
-      if (channel)  { p.push(channel);  channelSql  = `AND s.plataforma   = $${p.length}` }
-      if (category) { p.push(category); categorySql = `AND s.subcategoria = $${p.length}` }
+      let countrySql  = ""
+      if (channel)  { p.push(channel);  channelSql  = `AND s.retail = $${p.length}` }
+      if (category) { p.push(category); categorySql = `AND s.categoria = $${p.length}` }
+      if (country)  { p.push(country);  countrySql  = `AND s.pais = $${p.length}` }
 
       const sql = `
         WITH
@@ -758,76 +708,62 @@ export async function GET(req: Request) {
           SELECT MAX(DATE(s.fecha)) AS max_date
           FROM eci.sos s
           WHERE s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql}
+            ${channelSql} ${categorySql} ${countrySql}
         ),
-        -- Productos donde Newsan estuvo como seller (cualquier posición) en los últimos 7 días
-        newsan_present_7d AS (
+        abbott_present_7d AS (
           SELECT DISTINCT s.id
           FROM eci.sos s, latest_date
           WHERE s.fecha >= latest_date.max_date - INTERVAL '6 days'
-            AND s.fecha  < latest_date.max_date + INTERVAL '1 day'
+            AND s.fecha < latest_date.max_date + INTERVAL '1 day'
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            AND (${NORM_SELLER}) = 'Newsan'
-            ${channelSql} ${categorySql}
+            AND ${ABBOTT_LIKE.replace('fabricante', 's.fabricante')}
+            ${channelSql} ${categorySql} ${countrySql}
         ),
-        -- BuyBox winner en el último día (seller con mayor ranking)
         raw_latest AS (
           SELECT
-            s.id,
-            s.producto,
-            s.marca,
-            s.subcategoria,
-            s.plataforma,
-            (${NORM_SELLER})               AS norm_seller,
-            s.precio_venta::numeric        AS precio_venta,
-            s.ranking::numeric             AS ranking,
-            s.envio,
+            s.id, s.titulo, s.marca, s.categoria, s.retail, s.fabricante,
+            s.precio_venta::numeric AS precio_venta,
+            s.ranking::numeric AS ranking,
             s.url_producto,
             ROW_NUMBER() OVER (
               PARTITION BY s.id
-              ORDER BY s.ranking::numeric DESC NULLS LAST, s.precio_venta::numeric ASC
+              ORDER BY s.ranking::numeric ASC NULLS LAST, s.precio_venta::numeric ASC
             ) AS rn
           FROM eci.sos s, latest_date
           WHERE DATE(s.fecha) = latest_date.max_date
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql}
+            ${channelSql} ${categorySql} ${countrySql}
         ),
         latest_winners AS (
-          SELECT id, producto, marca, subcategoria, plataforma,
-                 norm_seller AS winner_seller, precio_venta AS winner_price,
-                 envio AS winner_envio, url_producto AS winner_url
+          SELECT id, titulo AS producto, marca, categoria AS subcategoria,
+                 retail AS plataforma, marca AS winner_seller,
+                 precio_venta AS winner_price, url_producto AS winner_url
           FROM raw_latest WHERE rn = 1
         ),
-        -- Precio de Newsan en el último día (si está presente)
-        newsan_latest AS (
+        abbott_latest AS (
           SELECT id, ROUND(MAX(precio_venta), 0) AS newsan_price
           FROM raw_latest
-          WHERE norm_seller = 'Newsan'
+          WHERE ${ABBOTT_LIKE.replace('fabricante', 'fabricante')}
           GROUP BY id
         )
         SELECT
-          lw.id,
-          lw.producto,
-          lw.marca,
-          lw.subcategoria,
-          lw.plataforma,
+          lw.id, lw.producto, lw.marca, lw.subcategoria, lw.plataforma,
           lw.winner_seller,
-          ROUND(lw.winner_price, 0)              AS winner_price,
-          lw.winner_envio,
+          ROUND(lw.winner_price, 0) AS winner_price,
           lw.winner_url,
-          nl.newsan_price,
-          (lw.winner_seller = 'Newsan')          AS newsan_wins,
+          al.newsan_price,
+          FALSE AS newsan_wins,
           (SELECT max_date::text FROM latest_date) AS latest_date
-        FROM newsan_present_7d np
-        JOIN latest_winners lw ON lw.id = np.id
-        LEFT JOIN newsan_latest nl ON nl.id = np.id
-        ORDER BY (lw.winner_seller = 'Newsan') DESC, ROUND(lw.winner_price, 0) DESC NULLS LAST
+        FROM abbott_present_7d ap
+        JOIN latest_winners lw ON lw.id = ap.id
+        LEFT JOIN abbott_latest al ON al.id = ap.id
+        ORDER BY ROUND(lw.winner_price, 0) DESC NULLS LAST
         LIMIT $1
       `
       const rows = await prisma.$queryRawUnsafe<{
         id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-        winner_seller: string; winner_price: number; winner_envio: string | null
-        winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
+        winner_seller: string; winner_price: number; winner_url: string | null
+        newsan_price: number | null; newsan_wins: boolean; latest_date: string
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         id:            r.id,
@@ -837,7 +773,7 @@ export async function GET(req: Request) {
         plataforma:    r.plataforma,
         winner_seller: r.winner_seller,
         winner_price:  Number(r.winner_price),
-        winner_envio:  r.winner_envio,
+        winner_envio:  null,
         winner_url:    r.winner_url,
         newsan_price:  r.newsan_price != null ? Number(r.newsan_price) : null,
         newsan_wins:   Boolean(r.newsan_wins),
@@ -849,73 +785,65 @@ export async function GET(req: Request) {
     if (action === "price_index") {
       const limit    = Math.min(500, parseInt(searchParams.get("limit") || "200", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
-      const show     = searchParams.get("show") || "newsan" // "newsan" | "gaps" | "all"
+      const show     = searchParams.get("show") || "newsan"
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL AND id IS NOT NULL`
-      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
-      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
-      const showFilter = show === "newsan" ? "AND newsan_price IS NOT NULL"
-                       : show === "gaps"   ? "AND newsan_price IS NULL"
+      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      const showFilter = show === "newsan" ? "AND abbott_price IS NOT NULL"
+                       : show === "gaps"   ? "AND abbott_price IS NULL"
                        : ""
       const sql = `
         WITH normalized AS (
-          SELECT
-            id,
-            producto,
-            marca,
-            subcategoria,
-            plataforma,
-            precio_venta::numeric          AS precio_venta,
-            cuotas_sin_interes,
-            (${NORM_SELLER})               AS norm_seller
-          FROM eci.sos
-          WHERE ${w}
+          SELECT id, titulo, marca, categoria, retail, fabricante,
+            precio_venta::numeric AS precio_venta
+          FROM eci.sos WHERE ${w}
         ),
         base AS (
           SELECT
             id,
-            MAX(producto)                                                          AS producto,
-            MAX(marca)                                                             AS marca,
-            MAX(subcategoria)                                                      AS subcategoria,
-            MAX(plataforma)                                                        AS plataforma,
-            ROUND(AVG(precio_venta), 0)                                            AS avg_price,
-            ROUND(MIN(precio_venta), 0)                                            AS min_price,
-            ROUND(AVG(CASE WHEN norm_seller = 'Newsan' THEN precio_venta END), 0)  AS newsan_price,
-            ROUND(AVG(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END), 0) AS comp_avg_price,
-            ROUND(MIN(CASE WHEN norm_seller != 'Newsan' THEN precio_venta END), 0) AS comp_min_price,
-            COUNT(DISTINCT CASE WHEN norm_seller != 'Newsan' THEN norm_seller END) AS competitor_count,
-            MAX(CASE WHEN norm_seller = 'Newsan' THEN cuotas_sin_interes END)      AS newsan_cuotas
+            MAX(titulo) AS titulo,
+            MAX(marca) AS marca,
+            MAX(categoria) AS categoria,
+            MAX(retail) AS retail,
+            ROUND(AVG(precio_venta), 0) AS avg_price,
+            ROUND(MIN(precio_venta), 0) AS min_price,
+            ROUND(AVG(CASE WHEN ${ABBOTT_LIKE} THEN precio_venta END), 0) AS abbott_price,
+            ROUND(AVG(CASE WHEN NOT (${ABBOTT_LIKE}) THEN precio_venta END), 0) AS comp_avg_price,
+            ROUND(MIN(CASE WHEN NOT (${ABBOTT_LIKE}) THEN precio_venta END), 0) AS comp_min_price,
+            COUNT(DISTINCT CASE WHEN NOT (${ABBOTT_LIKE}) THEN marca END) AS competitor_count
           FROM normalized
           GROUP BY id
         )
         SELECT *,
-          ROUND((newsan_price / NULLIF(comp_avg_price, 0)) * 100, 1) AS price_index
+          ROUND((abbott_price / NULLIF(comp_avg_price, 0)) * 100, 1) AS price_index
         FROM base
         WHERE avg_price IS NOT NULL ${showFilter}
         ORDER BY
-          CASE WHEN newsan_price IS NOT NULL THEN 0 ELSE 1 END,
-          (newsan_price / NULLIF(comp_avg_price, 0)) * 100 DESC NULLS LAST
+          CASE WHEN abbott_price IS NOT NULL THEN 0 ELSE 1 END,
+          (abbott_price / NULLIF(comp_avg_price, 0)) * 100 DESC NULLS LAST
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
-        id: string; producto: string; marca: string; subcategoria: string; plataforma: string
+        id: string; titulo: string; marca: string; categoria: string; retail: string
         avg_price: number; min_price: number
-        newsan_price: number | null; comp_avg_price: number | null; comp_min_price: number | null
-        competitor_count: number; newsan_cuotas: string | number | null; price_index: number | null
+        abbott_price: number | null; comp_avg_price: number | null; comp_min_price: number | null
+        competitor_count: number; price_index: number | null
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         id:               r.id,
-        producto:         r.producto,
+        producto:         r.titulo,
         marca:            r.marca,
-        subcategoria:     r.subcategoria,
-        plataforma:       r.plataforma,
+        subcategoria:     r.categoria,
+        plataforma:       r.retail,
         avg_price:        Number(r.avg_price),
         min_price:        Number(r.min_price),
-        newsan_price:     r.newsan_price    != null ? Number(r.newsan_price)    : null,
+        newsan_price:     r.abbott_price    != null ? Number(r.abbott_price)    : null,
         comp_avg_price:   r.comp_avg_price  != null ? Number(r.comp_avg_price)  : null,
         comp_min_price:   r.comp_min_price  != null ? Number(r.comp_min_price)  : null,
         competitor_count: Number(r.competitor_count),
-        newsan_cuotas:    r.newsan_cuotas   != null ? Number(r.newsan_cuotas)   : null,
+        newsan_cuotas:    null,
         price_index:      r.price_index     != null ? Number(r.price_index)     : null,
       })))
     }
@@ -926,46 +854,37 @@ export async function GET(req: Request) {
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL`
-      if (channel)  { p.push(channel);  w += ` AND plataforma = $${p.length}` }
-      if (category) { p.push(category); w += ` AND subcategoria = $${p.length}` }
-      const sellerCond = seller ? ` AND (${sellerInSql(seller, p)})` : ""
+      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      let sellerCond = ""
+      if (seller) { p.push(seller); sellerCond = ` AND marca = $${p.length}` }
       const sql = `
         SELECT
           id,
-          MAX(producto)                         AS producto,
-          MAX(marca)                            AS marca,
-          ${NORM_SELLER}                        AS seller,
-          MAX(plataforma)                       AS plataforma,
-          MAX(subcategoria)                     AS subcategoria,
-          ROUND(AVG(precio_venta)::numeric, 0)  AS precio_venta,
-          ROUND(AVG(precio)::numeric, 0)        AS precio,
-          ROUND(AVG(descuento)::numeric, 1)     AS descuento,
-          MAX(cuotas_sin_interes)               AS cuotas_sin_interes,
-          MAX(tiene_cuotas_sin_interes)         AS tiene_cuotas_sin_interes,
-          MAX(detalle_cuotas)                   AS detalle_cuotas,
-          MAX(oferta_relampago)                 AS oferta_relampago,
-          MAX(cupon)                            AS cupon,
-          MAX("full")                           AS full_ml,
-          MAX(envio)                            AS envio,
-          MAX(tienda_oficial)                   AS tienda_oficial,
-          MAX(url_producto)                     AS url_producto
+          MAX(titulo) AS producto,
+          MAX(marca) AS marca,
+          MAX(retail) AS seller,
+          MAX(retail) AS plataforma,
+          MAX(categoria) AS subcategoria,
+          MAX(fabricante) AS fabricante,
+          ROUND(AVG(precio_venta)::numeric, 0) AS precio_venta,
+          ROUND(AVG(precio_neto)::numeric, 0) AS precio,
+          ROUND(AVG(descuento)::numeric, 1) AS descuento,
+          MAX(promocion) AS promocion,
+          MAX(presentacion) AS presentacion,
+          MAX(url_producto) AS url_producto
         FROM eci.sos
         WHERE ${w} AND id IS NOT NULL ${sellerCond}
-        GROUP BY id, ${NORM_SELLER}
+        GROUP BY id, marca
         ORDER BY precio_venta ASC
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
         id: string; producto: string; marca: string; seller: string
-        plataforma: string; subcategoria: string
+        plataforma: string; subcategoria: string; fabricante: string
         precio_venta: number; precio: number; descuento: number
-        cuotas_sin_interes: string | number | null
-        tiene_cuotas_sin_interes: string | null
-        detalle_cuotas: string | null
-        oferta_relampago: string | null
-        cupon: string | null
-        full_ml: string | null
-        envio: string; tienda_oficial: string; url_producto: string
+        promocion: string | null; presentacion: string | null; url_producto: string
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         id:                      r.id,
@@ -974,24 +893,48 @@ export async function GET(req: Request) {
         seller:                  r.seller,
         plataforma:              r.plataforma,
         subcategoria:            r.subcategoria,
+        fabricante:              r.fabricante,
         precio_venta:            Number(r.precio_venta),
-        precio:                  Number(r.precio),
+        precio:                  r.precio != null ? Number(r.precio) : null,
         descuento:               Number(r.descuento),
-        cuotas_sin_interes:      r.cuotas_sin_interes != null ? Number(r.cuotas_sin_interes) : null,
-        tiene_cuotas_sin_interes: r.tiene_cuotas_sin_interes,
-        detalle_cuotas:          r.detalle_cuotas,
-        oferta_relampago:        r.oferta_relampago,
-        cupon:                   r.cupon,
-        full_ml:                 r.full_ml,
-        envio:                   r.envio,
-        tienda_oficial:          r.tienda_oficial,
+        cuotas_sin_interes:      null,
+        tiene_cuotas_sin_interes: null,
+        detalle_cuotas:          null,
+        oferta_relampago:        null,
+        cupon:                   null,
+        full_ml:                 null,
+        envio:                   null,
+        tienda_oficial:          null,
         url_producto:            r.url_producto,
+        promocion:               r.promocion,
+        presentacion:            r.presentacion,
       })))
+    }
+
+    // ── marca_fabricante ──────────────────────────────────
+    if (action === "marca_fabricante") {
+      const p: unknown[] = []
+      let w = "1=1"
+      if (country) { p.push(country); w += ` AND mf.pais = $${p.length}` }
+      const sql = `
+        SELECT mf.marca, mf.pais, mf.fabricante, mf.n_apariciones,
+               mf.segmento, mf.mercado
+        FROM eci.marca_fabricante mf
+        WHERE ${w}
+        ORDER BY mf.n_apariciones DESC
+        LIMIT 500
+      `
+      const rows = await prisma.$queryRawUnsafe<{
+        marca: string; pais: string; fabricante: string; n_apariciones: number
+        segmento: string | null; mercado: string | null
+      }[]>(sql, ...p)
+      return NextResponse.json(rows)
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error"
+    console.error("API Error:", message)
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

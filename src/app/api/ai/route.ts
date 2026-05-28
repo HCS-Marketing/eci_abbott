@@ -8,7 +8,7 @@ let GUIDE = ""
 try { GUIDE = fs.readFileSync(GUIDE_PATH, "utf-8").trim() } catch { /* guide optional */ }
 
 // ─── SYSTEM PROMPT ────────────────────────────────────────────
-const BASE_SYSTEM = `Eres un consultor senior de estrategia de e-commerce para NEWSAN, fabricante y vendedor en marketplaces argentinos (MercadoLibre, Falabella, Fravega, etc.).
+const BASE_SYSTEM = `Eres un consultor senior de estrategia de e-commerce para ABBOTT, empresa líder en nutrición con presencia en marketplaces y farmacias de México, Colombia y Perú (Amazon, Mercado Libre, Farmacia del Ahorro, Walmart, etc.).
 
 Áreas de expertise: Share of Search, pricing competitivo, Buy Box, assortment, inventario, rankings.
 
@@ -17,44 +17,44 @@ const BASE_SYSTEM = `Eres un consultor senior de estrategia de e-commerce para N
 Cuando el usuario haga una pregunta que requiera datos específicos de la base de datos:
 
 1. **PRIMERO evaluá si tenés suficientes parámetros para hacer una consulta útil.**
-   - Si la pregunta es vaga (ej: "¿cómo está Newsan?", "¿cómo mejoro mi share?"), pedí UN solo parámetro a la vez — el más importante.
-   - Parámetros por orden de importancia: fecha/período → canal/plataforma → categoría → filtros adicionales.
+   - Si la pregunta es vaga (ej: "¿cómo está Abbott?", "¿cómo mejoro mi share?"), pedí UN solo parámetro a la vez — el más importante.
+   - Parámetros por orden de importancia: fecha/período → canal/retail → categoría → filtros adicionales.
    - NUNCA hagas más de una pregunta por vez. Una sola, concisa.
 
 2. **Una vez que tenés los parámetros clave, usá la herramienta query_sos_data para consultar la DB.**
    - No respondas sobre datos específicos sin consultar la DB primero.
    - Podés encadenar múltiples consultas si necesitás datos complementarios.
 
-3. **Preguntas sobre estrategia general** (ej: "¿cuándo usar una oferta relámpago?") pueden responderse directamente desde tu conocimiento sin consultar la DB.
+3. **Preguntas sobre estrategia general** (ej: "¿cuándo usar una promoción?") pueden responderse directamente desde tu conocimiento sin consultar la DB.
 
 ## CÓMO PEDIR PARÁMETROS (ejemplos)
 
 - "¿Para qué fecha querés el análisis? El rango disponible está en el contexto."
-- "¿En qué canal querés enfocarte? (MercadoLibre, Falabella, Fravega, etc.)"
-- "¿Hay alguna categoría en particular que te interese?"
-- "¿Querés ver solo los productos de Newsan, o toda la competencia?"
+- "¿En qué retail querés enfocarte? (Amazon, Mercado Libre, Farmacia del Ahorro, etc.)"
+- "¿Hay alguna categoría en particular que te interese? (Nutrición Infantil, Diabetes, etc.)"
+- "¿Querés ver solo los productos de Abbott, o toda la competencia?"
 
 ## PRINCIPIOS DE RESPUESTA
 - Basá las respuestas en datos reales de la herramienta, no en suposiciones
 - 3-4 insights clave con recomendaciones específicas y accionables
 - Tono profesional, en español neutro
-- Si los datos muestran algo crítico para Newsan, destacalo primero`
+- Si los datos muestran algo crítico para Abbott, destacalo primero`
 
 // ─── TOOL DEFINITION ─────────────────────────────────────────
 const DB_TOOL = {
   name: "query_sos_data",
-  description: "Consulta la base de datos de Share of Search de Newsan. Devuelve datos reales de precios, rankings, BuyBox, assortment, inventario y price index. Usá 'dates'/'channels'/'categories' primero si necesitás saber qué filtros están disponibles.",
+  description: "Consulta la base de datos de Share of Search de Abbott. Devuelve datos reales de precios, rankings, BuyBox, assortment, inventario y price index. Usá 'dates'/'channels'/'categories' primero si necesitás saber qué filtros están disponibles.",
   input_schema: {
     type: "object",
     properties: {
       action: {
         type: "string",
         enum: ["dates", "channels", "categories", "bestsellers", "pricing", "buybox", "assortment", "inventory", "price_index"],
-        description: "Tipo de datos: 'dates' = rango de fechas disponible, 'channels' = canales disponibles, 'categories' = categorías, 'bestsellers' = top productos por ranking, 'pricing' = precios y competencia, 'buybox' = análisis de BuyBox Newsan vs comp, 'assortment' = cobertura de catálogo, 'inventory' = stock/roturas, 'price_index' = índice precio Newsan vs competencia",
+        description: "Tipo de datos: 'dates' = rango de fechas disponible, 'channels' = retailers disponibles, 'categories' = categorías, 'bestsellers' = top productos por ranking, 'pricing' = precios y competencia, 'buybox' = análisis de BuyBox Abbott vs comp, 'assortment' = cobertura de catálogo, 'inventory' = stock/roturas, 'price_index' = índice precio Abbott vs competencia",
       },
       date:     { type: "string",  description: "Fecha en formato YYYY-MM-DD" },
-      channel:  { type: "string",  description: "Canal/plataforma (ej: 'Mercado Libre', 'Falabella'). Omitir para todos." },
-      category: { type: "string",  description: "Categoría de producto (ej: 'Aires Acondicionados'). Omitir para todas." },
+      channel:  { type: "string",  description: "Retail/canal (ej: 'AMAZON', 'MERCADO LIBRE', 'FARMACIA DEL AHORRO'). Omitir para todos." },
+      category: { type: "string",  description: "Categoría de producto (ej: 'Nutrición Infantil', 'Diabetes'). Omitir para todas." },
       limit:    { type: "number",  description: "Máximo de resultados (default 30, max 100)" },
     },
     required: ["action"],
@@ -122,7 +122,7 @@ function formatToolResult(action: string, data: unknown): string {
         const discs  = items.map(r => Number(r.descuento || 0)).filter(Boolean)
         const avgD   = discs.length  ? Math.round(discs.reduce((a, b) => a + b) / discs.length)   : 0
         const sellers = new Set(items.map(r => String(r.seller || "")))
-        const newsan  = items.filter(r => r.seller === "Newsan")
+        const newsan  = items.filter(r => r.seller === "Abbott")
         out += `\n\n${cat}: ${items.length} productos | precio prom $${fmt(avgP)} | desc prom ${avgD}% | ${sellers.size} sellers`
         if (newsan.length) out += ` | Newsan: ${newsan.length} productos`
         items.slice(0, 4).forEach(r => {
@@ -137,7 +137,7 @@ function formatToolResult(action: string, data: unknown): string {
       const loses = rows.filter(r => r.newsan_present && !r.newsan_wins).length
       const gaps  = rows.filter(r => !r.newsan_present).length
       const wr    = (wins + loses) > 0 ? Math.round(wins / (wins + loses) * 100) : 0
-      let out = `BUYBOX — ${rows.length} productos\nNewsan gana: ${wins} | pierde: ${loses} | gaps: ${gaps} | Win rate: ${wr}%\n\nPor categoría:`
+      let out = `BUYBOX — ${rows.length} productos\nAbbott gana: ${wins} | pierde: ${loses} | gaps: ${gaps} | Win rate: ${wr}%\n\nPor categoría:`
       const catMap = new Map<string, { w: number; t: number }>()
       rows.forEach(r => {
         const c = String(r.subcategoria || "General")
@@ -148,7 +148,7 @@ function formatToolResult(action: string, data: unknown): string {
       catMap.forEach((v, cat) => { out += `\n  ${cat}: ${v.w}/${v.t} (${Math.round(v.w / v.t * 100)}%)` })
       const loseList = rows.filter(r => r.newsan_present && !r.newsan_wins).slice(0, 5)
       if (loseList.length) {
-        out += `\n\nProductos donde Newsan pierde BuyBox:`
+        out += `\n\nProductos donde Abbott pierde BuyBox:`
         loseList.forEach(r => {
           out += `\n  · ${r.producto}: gana ${r.winner_seller} a $${fmt(Number(r.winner_price || 0))} (Newsan: $${fmt(Number(r.newsan_price || 0))})`
         })
@@ -175,9 +175,9 @@ function formatToolResult(action: string, data: unknown): string {
       const inStock = rows.filter(r => r.stock_status === "in_stock").length
       const breaks  = rows.filter(r => r.stock_status === "break")
       const nb      = breaks.filter(r => r.is_newsan)
-      let out = `INVENTARIO — ${inStock} en stock | ${breaks.length} roturas | Roturas Newsan: ${nb.length}`
+      let out = `INVENTARIO — ${inStock} en stock | ${breaks.length} roturas | Roturas Abbott: ${nb.length}`
       if (nb.length) {
-        out += "\n\nProductos Newsan con rotura de stock:"
+        out += "\n\nProductos Abbott con rotura de stock:"
         nb.slice(0, 6).forEach(r => { out += `\n  · ${r.producto} (${r.subcategoria}) | último visto: ${r.last_seen}` })
       }
       const cb = breaks.filter(r => !r.is_newsan)
@@ -194,13 +194,13 @@ function formatToolResult(action: string, data: unknown): string {
       const below = rows.filter(r => Number(r.price_index) < 95)
       let out = `PRICE INDEX — ${rows.length} productos | Índice promedio: ${Math.round(avg)} (100=paridad) | Más caros: ${above.length} | Más baratos: ${below.length}`
       if (above.length) {
-        out += "\n\nProductos donde Newsan es más caro que la competencia:"
+        out += "\n\nProductos donde Abbott es más caro que la competencia:"
         above.slice(0, 4).forEach(r => {
-          out += `\n  · ${r.producto} | índice ${Math.round(Number(r.price_index))} | Newsan $${fmt(Number(r.newsan_price || 0))} vs comp avg $${fmt(Number(r.comp_avg_price || 0))}`
+          out += `\n  · ${r.producto} | índice ${Math.round(Number(r.price_index))} | Abbott $${fmt(Number(r.newsan_price || 0))} vs comp avg $${fmt(Number(r.comp_avg_price || 0))}`
         })
       }
       if (below.length) {
-        out += "\n\nProductos donde Newsan es más barato:"
+        out += "\n\nProductos donde Abbott es más barato:"
         below.slice(0, 3).forEach(r => {
           out += `\n  · ${r.producto} | índice ${Math.round(Number(r.price_index))}`
         })

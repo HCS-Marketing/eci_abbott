@@ -18,12 +18,12 @@ const ClientContext = createContext<ClientContextValue>({
   loading: true,
 })
 
-// Default client — will be replaced once DB is wired up
+// Default client — Abbott
 const DEFAULT_CLIENT: ClientConfig = {
   id: "default",
-  name: "Newsan",
-  industry: "Retail",
-  brand_color: "#A427FF",
+  name: "Abbott",
+  industry: "Nutrición",
+  brand_color: "#003DA5",
 }
 
 export function ClientProvider({ children }: { children: React.ReactNode }) {

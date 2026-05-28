@@ -204,13 +204,13 @@ export default function InventoryPage() {
           ))}
         </div>
 
-        {/* Solo Newsan */}
+        {/* Solo Abbott */}
         <button onClick={() => setOnlyNewsan(v => !v)}
           className={clsx("px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
             onlyNewsan
               ? "bg-green-600 text-white border-green-600"
               : "bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-600")}>
-          Solo Newsan
+          Solo Abbott
         </button>
 
         {/* Límite */}
@@ -230,8 +230,8 @@ export default function InventoryPage() {
         {[
           { label: "En stock hoy",       value: String(inStock),      color: "#16a34a", sub: "productos activos" },
           { label: "Roturas detectadas", value: String(breaks),       color: breaks > 0 ? "#dc2626" : "#6b7280", sub: `ausentes en últimos ${lookback}d` },
-          { label: "Newsan en stock",    value: String(newsanStock),  color: "#16a34a", sub: "SKUs propios activos" },
-          { label: "Roturas Newsan",     value: String(newsanBreaks), color: newsanBreaks > 0 ? "#dc2626" : "#6b7280", sub: "SKUs propios sin stock" },
+          { label: "Abbott en stock",    value: String(newsanStock),  color: "#16a34a", sub: "SKUs propios activos" },
+          { label: "Roturas Abbott",     value: String(newsanBreaks), color: newsanBreaks > 0 ? "#dc2626" : "#6b7280", sub: "SKUs propios sin stock" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
@@ -320,7 +320,7 @@ export default function InventoryPage() {
                     {/* Seller */}
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       {e.is_newsan ? (
-                        <span className="text-[10px] font-bold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full">Newsan</span>
+                        <span className="text-[10px] font-bold text-green-700 bg-green-100 border border-green-200 px-2 py-0.5 rounded-full">Abbott</span>
                       ) : (
                         <span className="text-[10px] text-gray-600">{e.seller}</span>
                       )}

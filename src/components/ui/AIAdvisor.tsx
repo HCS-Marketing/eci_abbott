@@ -18,12 +18,12 @@ const SUGGESTED_QUESTIONS: Record<string, string[]> = {
   "/pricing":          ["¿Estamos competitivos en precio?", "¿Cómo responder a un competidor más barato?", "¿Dónde podemos subir precio sin perder share?"],
   "/buybox":           ["¿Por qué perdemos BuyBox en ciertas categorías?", "¿Qué cambios de precio/promo nos harían ganar más BuyBox?", "¿Cuál es el impacto de perder BuyBox?"],
   "/assortment":       ["¿Dónde están nuestros mayores gaps de catálogo?", "¿Qué marcas tienen mejor cobertura que nosotros?", "¿Qué categorías deberíamos priorizar para ampliar surtido?"],
-  "/inventory":        ["¿Qué productos de Newsan tienen rotura de stock?", "¿Cómo impacta el quiebre de stock en el posicionamiento?", "¿Qué acciones tomar ante una rotura crítica?"],
+  "/inventory":        ["¿Qué productos de Abbott tienen rotura de stock?", "¿Cómo impacta el quiebre de stock en el posicionamiento?", "¿Qué acciones tomar ante una rotura crítica?"],
   "/price-index":      ["¿En qué categorías somos más caros que la competencia?", "¿Dónde podemos bajar el índice de precio?", "¿Cómo leer el price index para tomar decisiones?"],
 }
 
 const DEFAULT_SUGGESTIONS = [
-  "¿Cuál es el estado actual de Newsan en el mercado?",
+  "¿Cuál es el estado actual de Abbott en el mercado?",
   "¿Cómo mejorar la visibilidad en MercadoLibre?",
   "¿Qué acciones priorizar esta semana?",
 ]
@@ -172,7 +172,7 @@ export default function AIAdvisor() {
             <Sparkles size={15} className="text-white" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-900">Newsan AI Advisor</div>
+            <div className="text-sm font-semibold text-gray-900">Abbott AI Advisor</div>
             <div className="flex items-center gap-1.5 text-[10px] text-green-600 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
               {contextLoading ? "Cargando datos..." : "Datos en tiempo real"}
@@ -191,9 +191,9 @@ export default function AIAdvisor() {
           {messages.length === 0 && (
             <div className="text-center py-4">
               <div className="text-2xl mb-2">🧠</div>
-              <div className="text-sm font-semibold text-gray-800 mb-1">Consultor Newsan</div>
+              <div className="text-sm font-semibold text-gray-800 mb-1">Consultor Abbott</div>
               <div className="text-xs text-gray-400 leading-relaxed">
-                Preguntame sobre estrategia en MercadoLibre, precios, BuyBox, assortment e inventario de Newsan.
+                Preguntame sobre estrategia en retailers, precios, BuyBox, assortment e inventario de Abbott.
               </div>
             </div>
           )}
@@ -258,7 +258,7 @@ export default function AIAdvisor() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Preguntame sobre estrategia de Newsan..."
+              placeholder="Preguntame sobre estrategia de Abbott..."
               className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
             />
             <button

@@ -24,7 +24,7 @@ const TIER_STYLE: Record<string, string> = {
   Entry:   "text-gray-600 bg-gray-100 border-gray-300",
 }
 
-type ShowMode = "all" | "newsan" | "gaps"
+type ShowMode = "all" | "Abbott" | "gaps"
 
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function AssortmentPage() {
@@ -134,7 +134,7 @@ export default function AssortmentPage() {
     <div className="space-y-4">
       <PageHeader
         title="Assortment"
-        subtitle="Cobertura de Newsan por marca y categoría — gaps vs competencia y distribución de surtido"
+        subtitle="Cobertura de Abbott por marca y categoría — gaps vs competencia y distribución de surtido"
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -176,7 +176,7 @@ export default function AssortmentPage() {
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
           {([
             ["all",    "Todos"],
-            ["newsan", "Con Newsan"],
+            ["Abbott", "Con Abbott"],
             ["gaps",   "Gaps"],
           ] as const).map(([val, label]) => (
             <button key={val} onClick={() => setShow(val)}
@@ -192,9 +192,9 @@ export default function AssortmentPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "SKUs en mercado",   value: String(totalSkus),  color: "#7c3aed", sub: `${brands} marca${brands !== 1 ? "s" : ""}` },
-          { label: "Con Newsan",        value: String(withNewsan), color: "#16a34a", sub: "Newsan presente" },
-          { label: "Cobertura Newsan",  value: `${coverage}%`,     color: coverage >= 60 ? "#16a34a" : coverage >= 30 ? "#d97706" : "#dc2626", sub: "sobre SKUs totales" },
-          { label: "Gaps",              value: String(gaps),       color: "#6b7280", sub: "sin Newsan" },
+          { label: "Con Abbott",        value: String(withNewsan), color: "#16a34a", sub: "Abbott presente" },
+          { label: "Cobertura Abbott",  value: `${coverage}%`,     color: coverage >= 60 ? "#16a34a" : coverage >= 30 ? "#d97706" : "#dc2626", sub: "sobre SKUs totales" },
+          { label: "Gaps",              value: String(gaps),       color: "#6b7280", sub: "sin Abbott" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
@@ -224,7 +224,7 @@ export default function AssortmentPage() {
                   <tr className="border-b border-gray-100">
                     <th className="px-4 py-2 text-left text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Marca</th>
                     <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Total</th>
-                    <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider text-green-500 font-semibold">Newsan</th>
+                    <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider text-green-500 font-semibold">Abbott</th>
                     <th className="px-2 py-2 text-center text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Gap</th>
                     <th className="px-3 py-2 text-right text-[10px] uppercase tracking-wider text-gray-400 font-semibold">%</th>
                   </tr>
@@ -289,9 +289,9 @@ export default function AssortmentPage() {
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Tier</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Sellers</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Newsan</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Abbott</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Rango comp.</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Newsan</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Abbott</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">

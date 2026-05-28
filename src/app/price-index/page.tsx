@@ -33,7 +33,7 @@ function IndexBadge({ idx }: { idx: number | null }) {
   )
 }
 
-type ShowMode = "newsan" | "all" | "gaps"
+type ShowMode = "Abbott" | "all" | "gaps"
 
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function PriceIndexPage() {
@@ -45,7 +45,7 @@ export default function PriceIndexPage() {
   const [minDate,  setMinDate]  = useState("")
   const [maxDate,  setMaxDate]  = useState("")
   const [topN,     setTopN]     = useState(200)
-  const [show,     setShow]     = useState<ShowMode>("newsan")
+  const [show,     setShow]     = useState<ShowMode>("Abbott")
   const [search,   setSearch]   = useState("")
 
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -125,7 +125,7 @@ export default function PriceIndexPage() {
     <div className="space-y-4">
       <PageHeader
         title="Price Index"
-        subtitle="Índice de precio Newsan vs competencia — 100 = paridad, < 100 = más barato, > 100 = más caro"
+        subtitle="Índice de precio Abbott vs competencia — 100 = paridad, < 100 = más barato, > 100 = más caro"
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -169,7 +169,7 @@ export default function PriceIndexPage() {
 
         {/* Show toggle */}
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {([["newsan", "Con Newsan"], ["all", "Todos"], ["gaps", "Gaps"]] as const).map(([val, label]) => (
+          {([["Abbott", "Con Abbott"], ["all", "Todos"], ["gaps", "Gaps"]] as const).map(([val, label]) => (
             <button key={val} onClick={() => setShow(val)}
               className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
                 show === val ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
@@ -197,7 +197,7 @@ export default function PriceIndexPage() {
             label: "Índice promedio",
             value: avgIndex != null ? avgIndex.toFixed(1) : "—",
             color: avgIndex == null ? "#6b7280" : avgIndex <= 95 ? "#16a34a" : avgIndex <= 105 ? "#d97706" : "#dc2626",
-            sub: "Newsan vs avg competencia",
+            sub: "Abbott vs avg competencia",
           },
           {
             label: "% Competitivo",
@@ -212,10 +212,10 @@ export default function PriceIndexPage() {
             sub: "por debajo del mín de competencia",
           },
           {
-            label: "Gaps (sin Newsan)",
+            label: "Gaps (sin Abbott)",
             value: String(gaps),
             color: "#6b7280",
-            sub: "productos sin presencia Newsan",
+            sub: "productos sin presencia Abbott",
           },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
@@ -267,7 +267,7 @@ export default function PriceIndexPage() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Newsan</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Abbott</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Avg comp.</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Índice</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Mín comp.</th>
@@ -306,7 +306,7 @@ export default function PriceIndexPage() {
                         <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                       </td>
 
-                      {/* Precio Newsan */}
+                      {/* precio Abbott */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
                         {isGap ? (
                           <span className="text-gray-300">—</span>
@@ -335,7 +335,7 @@ export default function PriceIndexPage() {
                         <span className="text-gray-500">{e.competitor_count}</span>
                       </td>
 
-                      {/* Cuotas Newsan */}
+                      {/* Cuotas Abbott */}
                       <td className="px-3 py-3 text-center">
                         {e.newsan_cuotas != null && e.newsan_cuotas > 0 ? (
                           <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-100">

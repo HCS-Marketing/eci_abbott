@@ -199,7 +199,7 @@ export default function RankingPage() {
   // Default seller = Newsan
   useEffect(() => {
     if (SELLERS.length === 0) return
-    const preferred = SELLERS.find(s => s === "Newsan") ?? SELLERS[0]
+    const preferred = SELLERS.find(s => s === "Abbott") ?? SELLERS[0]
     setSelectedSeller(preferred)
   }, [SELLERS[0]])
 
@@ -262,8 +262,8 @@ export default function RankingPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Fetch KPI data — siempre Newsan vs todos, ignora filtro de seller
-  const KPI_SELLER = "Newsan"
+  // Fetch KPI data — siempre Abbott vs todos, ignora filtro de seller
+  const KPI_SELLER = "Abbott"
   const fetchKpiData = useCallback(() => {
     if (!startDate || !endDate) return
     const p = new URLSearchParams({
@@ -291,7 +291,7 @@ export default function RankingPage() {
     e.marca?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // KPIs — siempre Newsan vs todos (ignora filtro de seller)
+  // KPIs — siempre Abbott vs todos (ignora filtro de seller)
   const kpiNewsan    = kpiData.filter(e => e.seller === KPI_SELLER)
   const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => e.seller === KPI_SELLER); return idx >= 0 ? idx + 1 : null })()
   const kpiTop3      = kpiData.slice(0, 3).filter(e => e.seller === KPI_SELLER).length
