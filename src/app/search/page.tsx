@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
 import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
+import { getRetailColor } from "@/lib/format"
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -695,7 +696,7 @@ export default function ShareOfShelfPage() {
           </div>
           <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
           <div className="space-y-3">
-            {channelData.map(d => (
+            {channelData.map((d, i) => (
               <div key={String(d.channel)}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-gray-600">{String(d.channel)}</span>
@@ -704,7 +705,7 @@ export default function ShareOfShelfPage() {
                     <span className="text-gray-900 font-semibold font-mono">{Number(d.sos_p1)}%</span>
                   </div>
                 </div>
-                <SOSBar pct={Number(d.sos_p1)} color={ownColor} max={maxChannel * 1.2} />
+                <SOSBar pct={Number(d.sos_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
               </div>
             ))}
           </div>
