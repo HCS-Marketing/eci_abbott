@@ -32,6 +32,8 @@ export async function GET(req: Request) {
   const seller   = searchParams.get("seller") || ""
   const sellersParam = searchParams.get("sellers")?.split(",").filter(Boolean) || []
   const country  = searchParams.get("country") || ""
+  const segmento = searchParams.get("segmento") || ""
+  const mercado  = searchParams.get("mercado") || ""
 
   try {
     // ── date range (from mv_sos_dimensions — 83 rows) ────
@@ -123,16 +125,51 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
+    // ── segmentos list — from marca_fabricante ────────────
+    if (action === "segmentos") {
+      const p: unknown[] = []
+      let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
+      if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
+      sql += " ORDER BY 1"
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => r.n))
+    }
+
+    // ── mercados list — from marca_fabricante ─────────────
+    if (action === "mercados") {
+      const p: unknown[] = []
+      let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL`
+      if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
+      if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
+      sql += " ORDER BY 1"
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => r.n))
+    }
+
+    // Helper: build marca filter subquery from segmento/mercado
+    function marcaFilterSQL(params: unknown[], tableAlias: string): string {
+      if (!segmento && !mercado) return ""
+      let sub = ` AND ${tableAlias}.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+      if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
+      if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
+      if (country)  { params.push(country);  sub += ` AND mf2.pais = $${params.length}` }
+      sub += ")"
+      return sub
+    }
+
     // ── sellers (fabricante) SOS overview ──────────────────
     if (action === "sellers") {
       const p: unknown[] = []
       const w = buildWhere(p)
+      const mf = marcaFilterSQL(p, "d")
+      // When segmento/mercado is active, use mv_sos_daily_marca (has marca column)
+      const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
       const sql = `
         WITH agg AS (
           SELECT fabricante AS fab,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
-          FROM eci.mv_sos_daily_fab WHERE ${w}
+          FROM ${table} d WHERE ${w}${mf}
           GROUP BY fabricante
         ),
         totals AS (
@@ -170,13 +207,14 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       p.push(seller)
       const sellerCond = `fabricante = $${p.length}`
+      const mf = marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT marca,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
-          FROM eci.mv_sos_daily_marca
-          WHERE ${w} AND ${sellerCond}
+          FROM eci.mv_sos_daily_marca d
+          WHERE ${w} AND ${sellerCond}${mf}
           GROUP BY marca
         ),
         totals AS (
@@ -212,14 +250,15 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       p.push(seller)
       const sellerCond = `fabricante = $${p.length}`
+      const mf = marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT producto_id, MAX(titulo) AS titulo,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
-          FROM eci.mv_sos_daily_titulo
-          WHERE ${w} AND ${sellerCond}
+          FROM eci.mv_sos_daily_titulo d
+          WHERE ${w} AND ${sellerCond}${mf}
           GROUP BY producto_id
         ),
         totals AS (
@@ -256,18 +295,20 @@ export async function GET(req: Request) {
       if (sellerList.length === 0) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
+      const mf = marcaFilterSQL(p, "d")
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
+      const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
       const sql = `
         WITH daily_total AS (
           SELECT fecha AS day, SUM(count_p1) AS total_p1
-          FROM eci.mv_sos_daily_fab WHERE ${w}
+          FROM ${table} d WHERE ${w}${mf}
           GROUP BY fecha
         ),
         seller_daily AS (
           SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1
-          FROM eci.mv_sos_daily_fab
-          WHERE ${w} AND fabricante IN (${sellerPlaceholders})
+          FROM ${table} d
+          WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})
           GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
@@ -290,7 +331,9 @@ export async function GET(req: Request) {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p, { channel: false, category: true, country: true })
+      const mf = marcaFilterSQL(p, "d")
       p.push(seller)
+      const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
       const sql = `
         WITH per_retail AS (
           SELECT retail,
@@ -298,7 +341,7 @@ export async function GET(req: Request) {
             SUM(count_total) AS total_all,
             SUM(CASE WHEN fabricante = $${p.length} THEN count_p1 ELSE 0 END) AS seller_p1,
             SUM(CASE WHEN fabricante = $${p.length} THEN count_total ELSE 0 END) AS seller_all
-          FROM eci.mv_sos_daily_fab WHERE ${w}
+          FROM ${table} d WHERE ${w}${mf}
           GROUP BY retail
         )
         SELECT retail AS channel,
@@ -912,7 +955,9 @@ export async function GET(req: Request) {
     if (action === "marca_fabricante") {
       const p: unknown[] = []
       let w = "1=1"
-      if (country) { p.push(country); w += ` AND mf.pais = $${p.length}` }
+      if (country)  { p.push(country);  w += ` AND mf.pais = $${p.length}` }
+      if (segmento) { p.push(segmento); w += ` AND mf.segmento = $${p.length}` }
+      if (mercado)  { p.push(mercado);  w += ` AND mf.mercado = $${p.length}` }
       const sql = `
         SELECT mf.marca, mf.pais, mf.fabricante, mf.n_apariciones,
                mf.segmento, mf.mercado

@@ -236,6 +236,8 @@ export default function ShareOfShelfPage() {
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
   const [country,    setCountry]    = useState("")
+  const [segmento,   setSegmento]   = useState("")
+  const [mercado,    setMercado]    = useState("")
   const [startDate,  setStartDate]  = useState("")
   const [endDate,    setEndDate]    = useState("")
   const [minDate,    setMinDate]    = useState("")
@@ -245,6 +247,8 @@ export default function ShareOfShelfPage() {
   const [availableChannels,    setAvailableChannels]    = useState<string[]>([])
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
   const [availableCountries,   setAvailableCountries]   = useState<string[]>([])
+  const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
+  const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
   const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "")
   const [selectedSellers, setSelectedSellers] = useState(SELLERS.slice(0, 4))
   const [page,  setPage]  = useState<PageCtx>("p1")
@@ -346,6 +350,33 @@ export default function ShareOfShelfPage() {
       })
   }, [channel, startDate, endDate])
 
+  // ── Cascading: segmentos filtrados por país ───────────────
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "segmentos" })
+    if (country) p.set("country", country)
+    fetch(`/api/sos?${p}`)
+      .then(r => r.json())
+      .then((data: string[]) => {
+        if (!Array.isArray(data)) return
+        setAvailableSegmentos(data)
+        if (segmento && !data.includes(segmento)) setSegmento("")
+      })
+  }, [country])
+
+  // ── Cascading: mercados filtrados por país + segmento ─────
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "mercados" })
+    if (country)  p.set("country", country)
+    if (segmento) p.set("segmento", segmento)
+    fetch(`/api/sos?${p}`)
+      .then(r => r.json())
+      .then((data: string[]) => {
+        if (!Array.isArray(data)) return
+        setAvailableMercados(data)
+        if (mercado && !data.includes(mercado)) setMercado("")
+      })
+  }, [country, segmento])
+
   const api = useCallback(
     (action: string) =>
       fetch(
@@ -353,6 +384,8 @@ export default function ShareOfShelfPage() {
         `&channel=${encodeURIComponent(channel)}` +
         `&category=${encodeURIComponent(category)}` +
         `&country=${encodeURIComponent(country)}` +
+        `&segmento=${encodeURIComponent(segmento)}` +
+        `&mercado=${encodeURIComponent(mercado)}` +
         `&seller=${encodeURIComponent(selectedSeller)}` +
         `&sellers=${selectedSellers.join(",")}` +
         `&page=${page}` +
@@ -361,7 +394,7 @@ export default function ShareOfShelfPage() {
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, country, selectedSeller, selectedSellers, page, startDate, endDate]
+    [channel, category, country, segmento, mercado, selectedSeller, selectedSellers, page, startDate, endDate]
   )
 
   useEffect(() => {
@@ -518,6 +551,32 @@ export default function ShareOfShelfPage() {
           >
             <option value="">Todas las categorías</option>
             {availableCategories.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+
+        {/* Mercado */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Mercado</span>
+          <select
+            value={mercado}
+            onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+          >
+            <option value="">Todos</option>
+            {availableMercados.map(m => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {/* Segmento */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Segmento</span>
+          <select
+            value={segmento}
+            onChange={e => setSegmento(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+          >
+            <option value="">Todos</option>
+            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
