@@ -33,31 +33,26 @@ export async function GET(req: Request) {
     const startDate = searchParams.get("startDate") || ""
     const endDate   = searchParams.get("endDate") || ""
 
-    // ── date range ──
+    // ── date range — uses MV ──
     if (action === "dates") {
-      const p: unknown[] = []
-      let sql = `SELECT MIN(fecha)::text AS min_d, MAX(fecha)::text AS max_d FROM eci.search WHERE 1=1`
-      if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
-      if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
-      const [r] = await prisma.$queryRawUnsafe<{ min_d: string; max_d: string }[]>(sql, ...p)
-      if (!r?.min_d) return NextResponse.json({ min: "", max: "" })
+      const [minR] = await prisma.$queryRawUnsafe<{ d: string }[]>(
+        `SELECT fecha::text AS d FROM eci.mv_search_daily_fab ORDER BY fecha ASC LIMIT 1`
+      )
+      const [maxR] = await prisma.$queryRawUnsafe<{ d: string }[]>(
+        `SELECT fecha::text AS d FROM eci.mv_search_daily_fab ORDER BY fecha DESC LIMIT 1`
+      )
+      if (!minR?.d) return NextResponse.json({ min: "", max: "" })
       return NextResponse.json({
-        min: r.min_d.substring(0, 10),
-        max: r.max_d.substring(0, 10),
+        min: minR.d.substring(0, 10),
+        max: maxR.d.substring(0, 10),
       })
     }
 
     const startD = startDate ? new Date(startDate + "T00:00:00Z") : new Date("2000-01-01T00:00:00Z")
     const endD   = endDate   ? new Date(endDate + "T23:59:59Z") : new Date("2099-12-31T23:59:59Z")
 
-    // When no search term is selected and the date range is wide (>14 days),
-    // limit to last 7 days from endD to avoid scanning millions of rows
-    const effectiveStartD = (!search && (endD.getTime() - startD.getTime()) > 14 * 86400000)
-      ? new Date(endD.getTime() - 7 * 86400000)
-      : startD
-
     function buildWhere(params: unknown[]) {
-      params.push(effectiveStartD, endD)
+      params.push(startD, endD)
       let w = `fecha >= $${params.length - 1} AND fecha <= $${params.length}`
       if (channel) { params.push(channel); w += ` AND retail = $${params.length}` }
       if (search)  { params.push(search);  w += ` AND search = $${params.length}` }
@@ -75,10 +70,10 @@ export async function GET(req: Request) {
       return sub
     }
 
-    // ── search terms list (replaces "categories") ──
+    // ── search terms list (replaces "categories") — uses MV ──
     if (action === "searches") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT search AS n FROM eci.search WHERE search IS NOT NULL AND search != ''`
+      let sql = `SELECT DISTINCT search AS n FROM eci.mv_search_daily_fab WHERE search IS NOT NULL AND search != ''`
       if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
@@ -87,10 +82,10 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── channels list ──
+    // ── channels list — uses MV ──
     if (action === "channels") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT retail AS n FROM eci.search WHERE 1=1`
+      let sql = `SELECT DISTINCT retail AS n FROM eci.mv_search_daily_fab WHERE 1=1`
       if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (search)  { p.push(search);  sql += ` AND search = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
@@ -99,10 +94,10 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── countries list ──
+    // ── countries list — uses MV ──
     if (action === "countries") {
       const rows = await prisma.$queryRaw<{ n: string }[]>`
-        SELECT DISTINCT pais AS n FROM eci.search ORDER BY 1
+        SELECT DISTINCT pais AS n FROM eci.mv_search_daily_fab ORDER BY 1
       `
       return NextResponse.json(rows.map(r => r.n))
     }
@@ -128,29 +123,27 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── sellers list ──
+    // ── sellers list — uses MV ──
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const mf = marcaFilter(p)
-      const sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE ${w}${mf} AND pagina = 1 ORDER BY 1`
+      const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_search_daily_fab WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── sellers (fabricante) SOS overview ──
+    // ── sellers (fabricante) SOS overview — uses MV ──
     if (action === "sellers") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const mf = marcaFilter(p)
       const sql = `
         WITH agg AS (
-          SELECT ${FABRICANTE_UNIFIED} AS fab,
-            COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
-            COUNT(*) AS products_total
-          FROM eci.search
-          WHERE ${w}${mf} AND pagina <= 3
-          GROUP BY fab
+          SELECT fabricante AS fab,
+            SUM(count_p1) AS products_p1,
+            SUM(count_total) AS products_total
+          FROM eci.mv_search_daily_fab
+          WHERE ${w}
+          GROUP BY fabricante
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
@@ -180,23 +173,22 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── brand breakdown ──
+    // ── brand breakdown — uses MV marca ──
     if (action === "brands") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
       p.push(seller)
-      const sellerCond = `${FABRICANTE_UNIFIED} = $${p.length}`
+      const sellerCond = `fabricante = $${p.length}`
       const mf = marcaFilter(p)
       const sql = `
-        WITH base AS (
-          SELECT * FROM eci.search WHERE ${w}${mf} AND ${sellerCond} AND pagina <= 3
-        ),
-        agg AS (
+        WITH agg AS (
           SELECT marca,
-            COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
-            COUNT(*) AS products_total
-          FROM base GROUP BY marca
+            SUM(count_p1) AS products_p1,
+            SUM(count_total) AS products_total
+          FROM eci.mv_search_daily_marca
+          WHERE ${w}${mf} AND ${sellerCond}
+          GROUP BY marca
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
@@ -270,33 +262,28 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── trend (daily SOS by fabricante) — limited to last 30 days for performance ──
+    // ── trend (daily SOS by fabricante) — uses MV ──
     if (action === "trend") {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
-      // Limit trend to last 30 days of endD for performance on 10M row table
       const trendStart = new Date(endD.getTime() - 30 * 24 * 60 * 60 * 1000)
       const p: unknown[] = [trendStart, endD]
       let w = `fecha >= $1 AND fecha <= $2`
       if (channel) { p.push(channel); w += ` AND retail = $${p.length}` }
       if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
-      const mf = marcaFilter(p)
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
       const sql = `
-        WITH base AS (
-          SELECT fecha::date AS day, pagina,
-            ${FABRICANTE_UNIFIED} AS fab
-          FROM eci.search WHERE ${w}${mf} AND pagina = 1
-        ),
-        daily_total AS (
-          SELECT day, COUNT(*) AS total_p1 FROM base GROUP BY day
+        WITH daily_total AS (
+          SELECT fecha AS day, SUM(count_p1) AS total_p1
+          FROM eci.mv_search_daily_fab WHERE ${w}
+          GROUP BY fecha
         ),
         seller_daily AS (
-          SELECT day, fab, COUNT(*) AS products_p1
-          FROM base WHERE fab IN (${sellerPlaceholders})
-          GROUP BY day, fab
+          SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1
+          FROM eci.mv_search_daily_fab WHERE ${w} AND fabricante IN (${sellerPlaceholders})
+          GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
           ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1
@@ -313,26 +300,24 @@ export async function GET(req: Request) {
       return NextResponse.json(Array.from(dayMap.values()))
     }
 
-    // ── by_channel (SOS per retail for a given seller) ──
+    // ── by_channel (SOS per retail for a given seller) — uses MV ──
     if (action === "by_channel") {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
-      // build where WITHOUT channel filter
-      p.push(effectiveStartD, endD)
+      p.push(startD, endD)
       let w = `fecha >= $${p.length - 1} AND fecha <= $${p.length}`
       if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
-      const mf = marcaFilter(p)
       p.push(seller)
       const sellerIdx = p.length
       const sql = `
         WITH per_retail AS (
           SELECT retail,
-            COUNT(*) FILTER (WHERE pagina = 1) AS total_p1,
-            COUNT(*) AS total_all,
-            COUNT(*) FILTER (WHERE pagina = 1 AND ${FABRICANTE_UNIFIED} = $${sellerIdx}) AS seller_p1,
-            COUNT(*) FILTER (WHERE ${FABRICANTE_UNIFIED} = $${sellerIdx}) AS seller_all
-          FROM eci.search WHERE ${w}${mf} AND pagina <= 3
+            SUM(count_p1) AS total_p1,
+            SUM(count_total) AS total_all,
+            SUM(count_p1) FILTER (WHERE fabricante = $${sellerIdx}) AS seller_p1,
+            SUM(count_total) FILTER (WHERE fabricante = $${sellerIdx}) AS seller_all
+          FROM eci.mv_search_daily_fab WHERE ${w}
           GROUP BY retail
         )
         SELECT retail AS channel,
