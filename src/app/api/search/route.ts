@@ -261,27 +261,33 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── trend (daily SOS by fabricante) ──
+    // ── trend (daily SOS by fabricante) — limited to last 30 days for performance ──
     if (action === "trend") {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
-      const p: unknown[] = []
-      const w = buildWhere(p)
+      // Limit trend to last 30 days of endD for performance on 10M row table
+      const trendStart = new Date(endD.getTime() - 30 * 24 * 60 * 60 * 1000)
+      const p: unknown[] = [trendStart, endD]
+      let w = `fecha >= $1 AND fecha <= $2`
+      if (channel) { p.push(channel); w += ` AND retail = $${p.length}` }
+      if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
+      if (country) { p.push(country); w += ` AND pais = $${p.length}` }
       const mf = marcaFilter(p)
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
       const sql = `
-        WITH daily_total AS (
-          SELECT fecha::date AS day, COUNT(*) FILTER (WHERE pagina = 1) AS total_p1
-          FROM eci.search WHERE ${w}${mf}
-          GROUP BY fecha::date
+        WITH base AS (
+          SELECT fecha::date AS day, pagina,
+            ${FABRICANTE_UNIFIED} AS fab
+          FROM eci.search WHERE ${w}${mf} AND pagina = 1
+        ),
+        daily_total AS (
+          SELECT day, COUNT(*) AS total_p1 FROM base GROUP BY day
         ),
         seller_daily AS (
-          SELECT fecha::date AS day, ${FABRICANTE_UNIFIED} AS fab,
-            COUNT(*) FILTER (WHERE pagina = 1) AS products_p1
-          FROM eci.search
-          WHERE ${w}${mf} AND ${FABRICANTE_UNIFIED} IN (${sellerPlaceholders})
-          GROUP BY fecha::date, fab
+          SELECT day, fab, COUNT(*) AS products_p1
+          FROM base WHERE fab IN (${sellerPlaceholders})
+          GROUP BY day, fab
         )
         SELECT sd.day::text, sd.fab AS seller,
           ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1

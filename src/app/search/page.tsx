@@ -338,9 +338,9 @@ export default function ShareOfShelfPage() {
       })
   }, [category, country, startDate, endDate])
 
-  // ── Cascading: categorías filtradas por retail + país + fechas ────
+  // ── Cascading: búsquedas filtradas por retail + país + fechas ────
   useEffect(() => {
-    const p = new URLSearchParams({ action: "categories" })
+    const p = new URLSearchParams({ action: "searches" })
     if (channel)   p.set("channel",   channel)
     if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
@@ -420,7 +420,7 @@ export default function ShareOfShelfPage() {
     let rows: string[][]
 
     if (drill === "seller") {
-      headers = ["#", "Seller", "SOS Pág 1 (%)", "Δ SOS Pág 1 (pp)", "SOS Total (%)", "Δ SOS Total (pp)", "Prods Pág 1"]
+      headers = ["#", "Seller", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Δ Pos. Total (pp)", "Prods Pág 1"]
       rows = sellerData.map((e, i) => [
         String(i + 1),
         String(e.seller),
@@ -431,7 +431,7 @@ export default function ShareOfShelfPage() {
         String(e.products_p1),
       ])
     } else if (drill === "brand") {
-      headers = ["Marca", "Seller", "SOS Pág 1 (%)", "Δ SOS Pág 1 (pp)", "SOS Total (%)", "Prods Pág 1"]
+      headers = ["Marca", "Seller", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Prods Pág 1"]
       rows = brandData.map(b => [
         String(b.brand),
         String(b.seller),
@@ -441,7 +441,7 @@ export default function ShareOfShelfPage() {
         String(b.products_p1),
       ])
     } else {
-      headers = ["Título", "Seller", "SOS Pág 1 (%)", "Δ SOS Pág 1 (pp)", "SOS Total (%)", "Pos. típica"]
+      headers = ["Título", "Seller", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Pos. típica"]
       rows = tituloData.map(t => [
         String(t.titulo),
         String(t.seller),
@@ -638,7 +638,7 @@ export default function ShareOfShelfPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: `SOS ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSeller}`,
+            label: `Pos. ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSeller}`,
             value: `${(page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0}%`,
             change: Number(page === "p1" ? ownEntry?.sos_p1_change : ownEntry?.sos_total_change),
           },
@@ -672,7 +672,7 @@ export default function ShareOfShelfPage() {
         {/* Stacked overview */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
           <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
-            SOS {page === "p1" ? "Página 1" : "Total"}{category ? ` · ${category}` : ""}{channel ? ` · ${channel}` : ""}
+            Posición {page === "p1" ? "Página 1" : "Total"}{category ? ` · ${category}` : ""}{channel ? ` · ${channel}` : ""}
           </div>
           <div className="text-xs text-gray-400 mb-3">Share acumulado de todos los sellers</div>
           <StackedBar data={stackedData} />
@@ -692,7 +692,7 @@ export default function ShareOfShelfPage() {
         {/* Por retail */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
           <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
-            SOS por retail · {selectedSeller}
+            Pos. por retail · {selectedSeller}
           </div>
           <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
           <div className="space-y-3">
@@ -716,7 +716,7 @@ export default function ShareOfShelfPage() {
       <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="text-[10px] uppercase tracking-widest text-gray-400">
-            Evolución SOS
+            Evolución Posición
           </div>
           {/* Multi-select dropdown — sellers ordered by SOS desc */}
           <div className="relative" ref={trendRef}>
@@ -825,7 +825,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["#", "Seller", "SOS Pág 1", "Δ", "SOS Total", "Δ", "Prods Pág 1", "Share"].map((h, i) => (
+                  {["#", "Seller", "Pos. Pág 1", "Δ", "Pos. Total", "Δ", "Prods Pág 1", "Share"].map((h, i) => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -895,7 +895,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[500px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Marca", "Seller", "SOS Pág 1", "Δ", "SOS Total", "Prods Pág 1"].map(h => (
+                  {["Marca", "Seller", "Pos. Pág 1", "Δ", "Pos. Total", "Prods Pág 1"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -937,7 +937,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[560px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Título", "Seller", "SOS Pág 1", "Δ", "SOS Total", "Pos. típica"].map(h => (
+                  {["Título", "Seller", "Pos. Pág 1", "Δ", "Pos. Total", "Pos. típica"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
