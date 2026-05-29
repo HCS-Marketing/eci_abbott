@@ -254,8 +254,8 @@ export default function ShareOfShelfPage() {
   const [availableCountries,   setAvailableCountries]   = useState<string[]>([])
   const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
   const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
-  const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "")
-  const [selectedSellers, setSelectedSellers] = useState(SELLERS.slice(0, 4))
+  const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "ABBOTT")
+  const [selectedSellers, setSelectedSellers] = useState<string[]>([])
   const [page,  setPage]  = useState<PageCtx>("p1")
   const [drill, setDrill] = useState<DrillLevel>("seller")
 
@@ -289,25 +289,16 @@ export default function ShareOfShelfPage() {
   const [trendData,   setTrendData]   = useState<Record<string, unknown>[]>([])
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
 
-  // sync when market changes — prefer Abbott variants as default
+  // Default selectedSeller and selectedSellers to top 5 by SOS when sellerData loads
   useEffect(() => {
-    if (SELLERS.length === 0) return
-    const preferred = ["Abbott", "ABBOTT"].filter(s => SELLERS.includes(s))
-    setSelectedSeller(preferred[0] ?? SELLERS[0])
-    setSelectedSellers([])  // will be set from sellerData
-  }, [SELLERS[0]])
-
-  // Default selectedSeller and selectedSellers to top 5 by SOS when sellerData first loads
-  useEffect(() => {
-    if (sellerData.length > 0 && !trendInitRef.current) {
-      trendInitRef.current = true
-      const top5 = sellerData.slice(0, 5).map(e => String(e.seller))
-      setSelectedSellers(top5)
-      // Set selectedSeller to Abbott if present in data, else top 1
-      const abbottEntry = sellerData.find(e => String(e.seller).toUpperCase() === "ABBOTT")
-      setSelectedSeller(abbottEntry ? String(abbottEntry.seller) : top5[0])
-    }
-  }, [sellerData.length])
+    if (sellerData.length === 0 || trendInitRef.current) return
+    trendInitRef.current = true
+    const top5 = sellerData.slice(0, 5).map(e => String(e.seller))
+    setSelectedSellers(top5)
+    // Set selectedSeller to Abbott if present in data, else top 1
+    const abbottEntry = sellerData.find(e => String(e.seller).toUpperCase() === "ABBOTT")
+    setSelectedSeller(abbottEntry ? String(abbottEntry.seller) : top5[0])
+  }, [sellerData])
 
   // Reset visible count when drill level or data changes
   useEffect(() => { setVisibleCount(10) }, [drill, sellerData, brandData, tituloData])
