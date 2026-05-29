@@ -324,6 +324,7 @@ export default function ShareOfShelfPage() {
 
   // ── Cascading: retails filtrados por categoría + país + fechas ───
   useEffect(() => {
+    if (!startDate || !endDate) return
     const p = new URLSearchParams({ action: "channels" })
     if (category)  p.set("search",  category)
     if (country)   p.set("country",   country)
@@ -340,6 +341,7 @@ export default function ShareOfShelfPage() {
 
   // ── Cascading: búsquedas filtradas por retail + país + fechas ────
   useEffect(() => {
+    if (!startDate || !endDate) return
     const p = new URLSearchParams({ action: "searches" })
     if (channel)   p.set("channel",   channel)
     if (country)   p.set("country",   country)
@@ -402,6 +404,7 @@ export default function ShareOfShelfPage() {
   )
 
   useEffect(() => {
+    if (!startDate || !endDate) return          // wait until dates are loaded
     Promise.all([
       api("sellers").then(setSellerData),
       api("brands").then(setBrandData),

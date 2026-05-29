@@ -124,7 +124,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const w = buildWhere(p)
       const mf = marcaFilter(p)
-      const sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE ${w}${mf} ORDER BY 1`
+      const sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE ${w}${mf} AND pagina = 1 ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
@@ -140,7 +140,7 @@ export async function GET(req: Request) {
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total
           FROM eci.search
-          WHERE ${w}${mf}
+          WHERE ${w}${mf} AND pagina <= 3
           GROUP BY fab
         ),
         totals AS (
@@ -181,7 +181,7 @@ export async function GET(req: Request) {
       const mf = marcaFilter(p)
       const sql = `
         WITH base AS (
-          SELECT * FROM eci.search WHERE ${w}${mf} AND ${sellerCond}
+          SELECT * FROM eci.search WHERE ${w}${mf} AND ${sellerCond} AND pagina <= 3
         ),
         agg AS (
           SELECT marca,
@@ -224,7 +224,7 @@ export async function GET(req: Request) {
       const mf = marcaFilter(p)
       const sql = `
         WITH base AS (
-          SELECT * FROM eci.search WHERE ${w}${mf} AND ${sellerCond}
+          SELECT * FROM eci.search WHERE ${w}${mf} AND ${sellerCond} AND pagina <= 3
         ),
         agg AS (
           SELECT COALESCE(ean, skuid) AS titulo_id, MAX(titulo) AS titulo,
@@ -323,7 +323,7 @@ export async function GET(req: Request) {
             COUNT(*) AS total_all,
             COUNT(*) FILTER (WHERE pagina = 1 AND ${FABRICANTE_UNIFIED} = $${sellerIdx}) AS seller_p1,
             COUNT(*) FILTER (WHERE ${FABRICANTE_UNIFIED} = $${sellerIdx}) AS seller_all
-          FROM eci.search WHERE ${w}${mf}
+          FROM eci.search WHERE ${w}${mf} AND pagina <= 3
           GROUP BY retail
         )
         SELECT retail AS channel,
