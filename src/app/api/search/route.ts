@@ -29,6 +29,10 @@ export async function GET(req: Request) {
   const mercado  = searchParams.get("mercado") || ""
 
   try {
+    // ── helper: date params (parsed early for all actions) ──
+    const startDate = searchParams.get("startDate") || ""
+    const endDate   = searchParams.get("endDate") || ""
+
     // ── date range ──
     if (action === "dates") {
       const p: unknown[] = []
@@ -43,14 +47,17 @@ export async function GET(req: Request) {
       })
     }
 
-    // ── helper: date params ──
-    const startDate = searchParams.get("startDate") || ""
-    const endDate   = searchParams.get("endDate") || ""
     const startD = startDate ? new Date(startDate + "T00:00:00Z") : new Date("2000-01-01T00:00:00Z")
     const endD   = endDate   ? new Date(endDate + "T23:59:59Z") : new Date("2099-12-31T23:59:59Z")
 
+    // When no search term is selected and the date range is wide (>14 days),
+    // limit to last 7 days from endD to avoid scanning millions of rows
+    const effectiveStartD = (!search && (endD.getTime() - startD.getTime()) > 14 * 86400000)
+      ? new Date(endD.getTime() - 7 * 86400000)
+      : startD
+
     function buildWhere(params: unknown[]) {
-      params.push(startD, endD)
+      params.push(effectiveStartD, endD)
       let w = `fecha >= $${params.length - 1} AND fecha <= $${params.length}`
       if (channel) { params.push(channel); w += ` AND retail = $${params.length}` }
       if (search)  { params.push(search);  w += ` AND search = $${params.length}` }
@@ -72,6 +79,7 @@ export async function GET(req: Request) {
     if (action === "searches") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT search AS n FROM eci.search WHERE search IS NOT NULL AND search != ''`
+      if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
@@ -83,6 +91,7 @@ export async function GET(req: Request) {
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.search WHERE 1=1`
+      if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (search)  { p.push(search);  sql += ` AND search = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
@@ -309,7 +318,7 @@ export async function GET(req: Request) {
       if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       // build where WITHOUT channel filter
-      p.push(startD, endD)
+      p.push(effectiveStartD, endD)
       let w = `fecha >= $${p.length - 1} AND fecha <= $${p.length}`
       if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
