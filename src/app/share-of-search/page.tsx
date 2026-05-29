@@ -320,10 +320,11 @@ export default function ShareOfShelfPage() {
       .catch(() => {})
   }, [])
 
-  // ── Cascading: canales filtrados por categoría + fechas ───
+  // ── Cascading: retails filtrados por categoría + país + fechas ───
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category)  p.set("category",  category)
+    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     fetch(`/api/sos?${p}`)
@@ -333,12 +334,13 @@ export default function ShareOfShelfPage() {
         setAvailableChannels(data)
         if (channel && !data.includes(channel)) setChannel("")
       })
-  }, [category, startDate, endDate])
+  }, [category, country, startDate, endDate])
 
-  // ── Cascading: categorías filtradas por canal + fechas ────
+  // ── Cascading: categorías filtradas por retail + país + fechas ────
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel)   p.set("channel",   channel)
+    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     fetch(`/api/sos?${p}`)
@@ -348,7 +350,7 @@ export default function ShareOfShelfPage() {
         setAvailableCategories(data)
         if (category && !data.includes(category)) setCategory("")
       })
-  }, [channel, startDate, endDate])
+  }, [channel, country, startDate, endDate])
 
   // ── Cascading: segmentos filtrados por país ───────────────
   useEffect(() => {
@@ -409,7 +411,7 @@ export default function ShareOfShelfPage() {
 
   function downloadCSV() {
     const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"
-    const chanPart = (channel || "todos-canales").replace(/\s+/g, "-")
+    const chanPart = (channel || "todos-retails").replace(/\s+/g, "-")
     const catPart  = (category || "todas-categorias").replace(/\s+/g, "-")
 
     let headers: string[]
@@ -515,15 +517,15 @@ export default function ShareOfShelfPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* Canal */}
+        {/* Retail */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Canal</span>
+          <span className="text-xs text-gray-400">Retail</span>
           <select
             value={channel}
             onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
           >
-            <option value="">Todos los canales</option>
+            <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
@@ -653,7 +655,7 @@ export default function ShareOfShelfPage() {
             change: Number(page === "p1" ? ownEntry?.sos_p1_change : ownEntry?.sos_total_change),
           },
           {
-            label: "Posición en canal",
+            label: "Posición en retail",
             value: `#${(sellerData.findIndex(e => e.seller === selectedSeller) + 1) || "—"}`,
           },
           {
@@ -677,7 +679,7 @@ export default function ShareOfShelfPage() {
         ))}
       </div>
 
-      {/* ── Stacked + Por canal ───────────────────────────── */}
+      {/* ── Stacked + Por retail ───────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Stacked overview */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
@@ -699,12 +701,12 @@ export default function ShareOfShelfPage() {
           </div>
         </div>
 
-        {/* Por canal */}
+        {/* Por retail */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
           <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
-            SOS por canal · {selectedSeller}
+            SOS por retail · {selectedSeller}
           </div>
-          <div className="text-xs text-gray-400 mb-3">Presencia en cada canal</div>
+          <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
           <div className="space-y-3">
             {channelData.map(d => (
               <div key={String(d.channel)}>
@@ -795,7 +797,7 @@ export default function ShareOfShelfPage() {
       <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="text-[10px] uppercase tracking-widest text-gray-400">
-            {category || "Todas las categorías"} · {channel || "Todos los canales"}
+            {category || "Todas las categorías"} · {channel || "Todos los retails"}
           </div>
           <div className="flex items-center gap-3">
             <button
