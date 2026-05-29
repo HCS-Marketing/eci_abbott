@@ -106,12 +106,14 @@ function TrendChart({
   const svgRef = useRef<SVGSVGElement>(null)
 
   if (!data.length || !sellers.length) return null
-  const W = 560, H = 160, padL = 36, padR = 12, padT = 12, padB = 20
+  const W = 900, H = 220, padL = 36, padR = 12, padT = 12, padB = 24
   const allVals = data.flatMap(pt => sellers.map(s => Number(pt[s] || 0)))
   const minV = Math.max(0, Math.min(...allVals) - 2)
   const maxV = Math.max(...allVals, 1) + 2
   const x = (i: number) => padL + (i / Math.max(data.length - 1, 1)) * (W - padL - padR)
   const y = (v: number) => padT + (1 - (v - minV) / (maxV - minV)) * (H - padT - padB)
+  // Dynamic label step: show ~10-15 labels max
+  const labelStep = Math.max(1, Math.ceil(data.length / 12))
 
   function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
     if (!svgRef.current || data.length === 0) return
@@ -131,7 +133,8 @@ function TrendChart({
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         className="w-full cursor-crosshair"
-        style={{ height: H }}
+        preserveAspectRatio="none"
+        style={{ height: 220 }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredIdx(null)}
       >
@@ -165,10 +168,10 @@ function TrendChart({
           )
         })}
         {data
-          .filter((_, i) => i % 3 === 0)
+          .filter((_, i) => i % labelStep === 0)
           .map((pt, i) => (
-            <text key={i} x={x(i * 3)} y={H - 4} textAnchor="middle" fill="#9ca3af" fontSize="9">
-              {String(pt.week)}
+            <text key={i} x={x(i * labelStep)} y={H - 6} textAnchor="middle" fill="#9ca3af" fontSize="8">
+              {String(pt.week).slice(5)}
             </text>
           ))}
         {/* Crosshair */}
@@ -290,17 +293,19 @@ export default function ShareOfShelfPage() {
   useEffect(() => {
     if (SELLERS.length === 0) return
     const preferred = ["Abbott", "ABBOTT"].filter(s => SELLERS.includes(s))
-    const rest = SELLERS.filter(s => !preferred.includes(s))
-    const top4 = [...preferred, ...rest].slice(0, 4)
     setSelectedSeller(preferred[0] ?? SELLERS[0])
-    setSelectedSellers(top4)
+    setSelectedSellers([])  // will be set from sellerData
   }, [SELLERS[0]])
 
-  // Default selectedSellers to top 5 by SOS when sellerData first loads
+  // Default selectedSeller and selectedSellers to top 5 by SOS when sellerData first loads
   useEffect(() => {
     if (sellerData.length > 0 && !trendInitRef.current) {
       trendInitRef.current = true
-      setSelectedSellers(sellerData.slice(0, 5).map(e => String(e.seller)))
+      const top5 = sellerData.slice(0, 5).map(e => String(e.seller))
+      setSelectedSellers(top5)
+      // Set selectedSeller to Abbott if present in data, else top 1
+      const abbottEntry = sellerData.find(e => String(e.seller).toUpperCase() === "ABBOTT")
+      setSelectedSeller(abbottEntry ? String(abbottEntry.seller) : top5[0])
     }
   }, [sellerData.length])
 
@@ -423,7 +428,7 @@ export default function ShareOfShelfPage() {
     let rows: string[][]
 
     if (drill === "seller") {
-      headers = ["#", "Seller", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Δ Pos. Total (pp)", "Prods Pág 1"]
+      headers = ["#", "Fabricante", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Δ Pos. Total (pp)", "Prods Pág 1"]
       rows = sellerData.map((e, i) => [
         String(i + 1),
         String(e.seller),
@@ -434,7 +439,7 @@ export default function ShareOfShelfPage() {
         String(e.products_p1),
       ])
     } else if (drill === "brand") {
-      headers = ["Marca", "Seller", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Prods Pág 1"]
+      headers = ["Marca", "Fabricante", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Prods Pág 1"]
       rows = brandData.map(b => [
         String(b.brand),
         String(b.seller),
@@ -444,7 +449,7 @@ export default function ShareOfShelfPage() {
         String(b.products_p1),
       ])
     } else {
-      headers = ["Título", "Seller", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Pos. típica"]
+      headers = ["Título", "Fabricante", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Pos. típica"]
       rows = tituloData.map(t => [
         String(t.titulo),
         String(t.seller),
@@ -492,7 +497,7 @@ export default function ShareOfShelfPage() {
     <div className="space-y-4">
       <PageHeader
         title="Share of Search"
-        subtitle="Presencia por seller, marca y título en resultados de búsqueda"
+        subtitle="Presencia por fabricante, marca y título en resultados de búsqueda"
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -654,7 +659,7 @@ export default function ShareOfShelfPage() {
             value: String(ownEntry?.products_p1 ?? 0),
           },
           {
-            label: "Sellers analizados",
+            label: "Fabricantes analizados",
             value: String(sellerData.length),
           },
         ].map(k => (
@@ -677,7 +682,7 @@ export default function ShareOfShelfPage() {
           <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
             Posición {page === "p1" ? "Página 1" : "Total"}{category ? ` · ${category}` : ""}{channel ? ` · ${channel}` : ""}
           </div>
-          <div className="text-xs text-gray-400 mb-3">Share acumulado de todos los sellers</div>
+          <div className="text-xs text-gray-400 mb-3">Share acumulado de todos los fabricantes</div>
           <StackedBar data={stackedData} />
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3">
             {stackedData.map(e => (
@@ -729,10 +734,10 @@ export default function ShareOfShelfPage() {
             >
               <span>
                 {selectedSellers.length === 0
-                  ? "Ningún seller"
+                  ? "Ningún fabricante"
                   : selectedSellers.length === 1
                   ? selectedSellers[0]
-                  : `${selectedSellers.length} sellers`}
+                  : `${selectedSellers.length} fabricantes`}
               </span>
               <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -828,7 +833,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["#", "Seller", "Pos. Pág 1", "Δ", "Pos. Total", "Δ", "Prods Pág 1", "Share"].map((h, i) => (
+                  {["#", "Fabricante", "Pos. Pág 1", "Δ", "Pos. Total", "Δ", "Prods Pág 1", "Share"].map((h, i) => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -898,7 +903,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[500px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Marca", "Seller", "Pos. Pág 1", "Δ", "Pos. Total", "Prods Pág 1"].map(h => (
+                  {["Marca", "Fabricante", "Pos. Pág 1", "Δ", "Pos. Total", "Prods Pág 1"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -940,7 +945,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[560px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Título", "Seller", "Pos. Pág 1", "Δ", "Pos. Total", "Pos. típica"].map(h => (
+                  {["Título", "Fabricante", "Pos. Pág 1", "Δ", "Pos. Total", "Pos. típica"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
