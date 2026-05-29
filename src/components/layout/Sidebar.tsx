@@ -6,12 +6,13 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
   Trophy, Tag, Zap, Package, BarChart2, Layers,
-  LogOut, LayoutDashboard,
+  LogOut, LayoutDashboard, ScanSearch,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 
 const NAV = [
-  { href: "/ecommerce-index", label: "Ecommerce Index",   icon: Search       },
+  { href: "/ecommerce-index", label: "SOS",               icon: Search       },
+  { href: "/search",          label: "Search",            icon: ScanSearch   },
   { href: "/ranking",         label: "Ranking",           icon: ListOrdered  },
   { href: "/bestsellers",     label: "Bestsellers",       icon: Trophy       },
   { href: "/pricing",         label: "Pricing Live",      icon: Tag          },
@@ -70,7 +71,7 @@ export default function Sidebar() {
           </Link>
           {expanded && (
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-white truncate">Ecommerce Index</div>
+              <div className="text-[13px] font-semibold text-white truncate">Share of Shelf</div>
               {client?.name && (
                 <div className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
                   {client.name}

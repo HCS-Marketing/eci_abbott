@@ -6,7 +6,7 @@ import {
 const MODULES = [
   {
     href: "/ecommerce-index",
-    label: "Ecommerce Index",
+    label: "SOS",
     description: "Visibilidad de productos por seller y categoría",
     icon: Search,
     color: "#A427FF",
