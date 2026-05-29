@@ -1,9 +1,11 @@
 "use client"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import DateInput from "@/components/ui/DateInput"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Minus, Download } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
+import { exportPDF } from "@/lib/export"
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -496,23 +498,9 @@ export default function ShareOfShelfPage() {
         {/* Fechas */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Desde</span>
-          <input
-            type="date"
-            value={startDate}
-            min={minDate}
-            max={endDate || maxDate}
-            onChange={e => setStartDate(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white"
-          />
+          <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
           <span className="text-xs text-gray-400">Hasta</span>
-          <input
-            type="date"
-            value={endDate}
-            min={startDate || minDate}
-            max={maxDate}
-            onChange={e => setEndDate(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white"
-          />
+          <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
@@ -807,6 +795,12 @@ export default function ShareOfShelfPage() {
             >
               <Download size={12} />
               <span>CSV</span>
+            </button>
+            <button onClick={exportPDF}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+              title="Exportar PDF">
+              <FileText size={12} />
+              <span>PDF</span>
             </button>
             <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
               {(["seller", "brand", "titulo"] as DrillLevel[]).map(l => (

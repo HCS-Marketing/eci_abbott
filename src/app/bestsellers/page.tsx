@@ -2,9 +2,11 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import DateInput from "@/components/ui/DateInput"
 import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
-import { ExternalLink, Trophy, Truck, TrendingUp, Tag, Search, Zap } from "lucide-react"
+import { ExternalLink, Trophy, Truck, TrendingUp, Tag, Search, Zap, Download, FileText } from "lucide-react"
+import { downloadCSV, exportPDF } from "@/lib/export"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface BestsellerProduct {
@@ -40,7 +42,10 @@ export default function BestsellersPage() {
   const [channel,   setChannel]   = useState("")
   const [category,  setCategory]  = useState("")
   const [country,   setCountry]   = useState("")
-  const [date,      setDate]      = useState("")   // fecha única
+  const [segmento,  setSegmento]  = useState("")
+  const [mercado,   setMercado]   = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate,   setEndDate]   = useState("")
   const [minDate,   setMinDate]   = useState("")
   const [maxDate,   setMaxDate]   = useState("")
   const [pageFilter, setPageFilter] = useState<"p1" | "all">("p1")
@@ -49,6 +54,8 @@ export default function BestsellersPage() {
   const [selectedSeller, setSelectedSeller] = useState("")
 
   const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
+  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
+  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<BestsellerProduct[]>([])
@@ -75,6 +82,29 @@ export default function BestsellersPage() {
     })
   }, [])
 
+  // Segmentos
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "segmentos" })
+    if (country) p.set("country", country)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableSegmentos(d)
+      if (segmento && !d.includes(segmento)) setSegmento("")
+    })
+  }, [country])
+
+  // Mercados
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "mercados" })
+    if (country)  p.set("country", country)
+    if (segmento) p.set("segmento", segmento)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableMercados(d)
+      if (mercado && !d.includes(mercado)) setMercado("")
+    })
+  }, [country, segmento])
+
   // Fecha única — re-fetchea cuando cambia el canal para ajustar al max del canal
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
@@ -86,7 +116,8 @@ export default function BestsellersPage() {
         if (!d.max) return
         setMinDate(d.min); setMaxDate(d.max)
         // Si la fecha actual está fuera del rango del canal, ajustar al máximo
-        setDate(prev => (!prev || prev > d.max) ? d.max : prev)
+        setStartDate(prev => (!prev || prev < d.min) ? d.min : prev)
+        setEndDate(prev => (!prev || prev > d.max) ? d.max : prev)
       })
   }, [channel, country])
 
@@ -95,46 +126,48 @@ export default function BestsellersPage() {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category",  category)
     if (country)  p.set("country",   country)
-    if (date)     p.set("startDate", date); if (date) p.set("endDate", date)
+    if (endDate)  p.set("startDate", startDate || endDate); if (endDate) p.set("endDate", endDate)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, country, date])
+  }, [category, country, endDate])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel",   channel)
     if (country) p.set("country",   country)
-    if (date)    p.set("startDate", date); if (date) p.set("endDate", date)
+    if (endDate) p.set("startDate", startDate || endDate); if (endDate) p.set("endDate", endDate)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, country, date])
+  }, [channel, country, endDate])
 
   // Fetch bestsellers
   const fetchData = useCallback(() => {
-    if (!date) return
+    if (!endDate) return
     setLoading(true)
     const p = new URLSearchParams({
       action:      "bestsellers",
       page_filter: pageFilter,
       limit:       String(topN),
-      date,
+      date: endDate,
     })
     if (channel)        p.set("channel",   channel)
     if (category)       p.set("category",  category)
     if (country)        p.set("country",   country)
     if (selectedSeller) p.set("seller",    selectedSeller)
+    if (segmento)       p.set("segmento",  segmento)
+    if (mercado)        p.set("mercado",   mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, date, pageFilter, topN, selectedSeller])
+  }, [channel, category, country, endDate, pageFilter, topN, selectedSeller, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -161,18 +194,14 @@ export default function BestsellersPage() {
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
         {/* Fecha única */}
         <div className="flex items-center gap-2">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Fecha</span>
-              <input type="date" value={date} min={minDate} max={maxDate}
-                onChange={e => setDate(e.target.value)}
-                className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white" />
-            </div>
-            {date === maxDate && (
-              <span className="text-[10px] text-green-600 font-semibold mt-0.5 pl-9">✓ Última actualización disponible</span>
-            )}
-          </div>
+          <span className="text-xs text-gray-400">Desde</span>
+          <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
+          <span className="text-xs text-gray-400">Hasta</span>
+          <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
         </div>
+        {endDate === maxDate && maxDate && (
+          <span className="text-[10px] text-green-600 font-semibold">✓ Última fecha</span>
+        )}
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
@@ -183,6 +212,26 @@ export default function BestsellersPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
+
+        {/* Mercado */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Mercado</span>
+          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableMercados.map(m => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {/* Segmento */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Segmento</span>
+          <select value={segmento} onChange={e => setSegmento(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
@@ -269,6 +318,17 @@ export default function BestsellersPage() {
               Top {n}
             </button>
           ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => downloadCSV(data as unknown as Record<string, unknown>[], "bestsellers")}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Descargar CSV">
+            <Download size={12} /><span>CSV</span>
+          </button>
+          <button onClick={exportPDF}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Exportar PDF">
+            <FileText size={12} /><span>PDF</span>
+          </button>
         </div>
       </div>
 

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Trophy, Tag, MessageSquare, Zap, Star, Package, BarChart2, Activity, Layers,
+  Trophy, Tag, Zap, Package, BarChart2, Layers,
   LogOut, LayoutDashboard,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
@@ -19,9 +19,6 @@ const NAV = [
   { href: "/buybox",          label: "BuyBox",            icon: Zap          },
   { href: "/assortment",      label: "Assortment",        icon: Layers       },
   { href: "/inventory",       label: "Inventario",        icon: Package      },
-  // { href: "/traffic",      label: "Tráfico",           icon: Activity     },
-  // { href: "/reviews",      label: "Reviews",           icon: Star         },
-  // { href: "/brand-sentiment", label: "Brand Sentiment", icon: MessageSquare },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {

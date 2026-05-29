@@ -168,6 +168,17 @@ export async function GET(req: Request) {
       return sub
     }
 
+    // Simpler version for queries without table alias
+    function marcaFilter(params: unknown[]): string {
+      if (!segmento && !mercado) return ""
+      let sub = ` AND marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+      if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
+      if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
+      if (country)  { params.push(country);  sub += ` AND mf2.pais = $${params.length}` }
+      sub += ")"
+      return sub
+    }
+
     // ── sellers (fabricante) SOS overview ──────────────────
     if (action === "sellers") {
       const p: unknown[] = []
@@ -383,6 +394,7 @@ export async function GET(req: Request) {
       if (seller) {
         p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
       }
+      const mfRank = marcaFilter(p)
       const sql = `
         SELECT
           producto_id AS id,
@@ -394,7 +406,7 @@ export async function GET(req: Request) {
           SUM(appearances_p1)::int AS appearances_p1,
           SUM(appearances_total)::int AS appearances_total
         FROM eci.mv_sos_product_latest
-        WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}
+        WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}${mfRank}
         GROUP BY producto_id
         ORDER BY best_ranking ASC
         LIMIT ${limit}
@@ -430,6 +442,7 @@ export async function GET(req: Request) {
       if (seller) {
         p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
       }
+      const mfBest = marcaFilter(p)
       const sql = `
         SELECT
           producto_id AS id,
@@ -449,7 +462,7 @@ export async function GET(req: Request) {
           appearances_p1::int AS appearances_p1,
           appearances_total::int AS appearances_total
         FROM eci.mv_sos_product_latest
-        WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}
+        WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}${mfBest}
         ORDER BY best_ranking ASC
         LIMIT ${limit}
       `
@@ -500,6 +513,7 @@ export async function GET(req: Request) {
       if (category)   { p.push(category); wCond += ` AND categoria = $${p.length}` }
       if (country)    { p.push(country);  wCond += ` AND pais = $${p.length}` }
       if (onlyAbbott) { wCond += ` AND ${ABBOTT_LIKE}` }
+      wCond += marcaFilter(p).replace(' AND ', ' AND ')  // add segmento/mercado filter
 
       const todaySub = `
         SELECT id, marca, retail,
@@ -584,6 +598,7 @@ export async function GET(req: Request) {
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      w += marcaFilter(p)
       const showFilter = show === "newsan" ? `ps.abbott_present = TRUE`
                        : show === "gaps"   ? `ps.abbott_present = FALSE`
                        : `TRUE`
@@ -751,6 +766,15 @@ export async function GET(req: Request) {
       if (channel)  { p.push(channel);  channelSql  = `AND s.retail = $${p.length}` }
       if (category) { p.push(category); categorySql = `AND s.categoria = $${p.length}` }
       if (country)  { p.push(country);  countrySql  = `AND s.pais = $${p.length}` }
+      let mfBuybox = ""
+      if (segmento || mercado) {
+        let sub = `AND s.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+        if (segmento) { p.push(segmento); sub += ` AND mf2.segmento = $${p.length}` }
+        if (mercado)  { p.push(mercado);  sub += ` AND mf2.mercado = $${p.length}` }
+        if (country)  { p.push(country);  sub += ` AND mf2.pais = $${p.length}` }
+        sub += ")"
+        mfBuybox = sub
+      }
 
       const sql = `
         WITH
@@ -758,7 +782,7 @@ export async function GET(req: Request) {
           SELECT MAX(DATE(s.fecha)) AS max_date
           FROM eci.sos s
           WHERE s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql} ${countrySql}
+            ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         abbott_present_7d AS (
           SELECT DISTINCT s.id
@@ -841,6 +865,7 @@ export async function GET(req: Request) {
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      w += marcaFilter(p)
       const showFilter = show === "newsan" ? "AND abbott_price IS NOT NULL"
                        : show === "gaps"   ? "AND abbott_price IS NULL"
                        : ""
@@ -907,6 +932,7 @@ export async function GET(req: Request) {
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+      const mfCond = marcaFilter(p)
       let sellerCond = ""
       if (seller) {
         p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
@@ -927,7 +953,7 @@ export async function GET(req: Request) {
           presentacion,
           url_producto
         FROM eci.mv_sos_product_latest
-        WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}
+        WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}${mfCond}
         ORDER BY precio_venta ASC
         LIMIT ${limit}
       `

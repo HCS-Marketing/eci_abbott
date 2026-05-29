@@ -1,9 +1,11 @@
 "use client"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import DateInput from "@/components/ui/DateInput"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Trophy, LayoutGrid, List, Search, Download } from "lucide-react"
+import { TrendingUp, TrendingDown, Trophy, LayoutGrid, List, Search, Download, FileText } from "lucide-react"
+import { exportPDF } from "@/lib/export"
 
 // ── CLICK SHARE CURVE ─────────────────────────────────────────
 const CLICK_SHARE: Record<number, number> = {
@@ -166,6 +168,8 @@ export default function RankingPage() {
   const [channel,   setChannel]   = useState("")
   const [category,  setCategory]  = useState("")
   const [country,   setCountry]   = useState("")
+  const [segmento,  setSegmento]  = useState("")
+  const [mercado,   setMercado]   = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate,   setEndDate]   = useState("")
   const [minDate,   setMinDate]   = useState("")
@@ -176,6 +180,8 @@ export default function RankingPage() {
   const [search,    setSearch]    = useState("")
 
   const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
+  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
+  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [selectedSeller, setSelectedSeller] = useState("")
@@ -211,6 +217,29 @@ export default function RankingPage() {
       if (Array.isArray(d)) setAvailableCountries(d)
     })
   }, [])
+
+  // Segmentos
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "segmentos" })
+    if (country) p.set("country", country)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableSegmentos(d)
+      if (segmento && !d.includes(segmento)) setSegmento("")
+    })
+  }, [country])
+
+  // Mercados
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "mercados" })
+    if (country)  p.set("country", country)
+    if (segmento) p.set("segmento", segmento)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableMercados(d)
+      if (mercado && !d.includes(mercado)) setMercado("")
+    })
+  }, [country, segmento])
 
   // Rango de fechas
   useEffect(() => {
@@ -266,11 +295,13 @@ export default function RankingPage() {
     if (startDate)      p.set("startDate", startDate)
     if (endDate)        p.set("endDate",   endDate)
     if (selectedSeller) p.set("seller",    selectedSeller)
+    if (segmento)       p.set("segmento",  segmento)
+    if (mercado)        p.set("mercado",   mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, startDate, endDate, pageFilter, topN, selectedSeller])
+  }, [channel, category, country, startDate, endDate, pageFilter, topN, selectedSeller, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -288,11 +319,13 @@ export default function RankingPage() {
     if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
+    if (segmento)  p.set("segmento",  segmento)
+    if (mercado)   p.set("mercado",   mercado)
     // sin seller → trae todos
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setKpiData(Array.isArray(d) ? d : []))
-  }, [channel, category, country, startDate, endDate, pageFilter])
+  }, [channel, category, country, startDate, endDate, pageFilter, segmento, mercado])
 
   useEffect(() => { fetchKpiData() }, [fetchKpiData])
 
@@ -362,15 +395,9 @@ export default function RankingPage() {
         {/* Fechas */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Desde</span>
-          <input type="date" value={startDate} min={minDate} max={endDate || maxDate}
-            onChange={e => setStartDate(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white"
-          />
+          <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
           <span className="text-xs text-gray-400">Hasta</span>
-          <input type="date" value={endDate} min={startDate || minDate} max={maxDate}
-            onChange={e => setEndDate(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white"
-          />
+          <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
@@ -382,6 +409,26 @@ export default function RankingPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
+
+        {/* Mercado */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Mercado</span>
+          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableMercados.map(m => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {/* Segmento */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Segmento</span>
+          <select value={segmento} onChange={e => setSegmento(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
@@ -476,6 +523,17 @@ export default function RankingPage() {
               )}
             >Top {n}</button>
           ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => downloadCSV()}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Descargar CSV">
+            <Download size={12} /><span>CSV</span>
+          </button>
+          <button onClick={exportPDF}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Exportar PDF">
+            <FileText size={12} /><span>PDF</span>
+          </button>
         </div>
       </div>
 

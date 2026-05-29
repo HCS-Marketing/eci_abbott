@@ -61,3 +61,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 table { border-collapse: collapse; }
+
+/* Print styles for PDF export */
+@media print {
+  aside, header, .no-print, [data-ai-advisor] { display: none !important; }
+  main { padding: 0 !important; margin: 0 !important; }
+  body { background: white; }
+  .print\:break-inside-avoid { break-inside: avoid; }
+}
+
+/* Mobile: smaller text in filter bars */
+@media (max-width: 640px) {
+  select, input[type="date"] { font-size: 11px; padding: 4px 8px; }
+}

@@ -2,9 +2,11 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import DateInput from "@/components/ui/DateInput"
 import clsx from "clsx"
-import { ExternalLink, Search, Truck, Zap, Tag, Package } from "lucide-react"
+import { ExternalLink, Search, Truck, Zap, Tag, Package, Download, FileText } from "lucide-react"
 import { fmtPrice, getRetailColor } from "@/lib/format"
+import { downloadCSV, exportPDF } from "@/lib/export"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface PriceRow {
@@ -31,9 +33,12 @@ export default function PricingPage() {
   const SELLERS = market.sellers
 
   const [country,        setCountry]        = useState("")
+  const [segmento,       setSegmento]       = useState("")
+  const [mercado,        setMercado]        = useState("")
   const [channel,        setChannel]        = useState("")
   const [category,       setCategory]       = useState("")
-  const [date,           setDate]           = useState("")
+  const [startDate,      setStartDate]      = useState("")
+  const [endDate,        setEndDate]        = useState("")
   const [minDate,        setMinDate]        = useState("")
   const [maxDate,        setMaxDate]        = useState("")
   const [topN,           setTopN]           = useState(100)
@@ -43,6 +48,8 @@ export default function PricingPage() {
   const [sortDir,        setSortDir]        = useState<"asc" | "desc">("asc")
 
   const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
+  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
+  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<PriceRow[]>([])
@@ -69,6 +76,29 @@ export default function PricingPage() {
     })
   }, [])
 
+  // Segmentos
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "segmentos" })
+    if (country) p.set("country", country)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableSegmentos(d)
+      if (segmento && !d.includes(segmento)) setSegmento("")
+    })
+  }, [country])
+
+  // Mercados
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "mercados" })
+    if (country)  p.set("country", country)
+    if (segmento) p.set("segmento", segmento)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableMercados(d)
+      if (mercado && !d.includes(mercado)) setMercado("")
+    })
+  }, [country, segmento])
+
   // Fecha — canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
@@ -79,50 +109,53 @@ export default function PricingPage() {
       .then((d: { min: string; max: string }) => {
         if (!d.max) return
         setMinDate(d.min); setMaxDate(d.max)
-        setDate(prev => (!prev || prev > d.max) ? d.max : prev)
+        setStartDate(prev => (!prev || prev < d.min) ? d.min : prev)
+        setEndDate(prev => (!prev || prev > d.max) ? d.max : prev)
       })
-  }, [channel])
+  }, [channel, country])
 
   // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
     if (country) p.set("country", country)
-    if (date) { p.set("startDate", date); p.set("endDate", date) }
+    if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, country, date])
+  }, [category, country, endDate])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    if (date) { p.set("startDate", date); p.set("endDate", date) }
+    if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, country, date])
+  }, [channel, country, endDate])
 
   // Fetch pricing
   const fetchData = useCallback(() => {
-    if (!date) return
+    if (!endDate) return
     setLoading(true)
-    const p = new URLSearchParams({ action: "pricing", limit: String(topN), date })
+    const p = new URLSearchParams({ action: "pricing", limit: String(topN), date: endDate })
     if (channel)        p.set("channel",  channel)
     if (category)       p.set("category", category)
     if (country)        p.set("country",  country)
     if (selectedSeller) p.set("seller",   selectedSeller)
+    if (segmento)       p.set("segmento", segmento)
+    if (mercado)        p.set("mercado",  mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, date, topN, selectedSeller])
+  }, [channel, category, country, endDate, topN, selectedSeller, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -170,17 +203,15 @@ export default function PricingPage() {
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
         {/* Fecha */}
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Fecha</span>
-            <input type="date" value={date} min={minDate} max={maxDate}
-              onChange={e => setDate(e.target.value)}
-              className="border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white" />
-          </div>
-          {date === maxDate && maxDate && (
-            <span className="text-[10px] text-green-600 font-semibold mt-0.5 pl-9">✓ Última actualización disponible</span>
-          )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Desde</span>
+          <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
+          <span className="text-xs text-gray-400">Hasta</span>
+          <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
         </div>
+        {endDate === maxDate && maxDate && (
+          <span className="text-[10px] text-green-600 font-semibold">✓ Última fecha</span>
+        )}
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
@@ -191,6 +222,26 @@ export default function PricingPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
+
+        {/* Mercado */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Mercado</span>
+          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableMercados.map(m => <option key={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {/* Segmento */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Segmento</span>
+          <select value={segmento} onChange={e => setSegmento(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
@@ -266,6 +317,17 @@ export default function PricingPage() {
               {n}
             </button>
           ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => downloadCSV(data as unknown as Record<string, unknown>[], "pricing")}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Descargar CSV">
+            <Download size={12} /><span>CSV</span>
+          </button>
+          <button onClick={exportPDF}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Exportar PDF">
+            <FileText size={12} /><span>PDF</span>
+          </button>
         </div>
       </div>
 

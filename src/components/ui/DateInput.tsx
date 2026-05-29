@@ -1,0 +1,42 @@
+"use client"
+import { useState, useEffect } from "react"
+
+/**
+ * Date input that only fires onChange when the user finishes editing (onBlur or Enter).
+ * Prevents firing cascading API calls while navigating months in the calendar popup.
+ */
+export default function DateInput({
+  value,
+  onChange,
+  min,
+  max,
+  className,
+}: {
+  value: string
+  onChange: (v: string) => void
+  min?: string
+  max?: string
+  className?: string
+}) {
+  const [local, setLocal] = useState(value)
+
+  // Sync from parent if value changes externally
+  useEffect(() => { setLocal(value) }, [value])
+
+  function commit() {
+    if (local !== value && local) onChange(local)
+  }
+
+  return (
+    <input
+      type="date"
+      value={local}
+      min={min}
+      max={max}
+      onChange={e => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === "Enter") commit() }}
+      className={className || "border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white"}
+    />
+  )
+}
