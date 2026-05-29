@@ -165,6 +165,7 @@ export default function RankingPage() {
 
   const [channel,   setChannel]   = useState("")
   const [category,  setCategory]  = useState("")
+  const [country,   setCountry]   = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate,   setEndDate]   = useState("")
   const [minDate,   setMinDate]   = useState("")
@@ -174,6 +175,7 @@ export default function RankingPage() {
   const [view,      setView]      = useState<"planograma" | "lista">("planograma")
   const [search,    setSearch]    = useState("")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [selectedSeller, setSelectedSeller] = useState("")
@@ -203,6 +205,13 @@ export default function RankingPage() {
     setSelectedSeller(preferred)
   }, [SELLERS[0]])
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Rango de fechas
   useEffect(() => {
     fetch("/api/sos?action=dates")
@@ -218,6 +227,7 @@ export default function RankingPage() {
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category)  p.set("category",  category)
+    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
@@ -225,12 +235,13 @@ export default function RankingPage() {
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, startDate, endDate])
+  }, [category, country, startDate, endDate])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel)   p.set("channel",   channel)
+    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
@@ -238,7 +249,7 @@ export default function RankingPage() {
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, startDate, endDate])
+  }, [channel, country, startDate, endDate])
 
   // Fetch ranking data
   const fetchData = useCallback(() => {
@@ -251,6 +262,7 @@ export default function RankingPage() {
     })
     if (channel)        p.set("channel",   channel)
     if (category)       p.set("category",  category)
+    if (country)        p.set("country",   country)
     if (startDate)      p.set("startDate", startDate)
     if (endDate)        p.set("endDate",   endDate)
     if (selectedSeller) p.set("seller",    selectedSeller)
@@ -258,7 +270,7 @@ export default function RankingPage() {
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, startDate, endDate, pageFilter, topN, selectedSeller])
+  }, [channel, category, country, startDate, endDate, pageFilter, topN, selectedSeller])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -273,13 +285,14 @@ export default function RankingPage() {
     })
     if (channel)   p.set("channel",   channel)
     if (category)  p.set("category",  category)
+    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     // sin seller → trae todos
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setKpiData(Array.isArray(d) ? d : []))
-  }, [channel, category, startDate, endDate, pageFilter])
+  }, [channel, category, country, startDate, endDate, pageFilter])
 
   useEffect(() => { fetchKpiData() }, [fetchKpiData])
 
@@ -361,6 +374,16 @@ export default function RankingPage() {
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
 
         {/* Canal */}
         <div className="flex items-center gap-2">

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
 import { Search, CheckCircle2, XCircle } from "lucide-react"
 
@@ -11,11 +12,6 @@ interface AssortmentRow {
   total_sellers: number; newsan_price: number | null
   comp_min_price: number | null; comp_max_price: number | null
   newsan_present: boolean; tier: string
-}
-
-function fmtARS(n: number | null) {
-  if (n == null || n === 0) return "—"
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
 }
 
 const TIER_STYLE: Record<string, string> = {
@@ -32,21 +28,31 @@ export default function AssortmentPage() {
 
   const [channel,  setChannel]  = useState("")
   const [category, setCategory] = useState("")
+  const [country,  setCountry]  = useState("")
   const [date,     setDate]     = useState("")
   const [minDate,  setMinDate]  = useState("")
   const [maxDate,  setMaxDate]  = useState("")
   const [show,     setShow]     = useState<ShowMode>("all")
   const [search,   setSearch]   = useState("")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<AssortmentRow[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Fecha canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
@@ -54,31 +60,33 @@ export default function AssortmentPage() {
         setMinDate(d.min); setMaxDate(d.max)
         setDate(prev => (!prev || prev > d.max) ? d.max : prev)
       })
-  }, [channel])
+  }, [channel, country])
 
   // Channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, date])
+  }, [category, country, date])
 
   // Categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, date])
+  }, [channel, country, date])
 
   const fetchData = useCallback(() => {
     if (!date) return
@@ -86,11 +94,12 @@ export default function AssortmentPage() {
     const p = new URLSearchParams({ action: "assortment", date, show, limit: "500" })
     if (channel)  p.set("channel",  channel)
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, date, show])
+  }, [channel, category, country, date, show])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -152,6 +161,16 @@ export default function AssortmentPage() {
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>
@@ -322,15 +341,15 @@ export default function AssortmentPage() {
 
                       <td className="px-3 py-2.5 text-right font-mono">
                         {e.newsan_price != null
-                          ? <span className="text-green-700 font-bold">{fmtARS(e.newsan_price)}</span>
+                          ? <span className="text-green-700 font-bold">{fmtPrice(e.newsan_price, country)}</span>
                           : <span className="text-gray-300 text-[10px]">—</span>}
                       </td>
 
                       <td className="px-3 py-2.5 text-right text-gray-500">
                         {e.comp_min_price != null ? (
                           e.comp_min_price === e.comp_max_price
-                            ? <span className="font-mono">{fmtARS(e.comp_min_price)}</span>
-                            : <span className="font-mono text-[10px]">{fmtARS(e.comp_min_price)} – {fmtARS(e.comp_max_price)}</span>
+                            ? <span className="font-mono">{fmtPrice(e.comp_min_price, country)}</span>
+                            : <span className="font-mono text-[10px]">{fmtPrice(e.comp_min_price, country)} – {fmtPrice(e.comp_max_price, country)}</span>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
 

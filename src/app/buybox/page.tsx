@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
 import { Search, Trophy, Truck, ExternalLink, AlertTriangle } from "lucide-react"
 
@@ -21,46 +22,52 @@ interface BuyboxLostRow {
   winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
 }
 
-function fmtARS(n: number | null) {
-  if (n == null || n === 0) return "—"
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
-}
-
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function BuyboxPage() {
   useMarket()
 
   const [channel,  setChannel]  = useState("")
   const [category, setCategory] = useState("")
+  const [country,  setCountry]  = useState("")
   const [topN,     setTopN]     = useState(100)
   const [search,   setSearch]   = useState("")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category])
+  }, [category, country])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel])
+  }, [channel, country])
 
   // Fetch buybox Newsan 7d
   const fetchData = useCallback(() => {
@@ -68,11 +75,12 @@ export default function BuyboxPage() {
     const p = new URLSearchParams({ action: "buybox_lost", limit: String(topN) })
     if (channel)  p.set("channel",  channel)
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setLostData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, topN])
+  }, [channel, category, country, topN])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -97,6 +105,16 @@ export default function BuyboxPage() {
 
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
+
         {/* Canal */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>
@@ -242,13 +260,13 @@ export default function BuyboxPage() {
                           )}
                         </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <div className="font-black text-gray-900 font-mono">{fmtARS(e.winner_price)}</div>
+                          <div className="font-black text-gray-900 font-mono">{fmtPrice(e.winner_price, country)}</div>
                         </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">
                           {e.newsan_wins ? (
                             <span className="text-gray-300 text-[10px]">= winner</span>
                           ) : e.newsan_price != null ? (
-                            <div className="font-mono text-gray-700">{fmtARS(e.newsan_price)}</div>
+                            <div className="font-mono text-gray-700">{fmtPrice(e.newsan_price, country)}</div>
                           ) : (
                             <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">—</span>
                           )}

@@ -5,8 +5,8 @@ import {
 
 const MODULES = [
   {
-    href: "/share-of-search",
-    label: "Share of Shelf",
+    href: "/ecommerce-index",
+    label: "Ecommerce Index",
     description: "Visibilidad de productos por seller y categoría",
     icon: Search,
     color: "#A427FF",

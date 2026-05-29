@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
 import { Search, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react"
 
@@ -14,11 +15,6 @@ interface PriceIndexRow {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
-function fmtARS(n: number | null) {
-  if (n == null || n === 0) return "—"
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
-}
-
 function IndexBadge({ idx }: { idx: number | null }) {
   if (idx == null) return <span className="text-gray-300 text-xs">S/D</span>
   const color = idx <= 95  ? "bg-green-100 text-green-700 border-green-200"
@@ -41,6 +37,7 @@ export default function PriceIndexPage() {
 
   const [channel,  setChannel]  = useState("")
   const [category, setCategory] = useState("")
+  const [country,  setCountry]  = useState("")
   const [date,     setDate]     = useState("")
   const [minDate,  setMinDate]  = useState("")
   const [maxDate,  setMaxDate]  = useState("")
@@ -48,15 +45,24 @@ export default function PriceIndexPage() {
   const [show,     setShow]     = useState<ShowMode>("Abbott")
   const [search,   setSearch]   = useState("")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<PriceIndexRow[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Fecha canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
@@ -70,25 +76,27 @@ export default function PriceIndexPage() {
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, date])
+  }, [category, country, date])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, date])
+  }, [channel, country, date])
 
   // Fetch data
   const fetchData = useCallback(() => {
@@ -97,11 +105,12 @@ export default function PriceIndexPage() {
     const p = new URLSearchParams({ action: "price_index", limit: String(topN), date, show })
     if (channel)  p.set("channel",  channel)
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, date, topN, show])
+  }, [channel, category, country, date, topN, show])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -144,6 +153,16 @@ export default function PriceIndexPage() {
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
 
         {/* Canal */}
         <div className="flex items-center gap-2">
@@ -311,13 +330,13 @@ export default function PriceIndexPage() {
                         {isGap ? (
                           <span className="text-gray-300">—</span>
                         ) : (
-                          <span className="font-black text-gray-900 font-mono">{fmtARS(e.newsan_price)}</span>
+                          <span className="font-black text-gray-900 font-mono">{fmtPrice(e.newsan_price, country)}</span>
                         )}
                       </td>
 
                       {/* Avg competencia */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <span className="font-mono text-gray-600">{fmtARS(e.comp_avg_price)}</span>
+                        <span className="font-mono text-gray-600">{fmtPrice(e.comp_avg_price, country)}</span>
                       </td>
 
                       {/* Índice */}
@@ -327,7 +346,7 @@ export default function PriceIndexPage() {
 
                       {/* Mín competencia */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <span className="font-mono text-gray-500">{fmtARS(e.comp_min_price)}</span>
+                        <span className="font-mono text-gray-500">{fmtPrice(e.comp_min_price, country)}</span>
                       </td>
 
                       {/* # Sellers */}

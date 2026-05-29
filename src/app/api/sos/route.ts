@@ -18,6 +18,17 @@ import { prisma } from "@/lib/prisma"
 
 const PALETTE = ["#003DA5","#00A3E0","#ef4444","#f59e0b","#06b6d4","#84cc16","#ec4899","#14b8a6","#f97316","#8b5cf6"]
 
+const RETAIL_COLORS: Record<string, string> = {
+  AMAZON: "#FF9900", FDA: "#00A650", FSP: "#E31837", WALMART: "#0071CE",
+  SAMS: "#0060A9", ML: "#FFE600", BENAVIDES: "#E30613", HEB: "#EE2E24",
+  INKAFARMA: "#00A651", MIFARMA: "#E4002B", TOTTUS: "#008C45",
+  "CRUZ VERDE": "#00963F", FARMATODO: "#0072BC", RAPPI: "#FF441F",
+  "DROGUERIA VIRTUAL": "#4A90D9", "REBAJA VIRTUAL": "#FF6B00",
+}
+function retailColor(name: string, fallbackIdx: number): string {
+  return RETAIL_COLORS[name?.toUpperCase()] || PALETTE[fallbackIdx % PALETTE.length]
+}
+
 // SQL CASE to unify Abbott fabricante variants into "ABBOTT"
 const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END`
 
@@ -195,7 +206,7 @@ export async function GET(req: Request) {
         sos_total_change: 0,
         products_p1:      Number(r.products_p1),
         products_total:   Number(r.products_total),
-        color:            PALETTE[i % PALETTE.length],
+        color:            retailColor(r.seller, i),
         rank:             i + 1,
       })))
     }

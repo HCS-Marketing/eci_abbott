@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
 import { Search, AlertTriangle, CheckCircle2, Clock } from "lucide-react"
 
@@ -10,11 +11,6 @@ interface InventoryRow {
   id: string; producto: string; marca: string; subcategoria: string; plataforma: string
   seller: string; precio_venta: number | null; last_seen: string | null
   days_seen: number; stock_status: "in_stock" | "break"; is_newsan: boolean
-}
-
-function fmtARS(n: number | null) {
-  if (n == null || n === 0) return "—"
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
 }
 
 function relDate(dateStr: string | null, baseDate: string): string {
@@ -35,6 +31,7 @@ export default function InventoryPage() {
 
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
+  const [country,    setCountry]    = useState("")
   const [date,       setDate]       = useState("")
   const [minDate,    setMinDate]    = useState("")
   const [maxDate,    setMaxDate]    = useState("")
@@ -44,15 +41,24 @@ export default function InventoryPage() {
   const [limit,      setLimit]      = useState(200)
   const [search,     setSearch]     = useState("")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Fecha canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
@@ -60,29 +66,31 @@ export default function InventoryPage() {
         setMinDate(d.min); setMaxDate(d.max)
         setDate(prev => (!prev || prev > d.max) ? d.max : prev)
       })
-  }, [channel])
+  }, [channel, country])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, date])
+  }, [category, country, date])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, date])
+  }, [channel, country, date])
 
   const fetchData = useCallback(() => {
     if (!date) return
@@ -93,12 +101,13 @@ export default function InventoryPage() {
     })
     if (channel)    p.set("channel",    channel)
     if (category)   p.set("category",   category)
+    if (country)    p.set("country",    country)
     if (onlyNewsan) p.set("onlyNewsan", "1")
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, date, show, lookback, onlyNewsan, limit])
+  }, [channel, category, country, date, show, lookback, onlyNewsan, limit])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -152,6 +161,16 @@ export default function InventoryPage() {
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
 
         {/* Canal */}
         <div className="flex items-center gap-2">
@@ -329,7 +348,7 @@ export default function InventoryPage() {
                     {/* Precio */}
                     <td className="px-3 py-2.5 text-right font-mono">
                       {e.precio_venta != null
-                        ? <span className="text-gray-800 font-semibold">{fmtARS(e.precio_venta)}</span>
+                        ? <span className="text-gray-800 font-semibold">{fmtPrice(e.precio_venta, country)}</span>
                         : <span className="text-gray-300 text-[10px]">—</span>}
                     </td>
 

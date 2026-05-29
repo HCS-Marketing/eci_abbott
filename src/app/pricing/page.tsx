@@ -4,6 +4,7 @@ import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import clsx from "clsx"
 import { ExternalLink, Search, Truck, Zap, Tag, Package } from "lucide-react"
+import { fmtPrice, getRetailColor } from "@/lib/format"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface PriceRow {
@@ -20,10 +21,6 @@ interface PriceRow {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
-function fmtARS(n: number) {
-  if (!n || n === 0) return "—"
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
-}
 
 type SortCol = "precio_venta" | "descuento" | "seller"
 
@@ -33,6 +30,7 @@ export default function PricingPage() {
   const COLORS  = market.colors
   const SELLERS = market.sellers
 
+  const [country,        setCountry]        = useState("")
   const [channel,        setChannel]        = useState("")
   const [category,       setCategory]       = useState("")
   const [date,           setDate]           = useState("")
@@ -44,6 +42,7 @@ export default function PricingPage() {
   const [sortBy,         setSortBy]         = useState<SortCol>("precio_venta")
   const [sortDir,        setSortDir]        = useState<"asc" | "desc">("asc")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<PriceRow[]>([])
@@ -63,10 +62,18 @@ export default function PricingPage() {
     return () => document.removeEventListener("mousedown", h)
   }, [])
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Fecha — canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
@@ -80,25 +87,27 @@ export default function PricingPage() {
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
+    if (country) p.set("country", country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, date])
+  }, [category, country, date])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     if (date) { p.set("startDate", date); p.set("endDate", date) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, date])
+  }, [channel, country, date])
 
   // Fetch pricing
   const fetchData = useCallback(() => {
@@ -107,12 +116,13 @@ export default function PricingPage() {
     const p = new URLSearchParams({ action: "pricing", limit: String(topN), date })
     if (channel)        p.set("channel",  channel)
     if (category)       p.set("category", category)
+    if (country)        p.set("country",  country)
     if (selectedSeller) p.set("seller",   selectedSeller)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, date, topN, selectedSeller])
+  }, [channel, category, country, date, topN, selectedSeller])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -173,6 +183,16 @@ export default function PricingPage() {
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
 
         {/* Canal */}
         <div className="flex items-center gap-2">
@@ -252,9 +272,9 @@ export default function PricingPage() {
       {/* ── KPIs ─────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: "Precio mínimo",   value: fmtARS(minPrice),      color: "#16a34a" },
-          { label: "Precio promedio", value: fmtARS(avgPrice),      color: "#7c3aed" },
-          { label: "Precio máximo",   value: fmtARS(maxPrice),      color: "#dc2626" },
+          { label: "Precio mínimo",   value: fmtPrice(minPrice, country),      color: "#16a34a" },
+          { label: "Precio promedio", value: fmtPrice(avgPrice, country),      color: "#7c3aed" },
+          { label: "Precio máximo",   value: fmtPrice(maxPrice, country),      color: "#dc2626" },
           { label: "Desc. promedio",  value: `${avgDiscount}%`,     color: avgDiscount > 15 ? "#16a34a" : "#6b7280" },
           { label: "Fabricantes",     value: String(uniqueSellers), color: "#d97706" },
         ].map(k => (
@@ -315,7 +335,7 @@ export default function PricingPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((e, i) => {
-                  const color    = COLORS[e.seller] || "#9ca3af"
+                  const color    = COLORS[e.seller] || getRetailColor(e.seller)
                   const hasDiscount       = e.descuento && e.descuento > 0
                   const hasPrecioOriginal = e.precio && e.precio > e.precio_venta
                   const envioVal        = e.envio?.toLowerCase()
@@ -371,9 +391,9 @@ export default function PricingPage() {
 
                       {/* Precio */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <div className="font-black text-gray-900 font-mono">{fmtARS(e.precio_venta)}</div>
+                        <div className="font-black text-gray-900 font-mono">{fmtPrice(e.precio_venta, country)}</div>
                         {hasPrecioOriginal && (
-                          <div className="text-[10px] text-gray-400 line-through font-mono">{fmtARS(e.precio)}</div>
+                          <div className="text-[10px] text-gray-400 line-through font-mono">{fmtPrice(e.precio, country)}</div>
                         )}
                         {diffPct !== 0 && (
                           <div className={clsx("text-[9px] font-bold", diffPct < 0 ? "text-green-600" : "text-red-500")}>

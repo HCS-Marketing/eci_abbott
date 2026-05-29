@@ -3,8 +3,8 @@ import "./globals.css"
 import AppShell from "@/components/layout/AppShell"
 
 export const metadata: Metadata = {
-  title: { default: "Abbott · Share of Shelf", template: "%s · Abbott SOS" },
-  description: "Plataforma de Share of Shelf — Abbott Nutrición",
+  title: { default: "Abbott · Ecommerce Index", template: "%s · Abbott ECI" },
+  description: "Plataforma Ecommerce Index — Abbott Nutrición",
   icons: { icon: "/favicon.svg" },
 }
 

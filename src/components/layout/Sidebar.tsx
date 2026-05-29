@@ -11,7 +11,7 @@ import {
 import { useClient } from "@/lib/client-context"
 
 const NAV = [
-  { href: "/share-of-search", label: "Share of Shelf",   icon: Search       },
+  { href: "/ecommerce-index", label: "Ecommerce Index",   icon: Search       },
   { href: "/ranking",         label: "Ranking",           icon: ListOrdered  },
   { href: "/bestsellers",     label: "Bestsellers",       icon: Trophy       },
   { href: "/pricing",         label: "Pricing Live",      icon: Tag          },
@@ -73,7 +73,7 @@ export default function Sidebar() {
           </Link>
           {expanded && (
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-white truncate">Share of Shelf</div>
+              <div className="text-[13px] font-semibold text-white truncate">Ecommerce Index</div>
               {client?.name && (
                 <div className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
                   {client.name}

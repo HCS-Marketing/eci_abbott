@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
+import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
 import { ExternalLink, Trophy, Truck, TrendingUp, Tag, Search, Zap } from "lucide-react"
 
@@ -16,11 +17,6 @@ interface BestsellerProduct {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────
-function fmtARS(n: number) {
-  if (!n || n === 0) return "—"
-  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(n)
-}
-
 function RankBadge({ rank }: { rank: number }) {
   return (
     <div className={clsx(
@@ -43,6 +39,7 @@ export default function BestsellersPage() {
 
   const [channel,   setChannel]   = useState("")
   const [category,  setCategory]  = useState("")
+  const [country,   setCountry]   = useState("")
   const [date,      setDate]      = useState("")   // fecha única
   const [minDate,   setMinDate]   = useState("")
   const [maxDate,   setMaxDate]   = useState("")
@@ -51,6 +48,7 @@ export default function BestsellersPage() {
   const [search,    setSearch]    = useState("")
   const [selectedSeller, setSelectedSeller] = useState("")
 
+  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<BestsellerProduct[]>([])
@@ -70,10 +68,18 @@ export default function BestsellersPage() {
     return () => document.removeEventListener("mousedown", h)
   }, [])
 
+  // Countries
+  useEffect(() => {
+    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
+      if (Array.isArray(d)) setAvailableCountries(d)
+    })
+  }, [])
+
   // Fecha única — re-fetchea cuando cambia el canal para ajustar al max del canal
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
     if (channel) p.set("channel", channel)
+    if (country) p.set("country", country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
@@ -82,31 +88,33 @@ export default function BestsellersPage() {
         // Si la fecha actual está fuera del rango del canal, ajustar al máximo
         setDate(prev => (!prev || prev > d.max) ? d.max : prev)
       })
-  }, [channel])
+  }, [channel, country])
 
   // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category",  category)
+    if (country)  p.set("country",   country)
     if (date)     p.set("startDate", date); if (date) p.set("endDate", date)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, date])
+  }, [category, country, date])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel",   channel)
+    if (country) p.set("country",   country)
     if (date)    p.set("startDate", date); if (date) p.set("endDate", date)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, date])
+  }, [channel, country, date])
 
   // Fetch bestsellers
   const fetchData = useCallback(() => {
@@ -120,12 +128,13 @@ export default function BestsellersPage() {
     })
     if (channel)        p.set("channel",   channel)
     if (category)       p.set("category",  category)
+    if (country)        p.set("country",   country)
     if (selectedSeller) p.set("seller",    selectedSeller)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, date, pageFilter, topN, selectedSeller])
+  }, [channel, category, country, date, pageFilter, topN, selectedSeller])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -166,6 +175,16 @@ export default function BestsellersPage() {
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {/* País */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">País</span>
+          <select value={country} onChange={e => setCountry(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
+            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          </select>
+        </div>
 
         {/* Canal */}
         <div className="flex items-center gap-2">
@@ -341,9 +360,9 @@ export default function BestsellersPage() {
                   {/* Precio + descuento */}
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     {hasPrecioOriginal && (
-                      <span className="text-[10px] text-gray-400 line-through font-mono">{fmtARS(e.precio)}</span>
+                      <span className="text-[10px] text-gray-400 line-through font-mono">{fmtPrice(e.precio, country)}</span>
                     )}
-                    <span className="text-sm font-black text-gray-900 font-mono">{fmtARS(e.precio_venta)}</span>
+                    <span className="text-sm font-black text-gray-900 font-mono">{fmtPrice(e.precio_venta, country)}</span>
                     {hasDiscount && (
                       <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-200">-{e.descuento}%</span>
                     )}
