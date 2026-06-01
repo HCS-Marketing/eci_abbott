@@ -5,8 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Trophy, Tag, Zap, Package, BarChart2, Layers,
-  LogOut, LayoutDashboard, ScanSearch,
+  Tag, LogOut, ScanSearch,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 
@@ -61,7 +60,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 px-3 py-4 flex-shrink-0"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/ecommerce-index" className="flex-shrink-0">
             <SOSBrandmark size={28} />
           </Link>
           {expanded && (
@@ -118,18 +117,6 @@ export default function Sidebar() {
           className="flex flex-col gap-1 py-3 px-2 flex-shrink-0"
           style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}
         >
-          {/* Dashboard link */}
-          <Link
-            href="/main"
-            className="flex items-center gap-3 px-2 py-2 rounded-xl transition-all duration-150"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.08)")}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-          >
-            <LayoutDashboard size={15} className="flex-shrink-0" />
-            {expanded && <span className="text-[12px] font-light">Panel principal</span>}
-          </Link>
-
           {/* Logout */}
           <button
             onClick={handleLogout}
@@ -176,7 +163,7 @@ export default function Sidebar() {
             <rect y="12" width="12" height="2" rx="1" fill="white"/>
           </svg>
         </button>
-        <Link href="/" className="flex items-center gap-2 flex-1">
+        <Link href="/ecommerce-index" className="flex items-center gap-2 flex-1">
           <SOSBrandmark size={24} />
           <span className="text-sm font-bold text-white">Share of Shelf</span>
         </Link>
