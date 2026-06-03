@@ -7,6 +7,7 @@ import clsx from "clsx"
 import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
 import { getRetailColor } from "@/lib/format"
+import { useGlobalFilters } from "@/lib/filter-context"
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -237,11 +238,11 @@ export default function ShareOfShelfPage() {
   const market = useMarket()
   const SELLERS = market.sellers
   const COLORS  = market.colors
+  const { country } = useGlobalFilters()
 
   // Filtros
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
-  const [country,    setCountry]    = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
   const [startDate,  setStartDate]  = useState("")
@@ -252,7 +253,6 @@ export default function ShareOfShelfPage() {
   // Opciones dinámicas de los selects
   const [availableChannels,    setAvailableChannels]    = useState<string[]>([])
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
-  const [availableCountries,   setAvailableCountries]   = useState<string[]>([])
   const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
   const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
   const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "ABBOTT")
@@ -262,7 +262,6 @@ export default function ShareOfShelfPage() {
 
   const [trendOpen, setTrendOpen] = useState(false)
   const trendRef    = useRef<HTMLDivElement>(null)
-  const trendInitRef = useRef(false)
   const [visibleCount, setVisibleCount] = useState(10)
 
   const [sellerDropdownOpen, setSellerDropdownOpen] = useState(false)
@@ -290,15 +289,25 @@ export default function ShareOfShelfPage() {
   const [trendData,   setTrendData]   = useState<Record<string, unknown>[]>([])
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
 
-  // Default selectedSeller and selectedSellers to top 5 by SOS when sellerData loads
+  // Keep selected sellers consistent whenever the dataset changes.
   useEffect(() => {
-    if (sellerData.length === 0 || trendInitRef.current) return
-    trendInitRef.current = true
-    const top5 = sellerData.slice(0, 5).map(e => String(e.seller))
-    setSelectedSellers(top5)
-    // Set selectedSeller to Abbott if present in data, else top 1
-    const abbottEntry = sellerData.find(e => String(e.seller).toUpperCase() === "ABBOTT")
-    setSelectedSeller(abbottEntry ? String(abbottEntry.seller) : top5[0])
+    const sellers = sellerData.map(e => String(e.seller))
+    if (sellers.length === 0) {
+      setSelectedSellers([])
+      setSelectedSeller("")
+      return
+    }
+
+    setSelectedSellers(prev => {
+      const kept = prev.filter(s => sellers.includes(s))
+      return kept.length ? kept : sellers.slice(0, 5)
+    })
+
+    setSelectedSeller(prev => {
+      if (prev && sellers.includes(prev)) return prev
+      const abbott = sellers.find(s => s.toUpperCase() === "ABBOTT")
+      return abbott || sellers[0]
+    })
   }, [sellerData])
 
   // Reset visible count when drill level or data changes
@@ -313,16 +322,11 @@ export default function ShareOfShelfPage() {
         setStartDate(d.min); setEndDate(d.max)
       })
       .catch(() => {})
-    fetch("/api/sos?action=countries")
-      .then(r => r.json())
-      .then((data: string[]) => { if (Array.isArray(data)) setAvailableCountries(data) })
-      .catch(() => {})
   }, [])
 
-  // ── Cascading: retails filtrados por categoría + país + fechas ───
+  // ── Cascading: retails filtrados por país + fechas ───
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (category)  p.set("category",  category)
     if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
@@ -333,7 +337,7 @@ export default function ShareOfShelfPage() {
         setAvailableChannels(data)
         if (channel && !data.includes(channel)) setChannel("")
       })
-  }, [category, country, startDate, endDate])
+  }, [country, startDate, endDate])
 
   // ── Cascading: categorías filtradas por retail + país + fechas ────
   useEffect(() => {
@@ -351,10 +355,11 @@ export default function ShareOfShelfPage() {
       })
   }, [channel, country, startDate, endDate])
 
-  // ── Cascading: segmentos filtrados por país ───────────────
+  // ── Cascading: segmentos filtrados por país + mercado ───────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
     if (country) p.set("country", country)
+    if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -362,13 +367,12 @@ export default function ShareOfShelfPage() {
         setAvailableSegmentos(data)
         if (segmento && !data.includes(segmento)) setSegmento("")
       })
-  }, [country])
+  }, [country, mercado])
 
-  // ── Cascading: mercados filtrados por país + segmento ─────
+  // ── Cascading: mercados filtrados por país ─────
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
     if (country)  p.set("country", country)
-    if (segmento) p.set("segmento", segmento)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -376,7 +380,7 @@ export default function ShareOfShelfPage() {
         setAvailableMercados(data)
         if (mercado && !data.includes(mercado)) setMercado("")
       })
-  }, [country, segmento])
+  }, [country])
 
   const api = useCallback(
     (action: string) =>
@@ -461,7 +465,12 @@ export default function ShareOfShelfPage() {
   }
 
   const ownEntry  = sellerData.find((e) => e.seller === selectedSeller) as Record<string, unknown> | undefined
-  const ownColor  = COLORS[selectedSeller] || "#a427ff"
+  const sellerOptions = sellerData.length
+    ? sellerData.map(e => String(e.seller))
+    : SELLERS
+  const selectedSellerLabel = selectedSeller || "Todos"
+  const sellerRank = selectedSeller ? sellerData.findIndex(e => e.seller === selectedSeller) + 1 : null
+  const totalProductsP1 = sellerData.reduce((sum, e) => sum + Number(e.products_p1 || 0), 0)
 
   // Top 15 sellers by current page SOS; the rest collapsed into "Otros"
   const TOP_N = 8
@@ -515,38 +524,16 @@ export default function ShareOfShelfPage() {
           </select>
         </div>
 
-        {/* País */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">País</span>
-          <select
-            value={country}
-            onChange={e => setCountry(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todos</option>
-            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
-          </select>
-        </div>
-
-        {/* Categoría */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todas las categorías</option>
-            {availableCategories.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
         {/* Mercado */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
           <select
             value={mercado}
-            onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+            onChange={e => {
+              const next = e.target.value
+              setMercado(next)
+              setSegmento("")
+            }}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
           >
             <option value="">Todos</option>
@@ -576,7 +563,7 @@ export default function ShareOfShelfPage() {
               onClick={() => { setSellerDropdownOpen(prev => !prev); setSellerSearch("") }}
               className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[140px] justify-between"
             >
-              <span className="truncate">{selectedSeller || "Seleccionar"}</span>
+              <span className="truncate">{selectedSeller || "Todos"}</span>
               <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -594,7 +581,18 @@ export default function ShareOfShelfPage() {
                   />
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
+                  {("todos".includes(sellerSearch.toLowerCase()) || sellerSearch === "") && (
+                    <button
+                      onClick={() => { setSelectedSeller(""); setSellerDropdownOpen(false); setSellerSearch("") }}
+                      className={clsx(
+                        "w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors border-b border-gray-100",
+                        selectedSeller === "" ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-500"
+                      )}
+                    >
+                      Todos los fabricantes
+                    </button>
+                  )}
+                  {sellerOptions.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
                     <button
                       key={s}
                       onClick={() => { setSelectedSeller(s); setSellerDropdownOpen(false); setSellerSearch("") }}
@@ -606,13 +604,26 @@ export default function ShareOfShelfPage() {
                       {s}
                     </button>
                   ))}
-                  {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).length === 0 && (
+                  {sellerOptions.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).length === 0 && (
                     <div className="px-3 py-3 text-xs text-gray-400 text-center">Sin resultados</div>
                   )}
                 </div>
               </div>
             )}
           </div>
+        </div>
+
+        {/* Categoría */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Categoría</span>
+          <select
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+          >
+            <option value="">Todas las categorías</option>
+            {availableCategories.map(c => <option key={c}>{c}</option>)}
+          </select>
         </div>
 
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
@@ -635,17 +646,17 @@ export default function ShareOfShelfPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: `SOS ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSeller}`,
-            value: `${(page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0}%`,
+            label: `SOS ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSellerLabel}`,
+            value: `${selectedSeller ? ((page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0) : 100}%`,
             change: Number(page === "p1" ? ownEntry?.sos_p1_change : ownEntry?.sos_total_change),
           },
           {
             label: "Posición en retail",
-            value: `#${(sellerData.findIndex(e => e.seller === selectedSeller) + 1) || "—"}`,
+            value: sellerRank ? `#${sellerRank}` : "—",
           },
           {
             label: "Productos en pág 1",
-            value: String(ownEntry?.products_p1 ?? 0),
+            value: String(selectedSeller ? (ownEntry?.products_p1 ?? 0) : totalProductsP1),
           },
           {
             label: "Fabricantes analizados",
@@ -689,23 +700,27 @@ export default function ShareOfShelfPage() {
         {/* Por retail */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
           <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
-            SOS por retail · {selectedSeller}
+            SOS por retail · {selectedSellerLabel}
           </div>
           <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
-          <div className="space-y-3">
-            {channelData.map((d, i) => (
-              <div key={String(d.channel)}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-600">{String(d.channel)}</span>
-                  <div className="flex items-center gap-2">
-                    <Change val={Number(d.sos_p1_change)} />
-                    <span className="text-gray-900 font-semibold font-mono">{Number(d.sos_p1)}%</span>
+          {selectedSeller ? (
+            <div className="space-y-3">
+              {channelData.map((d, i) => (
+                <div key={String(d.channel)}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-600">{String(d.channel)}</span>
+                    <div className="flex items-center gap-2">
+                      <Change val={Number(d.sos_p1_change)} />
+                      <span className="text-gray-900 font-semibold font-mono">{Number(d.sos_p1)}%</span>
+                    </div>
                   </div>
+                  <SOSBar pct={Number(d.sos_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
                 </div>
-                <SOSBar pct={Number(d.sos_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-xs text-gray-400">Selecciona un fabricante para ver el detalle por retail.</div>
+          )}
         </div>
       </div>
 

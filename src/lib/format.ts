@@ -10,6 +10,21 @@ export function fmtPrice(n: number | null | undefined, country?: string): string
   return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }).format(n)
 }
 
+export function fmtPricePrefixed(n: number | null | undefined, country?: string): string {
+  if (n == null || Number.isNaN(n)) return "—"
+  const cfg: Record<string, { locale: string; code: string }> = {
+    MX: { locale: "es-MX", code: "MXN" },
+    CO: { locale: "es-CO", code: "COP" },
+    PE: { locale: "es-PE", code: "PEN" },
+  }
+  const { locale, code } = cfg[country || "MX"] || cfg.MX
+  const amount = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(n)
+  return `${code} ${amount}`
+}
+
 /** Fixed colors per retailer — visually distinct */
 export const RETAIL_COLORS: Record<string, string> = {
   "AMAZON":              "#FF9900",

@@ -141,6 +141,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
+      if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
@@ -224,25 +225,29 @@ export async function GET(req: Request) {
 
     // ── brand-level breakdown — from mv_sos_daily_marca ────
     if (action === "brands") {
-      if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      p.push(seller)
-      const sellerCond = `fabricante = $${p.length}`
+      let sellerCond = ""
+      if (seller) {
+        p.push(seller)
+        sellerCond = ` AND fabricante = $${p.length}`
+      }
       const mf = marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT marca,
+            fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
           FROM eci.mv_sos_daily_marca d
-          WHERE ${w} AND ${sellerCond}${mf}
-          GROUP BY marca
+          WHERE ${w}${sellerCond}${mf}
+          GROUP BY marca, fabricante
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
         SELECT a.marca AS brand,
+          a.seller,
           a.products_p1::int, a.products_total::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
           ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
@@ -251,12 +256,12 @@ export async function GET(req: Request) {
         LIMIT 50
       `
       const rows = await prisma.$queryRawUnsafe<{
-        brand: string; products_p1: number; products_total: number
+        brand: string; seller: string; products_p1: number; products_total: number
         sos_p1: number; sos_total: number
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         brand:            r.brand,
-        seller,
+        seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,
@@ -267,26 +272,29 @@ export async function GET(req: Request) {
 
     // ── título breakdown (by fabricante) ────────────────────
     if (action === "titulos") {
-      if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      p.push(seller)
-      const sellerCond = `fabricante = $${p.length}`
+      let sellerCond = ""
+      if (seller) {
+        p.push(seller)
+        sellerCond = ` AND fabricante = $${p.length}`
+      }
       const mf = marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT producto_id, MAX(titulo) AS titulo,
+            fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
           FROM eci.mv_sos_daily_titulo d
-          WHERE ${w} AND ${sellerCond}${mf}
-          GROUP BY producto_id
+          WHERE ${w}${sellerCond}${mf}
+          GROUP BY producto_id, fabricante
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
-        SELECT a.producto_id AS titulo_id, a.titulo,
+        SELECT a.producto_id AS titulo_id, a.titulo, a.seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
@@ -295,13 +303,13 @@ export async function GET(req: Request) {
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
-        titulo_id: string; titulo: string; products_p1: number; products_total: number
+        titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
         titulo:           r.titulo,
-        seller,
+        seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,
@@ -942,12 +950,13 @@ export async function GET(req: Request) {
           producto_id AS id,
           titulo AS producto,
           marca,
+          pais,
           retail AS seller,
           retail AS plataforma,
           categoria AS subcategoria,
           fabricante,
-          ROUND(precio_venta::numeric, 0) AS precio_venta,
-          ROUND(precio_neto::numeric, 0) AS precio,
+          ROUND(precio_venta::numeric, 1) AS precio_venta,
+          ROUND(precio_neto::numeric, 1) AS precio,
           ROUND(descuento::numeric, 1) AS descuento,
           promocion,
           presentacion,
@@ -959,7 +968,7 @@ export async function GET(req: Request) {
       `
       const rows = await prisma.$queryRawUnsafe<{
         id: string; producto: string; marca: string; seller: string
-        plataforma: string; subcategoria: string; fabricante: string
+        pais: string; plataforma: string; subcategoria: string; fabricante: string
         precio_venta: number; precio: number; descuento: number
         promocion: string | null; presentacion: string | null; url_producto: string
       }[]>(sql, ...p)
@@ -967,6 +976,7 @@ export async function GET(req: Request) {
         id:                      r.id,
         producto:                r.producto,
         marca:                   r.marca,
+        country:                 r.pais,
         seller:                  r.seller,
         plataforma:              r.plataforma,
         subcategoria:            r.subcategoria,

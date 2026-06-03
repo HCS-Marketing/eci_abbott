@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
 import { TrendingUp, TrendingDown, Trophy, LayoutGrid, List, Search, Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
+import { useGlobalFilters } from "@/lib/filter-context"
 
 // ── CLICK SHARE CURVE ─────────────────────────────────────────
 const CLICK_SHARE: Record<number, number> = {
@@ -164,10 +165,10 @@ export default function RankingPage() {
   const market = useMarket()
   const COLORS  = market.colors
   const SELLERS = market.sellers
+  const { country } = useGlobalFilters()
 
   const [channel,   setChannel]   = useState("")
   const [category,  setCategory]  = useState("")
-  const [country,   setCountry]   = useState("")
   const [segmento,  setSegmento]  = useState("")
   const [mercado,   setMercado]   = useState("")
   const [startDate, setStartDate] = useState("")
@@ -177,9 +178,10 @@ export default function RankingPage() {
   const [pageFilter, setPageFilter] = useState<"all" | "p1">("p1")
   const [topN,      setTopN]      = useState(30)
   const [view,      setView]      = useState<"planograma" | "lista">("planograma")
-  const [search,    setSearch]    = useState("")
+  const [tableSellerFilter, setTableSellerFilter] = useState("")
+  const [tableBrandFilter,  setTableBrandFilter]  = useState("")
+  const [tableTitleFilter,  setTableTitleFilter]  = useState("")
 
-  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -211,35 +213,28 @@ export default function RankingPage() {
     setSelectedSeller(preferred)
   }, [SELLERS[0]])
 
-  // Countries
-  useEffect(() => {
-    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
-      if (Array.isArray(d)) setAvailableCountries(d)
-    })
-  }, [])
-
   // Segmentos
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
     if (country) p.set("country", country)
+    if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableSegmentos(d)
       if (segmento && !d.includes(segmento)) setSegmento("")
     })
-  }, [country])
+  }, [country, mercado])
 
   // Mercados
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
     if (country)  p.set("country", country)
-    if (segmento) p.set("segmento", segmento)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableMercados(d)
       if (mercado && !d.includes(mercado)) setMercado("")
     })
-  }, [country, segmento])
+  }, [country])
 
   // Rango de fechas
   useEffect(() => {
@@ -255,7 +250,6 @@ export default function RankingPage() {
   // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (category)  p.set("category",  category)
     if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
@@ -264,7 +258,7 @@ export default function RankingPage() {
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, country, startDate, endDate])
+  }, [country, startDate, endDate])
 
   // Cascading categories
   useEffect(() => {
@@ -329,12 +323,33 @@ export default function RankingPage() {
 
   useEffect(() => { fetchKpiData() }, [fetchKpiData])
 
-  // Filtrar por búsqueda de texto
+  const tableSellerOptions = Array.from(new Set(data.map(e => e.seller))).sort((a, b) => a.localeCompare(b))
+  const tableBrandOptions = Array.from(
+    new Set(
+      data
+        .filter(e => !tableSellerFilter || e.seller === tableSellerFilter)
+        .map(e => e.marca)
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b))
+
+  useEffect(() => {
+    if (tableSellerFilter && !tableSellerOptions.includes(tableSellerFilter)) {
+      setTableSellerFilter("")
+    }
+  }, [tableSellerFilter, tableSellerOptions])
+
+  useEffect(() => {
+    if (tableBrandFilter && !tableBrandOptions.includes(tableBrandFilter)) {
+      setTableBrandFilter("")
+    }
+  }, [tableBrandFilter, tableBrandOptions])
+
+  // Filtrar por fabricante, marca y título
   const filtered = data.filter(e =>
-    !search ||
-    e.titulo.toLowerCase().includes(search.toLowerCase()) ||
-    e.seller.toLowerCase().includes(search.toLowerCase()) ||
-    e.marca?.toLowerCase().includes(search.toLowerCase())
+    (!tableSellerFilter || e.seller === tableSellerFilter) &&
+    (!tableBrandFilter || e.marca === tableBrandFilter) &&
+    (!tableTitleFilter || e.titulo.toLowerCase().includes(tableTitleFilter.toLowerCase()))
   )
 
   // KPIs — siempre Abbott vs todos (ignora filtro de seller)
@@ -402,20 +417,21 @@ export default function RankingPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* País */}
+        {/* Canal */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">País</span>
-          <select value={country} onChange={e => setCountry(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+          <span className="text-xs text-gray-400">Canal</span>
+          <select value={channel} onChange={e => setChannel(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+          >
+            <option value="">Todos los canales</option>
+            {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
 
         {/* Mercado */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableMercados.map(m => <option key={m}>{m}</option>)}
@@ -429,28 +445,6 @@ export default function RankingPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-
-        {/* Canal */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Canal</span>
-          <select value={channel} onChange={e => setChannel(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todos los canales</option>
-            {availableChannels.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* Categoría */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todas las categorías</option>
-            {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
 
@@ -499,6 +493,17 @@ export default function RankingPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Categoría */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Categoría</span>
+          <select value={category} onChange={e => setCategory(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+          >
+            <option value="">Todas las categorías</option>
+            {availableCategories.map(c => <option key={c}>{c}</option>)}
+          </select>
         </div>
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
@@ -584,15 +589,39 @@ export default function RankingPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Buscador */}
+            {/* Filtros de tabla */}
+            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+              <span className="text-[10px] text-gray-400">Fabricante</span>
+              <select
+                value={tableSellerFilter}
+                onChange={e => { setTableSellerFilter(e.target.value); setTableBrandFilter("") }}
+                className="text-xs bg-transparent outline-none text-gray-700"
+              >
+                <option value="">Todos</option>
+                {tableSellerOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
+              <span className="text-[10px] text-gray-400">Marca</span>
+              <select
+                value={tableBrandFilter}
+                onChange={e => setTableBrandFilter(e.target.value)}
+                className="text-xs bg-transparent outline-none text-gray-700"
+              >
+                <option value="">Todas</option>
+                {tableBrandOptions.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+
             <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
               <Search size={11} className="text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar producto, seller, marca..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="text-xs outline-none w-48 text-gray-700"
+                placeholder="Filtrar título..."
+                value={tableTitleFilter}
+                onChange={e => setTableTitleFilter(e.target.value)}
+                className="text-xs outline-none w-40 text-gray-700"
               />
             </div>
             {/* Descarga CSV */}

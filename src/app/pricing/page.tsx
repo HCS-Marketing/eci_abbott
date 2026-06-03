@@ -5,12 +5,14 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import clsx from "clsx"
 import { ExternalLink, Search, Truck, Zap, Tag, Package, Download, FileText } from "lucide-react"
-import { fmtPrice, getRetailColor } from "@/lib/format"
+import { fmtPricePrefixed, getRetailColor } from "@/lib/format"
 import { downloadCSV, exportPDF } from "@/lib/export"
+import { useGlobalFilters } from "@/lib/filter-context"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface PriceRow {
   id: string; producto: string; marca: string; seller: string
+  country?: string
   plataforma: string; subcategoria: string
   precio_venta: number; precio: number; descuento: number
   cuotas_sin_interes: number | null
@@ -31,8 +33,8 @@ export default function PricingPage() {
   const market  = useMarket()
   const COLORS  = market.colors
   const SELLERS = market.sellers
+  const { country } = useGlobalFilters()
 
-  const [country,        setCountry]        = useState("")
   const [segmento,       setSegmento]       = useState("")
   const [mercado,        setMercado]        = useState("")
   const [channel,        setChannel]        = useState("")
@@ -47,7 +49,6 @@ export default function PricingPage() {
   const [sortBy,         setSortBy]         = useState<SortCol>("precio_venta")
   const [sortDir,        setSortDir]        = useState<"asc" | "desc">("asc")
 
-  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -69,35 +70,28 @@ export default function PricingPage() {
     return () => document.removeEventListener("mousedown", h)
   }, [])
 
-  // Countries
-  useEffect(() => {
-    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
-      if (Array.isArray(d)) setAvailableCountries(d)
-    })
-  }, [])
-
   // Segmentos
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
     if (country) p.set("country", country)
+    if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableSegmentos(d)
       if (segmento && !d.includes(segmento)) setSegmento("")
     })
-  }, [country])
+  }, [country, mercado])
 
   // Mercados
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
     if (country)  p.set("country", country)
-    if (segmento) p.set("segmento", segmento)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableMercados(d)
       if (mercado && !d.includes(mercado)) setMercado("")
     })
-  }, [country, segmento])
+  }, [country])
 
   // Fecha — canal-aware
   useEffect(() => {
@@ -109,30 +103,34 @@ export default function PricingPage() {
       .then((d: { min: string; max: string }) => {
         if (!d.max) return
         setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(prev => (!prev || prev < d.min) ? d.min : prev)
-        setEndDate(prev => (!prev || prev > d.max) ? d.max : prev)
+        setStartDate(prev => (!prev || prev < d.min || prev > d.max) ? d.max : prev)
+        setEndDate(prev => (!prev || prev < d.min || prev > d.max) ? d.max : prev)
       })
   }, [channel, country])
+
+  // Keep pricing in single-day mode.
+  useEffect(() => {
+    if (endDate && startDate !== endDate) setStartDate(endDate)
+  }, [endDate, startDate])
 
   // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (category) p.set("category", category)
     if (country) p.set("country", country)
-    if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
+    if (endDate) { p.set("startDate", endDate); p.set("endDate", endDate) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, country, endDate])
+  }, [country, endDate])
 
   // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
+    if (endDate) { p.set("startDate", endDate); p.set("endDate", endDate) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
@@ -179,8 +177,8 @@ export default function PricingPage() {
   const prices        = filtered.map(e => e.precio_venta).filter(p => p > 0)
   const minPrice      = prices.length ? Math.min(...prices) : 0
   const maxPrice      = prices.length ? Math.max(...prices) : 0
-  const avgPrice      = prices.length ? Math.round(prices.reduce((s, p) => s + p, 0) / prices.length) : 0
-  const avgDiscount   = filtered.length ? Math.round(filtered.reduce((s, e) => s + (e.descuento || 0), 0) / filtered.length) : 0
+  const avgPrice      = prices.length ? Number((prices.reduce((s, p) => s + p, 0) / prices.length).toFixed(1)) : 0
+  const avgDiscount   = filtered.length ? Number((filtered.reduce((s, e) => s + (e.descuento || 0), 0) / filtered.length).toFixed(1)) : 0
   const uniqueSellers = new Set(filtered.map(e => e.seller)).size
 
   function toggleSort(col: SortCol) {
@@ -202,12 +200,10 @@ export default function PricingPage() {
 
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
-        {/* Fecha */}
+        {/* Fecha unica */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Desde</span>
-          <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
-          <span className="text-xs text-gray-400">Hasta</span>
-          <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
+          <span className="text-xs text-gray-400">Fecha</span>
+          <DateInput value={endDate} min={minDate} max={maxDate} onChange={setEndDate} />
         </div>
         {endDate === maxDate && maxDate && (
           <span className="text-[10px] text-green-600 font-semibold">✓ Última fecha</span>
@@ -215,20 +211,20 @@ export default function PricingPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* País */}
+        {/* Retail */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">País</span>
-          <select value={country} onChange={e => setCountry(e.target.value)}
+          <span className="text-xs text-gray-400">Retail</span>
+          <select value={channel} onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
+            <option value="">Todos los canales</option>
+            {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
 
         {/* Mercado */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableMercados.map(m => <option key={m}>{m}</option>)}
@@ -242,26 +238,6 @@ export default function PricingPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-
-        {/* Canal */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Canal</span>
-          <select value={channel} onChange={e => setChannel(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos los canales</option>
-            {availableChannels.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* Categoría */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todas las categorías</option>
-            {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
 
@@ -306,6 +282,16 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* Categoría */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Categoría</span>
+          <select value={category} onChange={e => setCategory(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todas las categorías</option>
+            {availableCategories.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
         {/* Límite */}
@@ -334,9 +320,9 @@ export default function PricingPage() {
       {/* ── KPIs ─────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: "Precio mínimo",   value: fmtPrice(minPrice, country),      color: "#16a34a" },
-          { label: "Precio promedio", value: fmtPrice(avgPrice, country),      color: "#7c3aed" },
-          { label: "Precio máximo",   value: fmtPrice(maxPrice, country),      color: "#dc2626" },
+          { label: "Precio mínimo",   value: fmtPricePrefixed(minPrice, country), color: "#16a34a" },
+          { label: "Precio promedio", value: fmtPricePrefixed(avgPrice, country), color: "#7c3aed" },
+          { label: "Precio máximo",   value: fmtPricePrefixed(maxPrice, country), color: "#dc2626" },
           { label: "Desc. promedio",  value: `${avgDiscount}%`,     color: avgDiscount > 15 ? "#16a34a" : "#6b7280" },
           { label: "Fabricantes",     value: String(uniqueSellers), color: "#d97706" },
         ].map(k => (
@@ -453,9 +439,9 @@ export default function PricingPage() {
 
                       {/* Precio */}
                       <td className="px-3 py-3 text-right whitespace-nowrap">
-                        <div className="font-black text-gray-900 font-mono">{fmtPrice(e.precio_venta, country)}</div>
+                        <div className="font-black text-gray-900 font-mono">{fmtPricePrefixed(e.precio_venta, e.country || country)}</div>
                         {hasPrecioOriginal && (
-                          <div className="text-[10px] text-gray-400 line-through font-mono">{fmtPrice(e.precio, country)}</div>
+                          <div className="text-[10px] text-gray-400 line-through font-mono">{fmtPricePrefixed(e.precio, e.country || country)}</div>
                         )}
                         {diffPct !== 0 && (
                           <div className={clsx("text-[9px] font-bold", diffPct < 0 ? "text-green-600" : "text-red-500")}>

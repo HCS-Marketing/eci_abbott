@@ -8,6 +8,7 @@ import {
   Tag, LogOut, ScanSearch,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
+import { useGlobalFilters } from "@/lib/filter-context"
 
 const NAV = [
   { href: "/ecommerce-index", label: "SOS",               icon: Search       },
@@ -28,6 +29,7 @@ function SOSBrandmark({ size = 28 }: { size?: number }) {
 export default function Sidebar() {
   const pathname = usePathname()
   const { client } = useClient()
+  const { country, setCountry, countries } = useGlobalFilters()
   const brandColor = client?.brand_color || "#A427FF"
   const [expanded, setExpanded] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -47,6 +49,8 @@ export default function Sidebar() {
   }
 
   const W = expanded ? "220px" : "60px"
+  const countryLabel = (code: string) =>
+    code === "MX" ? "Mexico" : code === "CO" ? "Colombia" : code === "PE" ? "Peru" : code
 
   return (
     <>
@@ -86,6 +90,24 @@ export default function Sidebar() {
 
         {/* Nav */}
         <nav className="flex-1 py-3 px-2 overflow-y-auto">
+          {expanded && (
+            <div className="px-2 mb-2">
+              <div className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
+                Pais
+              </div>
+              <select
+                value={country}
+                onChange={e => setCountry(e.target.value)}
+                className="w-full rounded-lg border border-white/10 bg-white/5 text-[11px] text-white px-2 py-1.5 outline-none"
+              >
+                <option value="" className="text-black">Todos</option>
+                {countries.map(c => (
+                  <option key={c} value={c} className="text-black">{countryLabel(c)}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {expanded && (
             <div
               className="text-[9px] uppercase tracking-widest font-bold px-2 py-1.5"
@@ -196,6 +218,22 @@ export default function Sidebar() {
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-3 px-3">
+          <div className="mb-3">
+            <div className="text-[10px] uppercase tracking-widest font-bold mb-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
+              Pais
+            </div>
+            <select
+              value={country}
+              onChange={e => setCountry(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-white/5 text-xs text-white px-2.5 py-2 outline-none"
+            >
+              <option value="" className="text-black">Todos</option>
+              {countries.map(c => (
+                <option key={c} value={c} className="text-black">{countryLabel(c)}</option>
+              ))}
+            </select>
+          </div>
+
           {NAV.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href
             return (
