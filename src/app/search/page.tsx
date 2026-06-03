@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
 import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
-import { getRetailColor, fmtDateDM, fmtDateDMY } from "@/lib/format"
+import { getRetailColor, fmtDateDMY } from "@/lib/format"
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -170,7 +170,7 @@ function TrendChart({
           .filter((_, i) => i % labelStep === 0)
           .map((pt, i) => (
             <text key={i} x={x(i * labelStep)} y={H - 6} textAnchor="middle" fill="#9ca3af" fontSize="8">
-              {fmtDateDM(String(pt.week))}
+              {fmtDateDMY(String(pt.week))}
             </text>
           ))}
         {/* Crosshair */}
