@@ -685,15 +685,12 @@ export default function ShareOfShelfPage() {
           <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
           <div className="space-y-3">
             {channelData.map((d, i) => (
-              <div key={String(d.channel)}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-gray-600">{String(d.channel)}</span>
-                  <div className="flex items-center gap-2">
-                    <Change val={Number(d.sos_p1_change)} />
-                    <span className="text-gray-900 font-semibold font-mono">{Number(d.sos_p1)}%</span>
-                  </div>
+              <div key={String(d.channel)} className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 w-32 shrink-0 truncate">{String(d.channel)}</span>
+                <div className="flex-1">
+                  <SOSBar pct={Number(d.sos_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
                 </div>
-                <SOSBar pct={Number(d.sos_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
+                <span className="text-xs font-semibold font-mono text-gray-900 w-12 text-right shrink-0">{Number(d.sos_p1)}%</span>
               </div>
             ))}
           </div>

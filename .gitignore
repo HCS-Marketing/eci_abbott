@@ -29,3 +29,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+scripts/eci-export.sql
+scripts/export-sql.cjs
