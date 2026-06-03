@@ -303,7 +303,7 @@ export default function RankingScorePage() {
     ...(rest.length > 0 ? [{ label: "Otros", value: Math.round(otrosVal), color: "#d1d5db" }] : []),
   ]
   const maxScore   = Math.max(...sellerData.map(e => Number(e.score_p1)), 1)
-  const maxChannel = Math.max(...channelData.map(e => Number(e.score_p1)), 1)
+  const maxChannel = Math.max(...channelData.map(e => Number(page === "p1" ? e.score_p1 : e.score_total)), 1)
 
   return (
     <div className="space-y-4">
@@ -460,7 +460,7 @@ export default function RankingScorePage() {
                   <div key={String(d.channel)} className="flex items-center gap-2">
                     <span className="text-xs text-gray-600 w-32 shrink-0 truncate">{String(d.channel)}</span>
                     <div className="flex-1">
-                      <ScoreBar val={Number(d.score_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
+                      <ScoreBar val={Number(page === "p1" ? d.score_p1 : d.score_total)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
                     </div>
                   </div>
                 ))}

@@ -291,6 +291,7 @@ export async function GET(req: Request) {
     if (action === "trend") {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
+      const page = searchParams.get("page") || "p1"
       const trendStart = new Date(endD.getTime() - 30 * 24 * 60 * 60 * 1000)
       const p: unknown[] = [trendStart, endD]
       let w = `fecha >= $1 AND fecha <= $2`
@@ -301,26 +302,27 @@ export async function GET(req: Request) {
       sellerList.forEach(s => p.push(s))
       const sql = `
         WITH daily_total AS (
-          SELECT fecha AS day, SUM(count_p1) AS total_p1
+          SELECT fecha AS day, SUM(count_p1) AS total_p1, SUM(count_total) AS total_all
           FROM eci.mv_search_daily_fab WHERE ${w}
           GROUP BY fecha
         ),
         seller_daily AS (
-          SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1
+          SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1, SUM(count_total) AS products_total
           FROM eci.mv_search_daily_fab WHERE ${w} AND fabricante IN (${sellerPlaceholders})
           GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
-          ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1
+          ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1,
+          ROUND(sd.products_total * 100.0 / NULLIF(dt.total_all, 0), 2) AS sos_total
         FROM seller_daily sd
         JOIN daily_total dt ON sd.day = dt.day
         ORDER BY sd.day, sd.fab
       `
-      const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; sos_p1: number }[]>(sql, ...p)
+      const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; sos_p1: number; sos_total: number }[]>(sql, ...p)
       const dayMap = new Map<string, Record<string, unknown>>()
       rows.forEach(r => {
         if (!dayMap.has(r.day)) dayMap.set(r.day, { week: r.day })
-        dayMap.get(r.day)![r.seller] = Number(r.sos_p1)
+        dayMap.get(r.day)![r.seller] = page === "p1" ? Number(r.sos_p1) : Number(r.sos_total)
       })
       return NextResponse.json(Array.from(dayMap.values()))
     }

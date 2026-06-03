@@ -251,7 +251,7 @@ export default function ShareOfShelfPage() {
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
   const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
   const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
-  const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "ABBOTT")
+  const [selectedSeller,  setSelectedSeller]  = useState("")
   const [selectedSellers, setSelectedSellers] = useState<string[]>([])
   const [page,  setPage]  = useState<PageCtx>("p1")
   const [drill, setDrill] = useState<DrillLevel>("seller")
@@ -485,7 +485,7 @@ export default function ShareOfShelfPage() {
     ...(rest.length > 0 ? [{ label: "Otros", value: Math.round(otrosVal * 10) / 10, color: "#d1d5db" }] : []),
   ]
   const maxSOS    = Math.max(...sellerData.map(e => Number(e.sos_p1)), 1)
-  const maxChannel = Math.max(...channelData.map(e => Number(e.sos_p1)), 1)
+  const maxChannel = Math.max(...channelData.map(e => Number(page === "p1" ? e.sos_p1 : e.sos_total)), 1)
 
   return (
     <div className="space-y-4">
@@ -696,9 +696,8 @@ export default function ShareOfShelfPage() {
               <div key={String(d.channel)} className="flex items-center gap-2">
                 <span className="text-xs text-gray-600 w-32 shrink-0 truncate">{String(d.channel)}</span>
                 <div className="flex-1">
-                  <SOSBar pct={Number(d.sos_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
+                  <SOSBar pct={Number(page === "p1" ? d.sos_p1 : d.sos_total)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
                 </div>
-                <span className="text-xs font-semibold font-mono text-gray-900 w-12 text-right shrink-0">{Number(d.sos_p1)}%</span>
               </div>
             ))}
           </div>
