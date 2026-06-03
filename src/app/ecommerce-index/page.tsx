@@ -730,7 +730,7 @@ export default function ShareOfShelfPage() {
           <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
           {selectedSeller ? (
             <div className="space-y-3">
-              {channelData.map((d, i) => (
+              {[...channelData].sort((a, b) => Number(page === "p1" ? b.sos_p1 : b.sos_total) - Number(page === "p1" ? a.sos_p1 : a.sos_total)).map((d, i) => (
                 <div key={String(d.channel)} className="flex items-center gap-2">
                   <span className="text-xs text-gray-600 w-32 shrink-0 truncate">{String(d.channel)}</span>
                   <div className="flex-1">

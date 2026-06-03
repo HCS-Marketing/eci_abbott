@@ -456,7 +456,7 @@ export default function RankingScorePage() {
             <div className="text-xs text-gray-400 mb-3">Score acumulado de posicion en cada retail</div>
             {selectedSeller ? (
               <div className="space-y-3">
-                {channelData.map((d, i) => (
+                {[...channelData].sort((a, b) => Number(page === "p1" ? b.score_p1 : b.score_total) - Number(page === "p1" ? a.score_p1 : a.score_total)).map((d, i) => (
                   <div key={String(d.channel)} className="flex items-center gap-2">
                     <span className="text-xs text-gray-600 w-32 shrink-0 truncate">{String(d.channel)}</span>
                     <div className="flex-1">
