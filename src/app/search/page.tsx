@@ -287,6 +287,8 @@ export default function ShareOfShelfPage() {
   const [tituloData,  setTituloData]  = useState<Record<string, unknown>[]>([])
   const [trendData,   setTrendData]   = useState<Record<string, unknown>[]>([])
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
+  const [loading,     setLoading]     = useState(false)
+  const fetchIdRef = useRef(0)
 
   // Default selectedSeller and selectedSellers to top 5 by SOS when sellerData loads
   useEffect(() => {
@@ -400,13 +402,24 @@ export default function ShareOfShelfPage() {
 
   useEffect(() => {
     if (!startDate || !endDate) return          // wait until dates are loaded
+    const id = ++fetchIdRef.current
+    setLoading(true)
     Promise.all([
-      api("sellers").then(setSellerData),
-      api("brands").then(setBrandData),
-      api("titulos").then(setTituloData),
-      api("trend").then(setTrendData),
-      api("by_channel").then(setChannelData),
-    ])
+      api("sellers"),
+      api("brands"),
+      api("titulos"),
+      api("trend"),
+      api("by_channel"),
+    ]).then(([sellers, brands, titulos, trend, channels]) => {
+      if (id !== fetchIdRef.current) return
+      setSellerData(sellers)
+      setBrandData(brands)
+      setTituloData(titulos)
+      setTrendData(trend)
+      setChannelData(channels)
+    }).finally(() => {
+      if (id === fetchIdRef.current) setLoading(false)
+    })
   }, [api])
 
   function downloadCSV() {
@@ -632,7 +645,8 @@ export default function ShareOfShelfPage() {
         </div>
       </div>
 
-      {/* ── KPIs ──────────────────────────────────────────── */}
+      {/* ── KPIs + charts ─────────────────────────────────── */}
+      <div className={`transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
@@ -982,6 +996,7 @@ export default function ShareOfShelfPage() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   )
