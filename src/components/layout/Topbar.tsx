@@ -5,21 +5,12 @@ export default function TopBar() {
   const { client } = useClient()
   const brandColor = client?.brand_color || "#A427FF"
 
-  const greeting = (() => {
-    const h = new Date().getHours()
-    if (h < 12) return "Buenos días"
-    if (h < 18) return "Buenas tardes"
-    return "Buenas noches"
-  })()
-
   return (
     <header
       className="fixed top-0 right-0 left-0 lg:left-[220px] z-40 h-14 flex items-center px-6 gap-4 border-b border-gray-100"
       style={{ backgroundColor: "rgba(245,246,246,0.92)", backdropFilter: "blur(8px)" }}
     >
-      <div className="hidden lg:block flex-shrink-0">
-        <span className="text-sm font-medium text-gray-500">{greeting}</span>
-      </div>
+      <div className="hidden lg:block flex-shrink-0" />
 
       <div className="ml-auto flex items-center gap-3 flex-shrink-0">
         {client && (

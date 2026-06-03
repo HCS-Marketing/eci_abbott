@@ -178,9 +178,8 @@ export default function RankingPage() {
   const [pageFilter, setPageFilter] = useState<"all" | "p1">("p1")
   const [topN,      setTopN]      = useState(30)
   const [view,      setView]      = useState<"planograma" | "lista">("planograma")
-  const [tableSellerFilter, setTableSellerFilter] = useState("")
-  const [tableBrandFilter,  setTableBrandFilter]  = useState("")
-  const [tableTitleFilter,  setTableTitleFilter]  = useState("")
+  const [drill,            setDrill]            = useState<"seller" | "brand" | "titulo">("titulo")
+  const [tableTitleFilter, setTableTitleFilter] = useState("")
 
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
@@ -323,32 +322,56 @@ export default function RankingPage() {
 
   useEffect(() => { fetchKpiData() }, [fetchKpiData])
 
-  const tableSellerOptions = Array.from(new Set(data.map(e => e.seller))).sort((a, b) => a.localeCompare(b))
-  const tableBrandOptions = Array.from(
-    new Set(
-      data
-        .filter(e => !tableSellerFilter || e.seller === tableSellerFilter)
-        .map(e => e.marca)
-        .filter(Boolean)
-    )
-  ).sort((a, b) => a.localeCompare(b))
+
+  // Aggregated by seller for drill === "seller"
+  const drillSellerData = (() => {
+    const map = new Map<string, { seller: string; bestRank: number; productsP1: number; productsTotal: number; scoreSum: number; count: number; capture: number }>()
+    data.forEach((e, i) => {
+      const pos = i + 1
+      if (!map.has(e.seller)) {
+        map.set(e.seller, { seller: e.seller, bestRank: pos, productsP1: 0, productsTotal: 0, scoreSum: 0, count: 0, capture: 0 })
+      }
+      const row = map.get(e.seller)!
+      if (pos < row.bestRank) row.bestRank = pos
+      row.productsP1    += e.appearances_p1
+      row.productsTotal += e.appearances_total
+      row.scoreSum      += e.ranking
+      row.count         += 1
+      row.capture       += posWeight(pos)
+    })
+    return Array.from(map.values())
+      .map(r => ({ ...r, avgScore: Math.round(r.scoreSum / r.count), capture: Math.round(r.capture / r.count) }))
+      .sort((a, b) => a.bestRank - b.bestRank)
+  })()
+
+  // Aggregated by brand for drill === "brand"
+  const drillBrandData = (() => {
+    const map = new Map<string, { marca: string; seller: string; bestRank: number; productsP1: number; scoreSum: number; count: number }>()
+    data.forEach((e, i) => {
+      const key = e.marca || "(sin marca)"
+      const pos = i + 1
+      if (!map.has(key)) {
+        map.set(key, { marca: key, seller: e.seller, bestRank: pos, productsP1: 0, scoreSum: 0, count: 0 })
+      }
+      const row = map.get(key)!
+      if (pos < row.bestRank) row.bestRank = pos
+      row.productsP1 += e.appearances_p1
+      row.scoreSum   += e.ranking
+      row.count      += 1
+    })
+    return Array.from(map.values())
+      .map(r => ({ ...r, avgScore: Math.round(r.scoreSum / r.count) }))
+      .sort((a, b) => a.bestRank - b.bestRank)
+  })()
 
   useEffect(() => {
-    if (tableSellerFilter && !tableSellerOptions.includes(tableSellerFilter)) {
-      setTableSellerFilter("")
+    if (tableTitleFilter && !data.some(e => e.titulo.toLowerCase().includes(tableTitleFilter.toLowerCase()))) {
+      setTableTitleFilter("")
     }
-  }, [tableSellerFilter, tableSellerOptions])
+  }, [data, tableTitleFilter])
 
-  useEffect(() => {
-    if (tableBrandFilter && !tableBrandOptions.includes(tableBrandFilter)) {
-      setTableBrandFilter("")
-    }
-  }, [tableBrandFilter, tableBrandOptions])
-
-  // Filtrar por fabricante, marca y título
+  // Filtrar títulos por fabricante, marca y título
   const filtered = data.filter(e =>
-    (!tableSellerFilter || e.seller === tableSellerFilter) &&
-    (!tableBrandFilter || e.marca === tableBrandFilter) &&
     (!tableTitleFilter || e.titulo.toLowerCase().includes(tableTitleFilter.toLowerCase()))
   )
 
@@ -577,7 +600,7 @@ export default function RankingPage() {
         ))}
       </div>
 
-      {/* ── Tabla / Planograma ─────────────────────────── */}
+      {/* ── Drill-down table ──────────────────────────── */}
       <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
@@ -589,66 +612,51 @@ export default function RankingPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Filtros de tabla */}
-            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-              <span className="text-[10px] text-gray-400">Fabricante</span>
-              <select
-                value={tableSellerFilter}
-                onChange={e => { setTableSellerFilter(e.target.value); setTableBrandFilter("") }}
-                className="text-xs bg-transparent outline-none text-gray-700"
-              >
-                <option value="">Todos</option>
-                {tableSellerOptions.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2 py-1.5 bg-white">
-              <span className="text-[10px] text-gray-400">Marca</span>
-              <select
-                value={tableBrandFilter}
-                onChange={e => setTableBrandFilter(e.target.value)}
-                className="text-xs bg-transparent outline-none text-gray-700"
-              >
-                <option value="">Todas</option>
-                {tableBrandOptions.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
-              <Search size={11} className="text-gray-400" />
-              <input
-                type="text"
-                placeholder="Filtrar título..."
-                value={tableTitleFilter}
-                onChange={e => setTableTitleFilter(e.target.value)}
-                className="text-xs outline-none w-40 text-gray-700"
-              />
-            </div>
-            {/* Descarga CSV */}
-            <button
-              onClick={downloadCSV}
-              disabled={filtered.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Descargar CSV con los filtros actuales"
-            >
-              <Download size={12} />
-              <span>CSV</span>
-            </button>
-            {/* Vista toggle */}
+            {/* Dimension drill toggle */}
             <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
-              <button onClick={() => setView("planograma")}
-                className={clsx("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                  view === "planograma" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-                )}>
-                <LayoutGrid size={11} /> Planograma
-              </button>
-              <button onClick={() => setView("lista")}
-                className={clsx("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                  view === "lista" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-                )}>
-                <List size={11} /> Lista
-              </button>
+              {(["seller", "brand", "titulo"] as const).map(l => (
+                <button key={l} onClick={() => setDrill(l)}
+                  className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
+                    drill === l ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
+                  )}>
+                  {l === "seller" ? "Fabricante" : l === "brand" ? "Marca" : "Título"}
+                </button>
+              ))}
             </div>
+            {/* Title search (only in titulo view) */}
+            {drill === "titulo" && (
+              <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
+                <Search size={11} className="text-gray-400" />
+                <input type="text" placeholder="Filtrar título..."
+                  value={tableTitleFilter}
+                  onChange={e => setTableTitleFilter(e.target.value)}
+                  className="text-xs outline-none w-40 text-gray-700"
+                />
+              </div>
+            )}
+            {/* CSV */}
+            <button onClick={downloadCSV} disabled={filtered.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Descargar CSV">
+              <Download size={12} /><span>CSV</span>
+            </button>
+            {/* Vista toggle — only for titulo */}
+            {drill === "titulo" && (
+              <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                <button onClick={() => setView("planograma")}
+                  className={clsx("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    view === "planograma" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
+                  )}>
+                  <LayoutGrid size={11} /> Planograma
+                </button>
+                <button onClick={() => setView("lista")}
+                  className={clsx("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
+                    view === "lista" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
+                  )}>
+                  <List size={11} /> Lista
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -656,78 +664,143 @@ export default function RankingPage() {
           <div className="flex items-center justify-center py-20">
             <div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : data.length === 0 ? (
           <div className="text-center py-16 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
-        ) : view === "planograma" ? (
-          <PlanogramaDigital entries={filtered} selectedSeller={selectedSeller} colors={COLORS} />
-        ) : (
-          /* ── Vista lista ── */
-          <div className="space-y-1.5">
-            {filtered.map((entry, i) => {
-              const pos     = i + 1              // posición visual por orden de score
-              const w       = posWeight(pos)
-              const isOwn   = entry.seller === selectedSeller
-              const color   = isOwn ? (COLORS[entry.seller] || "#A427FF") : (COLORS[entry.seller] || "#9ca3af")
-              const isTop3  = pos <= 3
-              const isTop10 = pos <= 10
-              return (
-                <div
-                  key={entry.id}
-                  className={clsx(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm",
-                    isOwn ? "border-2 bg-violet-50/50" : "bg-white border-gray-100 hover:bg-gray-50"
-                  )}
-                  style={isOwn ? { borderColor: color } : {}}
-                >
-                  {/* Posición */}
-                  <span className={clsx(
-                    "font-black font-mono text-xs px-1.5 py-0.5 rounded flex-shrink-0 min-w-[28px] text-center",
-                    pos === 1 ? "bg-yellow-100 text-yellow-700" :
-                    isTop3    ? "bg-green-50 text-green-700" :
-                    isTop10   ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-500"
-                  )}>#{pos}</span>
-
-                  {/* Seller */}
-                  <SellerInitial seller={entry.seller} size={22} color={color} />
-
-                  {/* Título + seller + marca */}
-                  <div className="flex-1 min-w-0">
-                    <div className={clsx("text-xs font-semibold truncate", isOwn ? "" : "text-gray-700")}
-                      style={isOwn ? { color } : {}}>
-                      {entry.titulo}
-                      {isOwn && (
-                        <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
-                          style={{ backgroundColor: color + "20", color }}>tú</span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-gray-400 truncate">{entry.seller}{entry.marca ? ` · ${entry.marca}` : ""}</div>
-                  </div>
-
-                  {/* Score avg */}
-                  <div className="hidden lg:block text-right flex-shrink-0">
-                    <div className="text-[10px] text-gray-400">Score prom.</div>
-                    <div className="text-xs font-bold text-gray-700">{entry.ranking}</div>
-                  </div>
-
-                  {/* Apariciones P1 */}
-                  <div className="hidden lg:block text-right flex-shrink-0">
-                    <div className="text-[10px] text-gray-400">Ap. P1</div>
-                    <div className="text-xs font-bold text-gray-700">{entry.appearances_p1}</div>
-                  </div>
-
-                  {/* Barra potencial */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: w + "%", backgroundColor: color }} />
-                    </div>
-                    <span className="text-[10px] font-black w-7 text-right" style={{ color }}>{w}%</span>
-                  </div>
-
-                  {pos === 1 && <Trophy size={12} className="text-yellow-500 flex-shrink-0" />}
-                </div>
-              )
-            })}
+        ) : drill === "seller" ? (
+          /* ── Fabricante table ── */
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[580px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {["#", "Fabricante", "Mejor pos.", "Score prom.", "Prods P1", "Prods Total", "Captura %"].map(h => (
+                    <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {drillSellerData.map((e, i) => {
+                  const isOwn = e.seller === selectedSeller
+                  const color = COLORS[e.seller] || "#9ca3af"
+                  return (
+                    <tr key={e.seller}
+                      onClick={() => setSelectedSeller(isOwn ? "" : e.seller)}
+                      className={clsx("border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors",
+                        isOwn && "bg-purple-50/30"
+                      )}>
+                      <td className="px-2 py-2.5 text-xs text-gray-400">#{i + 1}</td>
+                      <td className="px-2 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                          <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{e.seller}</span>
+                          {isOwn && <span className="text-[9px] px-1.5 rounded bg-purple-100 text-purple-600 font-bold">tú</span>}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2.5 text-sm font-bold text-gray-900">#{e.bestRank}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{e.avgScore}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500">{e.productsP1}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500">{e.productsTotal}</td>
+                      <td className="px-2 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${e.capture}%`, backgroundColor: color }} />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-700 font-mono">{e.capture}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
+        ) : drill === "brand" ? (
+          /* ── Marca table ── */
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {["#", "Marca", "Fabricante", "Mejor pos.", "Score prom.", "Prods P1"].map(h => (
+                    <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {drillBrandData.map((e, i) => (
+                  <tr key={e.marca} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                    <td className="px-2 py-2.5 text-xs text-gray-400">#{i + 1}</td>
+                    <td className="px-2 py-2.5 text-sm font-medium text-gray-800">{e.marca}</td>
+                    <td className="px-2 py-2.5 text-xs text-gray-500">{e.seller}</td>
+                    <td className="px-2 py-2.5 text-sm font-bold text-gray-900">#{e.bestRank}</td>
+                    <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{e.avgScore}</td>
+                    <td className="px-2 py-2.5 text-xs text-gray-500">{e.productsP1}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* ── Título view (planograma / lista) ── */
+          filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
+          ) : view === "planograma" ? (
+            <PlanogramaDigital entries={filtered} selectedSeller={selectedSeller} colors={COLORS} />
+          ) : (
+            /* ── Vista lista ── */
+            <div className="space-y-1.5">
+              {filtered.map((entry, i) => {
+                const pos     = i + 1
+                const w       = posWeight(pos)
+                const isOwn   = entry.seller === selectedSeller
+                const color   = isOwn ? (COLORS[entry.seller] || "#A427FF") : (COLORS[entry.seller] || "#9ca3af")
+                const isTop3  = pos <= 3
+                const isTop10 = pos <= 10
+                return (
+                  <div
+                    key={entry.id}
+                    className={clsx(
+                      "flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm",
+                      isOwn ? "border-2 bg-violet-50/50" : "bg-white border-gray-100 hover:bg-gray-50"
+                    )}
+                    style={isOwn ? { borderColor: color } : {}}
+                  >
+                    <span className={clsx(
+                      "font-black font-mono text-xs px-1.5 py-0.5 rounded flex-shrink-0 min-w-[28px] text-center",
+                      pos === 1 ? "bg-yellow-100 text-yellow-700" :
+                      isTop3    ? "bg-green-50 text-green-700" :
+                      isTop10   ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-500"
+                    )}>#{pos}</span>
+                    <SellerInitial seller={entry.seller} size={22} color={color} />
+                    <div className="flex-1 min-w-0">
+                      <div className={clsx("text-xs font-semibold truncate", isOwn ? "" : "text-gray-700")}
+                        style={isOwn ? { color } : {}}>
+                        {entry.titulo}
+                        {isOwn && (
+                          <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
+                            style={{ backgroundColor: color + "20", color }}>tú</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-400 truncate">{entry.seller}{entry.marca ? ` · ${entry.marca}` : ""}</div>
+                    </div>
+                    <div className="hidden lg:block text-right flex-shrink-0">
+                      <div className="text-[10px] text-gray-400">Score prom.</div>
+                      <div className="text-xs font-bold text-gray-700">{entry.ranking}</div>
+                    </div>
+                    <div className="hidden lg:block text-right flex-shrink-0">
+                      <div className="text-[10px] text-gray-400">Ap. P1</div>
+                      <div className="text-xs font-bold text-gray-700">{entry.appearances_p1}</div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: w + "%", backgroundColor: color }} />
+                      </div>
+                      <span className="text-[10px] font-black w-7 text-right" style={{ color }}>{w}%</span>
+                    </div>
+                    {pos === 1 && <Trophy size={12} className="text-yellow-500 flex-shrink-0" />}
+                  </div>
+                )
+              })}
+            </div>
+          )
         )}
 
         {/* Leyenda sellers */}
