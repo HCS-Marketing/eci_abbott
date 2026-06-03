@@ -535,7 +535,7 @@ export default function ShareOfShelfPage() {
           <select
             value={channel}
             onChange={e => setChannel(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]"
           >
             <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
@@ -552,7 +552,7 @@ export default function ShareOfShelfPage() {
               setMercado(next)
               setSegmento("")
             }}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[110px]"
           >
             <option value="">Todos</option>
             {availableMercados.map(m => <option key={m}>{m}</option>)}
@@ -565,7 +565,7 @@ export default function ShareOfShelfPage() {
           <select
             value={segmento}
             onChange={e => setSegmento(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]"
           >
             <option value="">Todos</option>
             {availableSegmentos.map(s => <option key={s}>{s}</option>)}
@@ -637,7 +637,7 @@ export default function ShareOfShelfPage() {
           <select
             value={category}
             onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[150px]"
           >
             <option value="">Todas las categorías</option>
             {availableCategories.map(c => <option key={c}>{c}</option>)}
@@ -689,7 +689,7 @@ export default function ShareOfShelfPage() {
           },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 flex flex-col items-center justify-center min-h-[110px] text-center">
-            <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
+            <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-2">{k.label}</div>
             <div className="text-2xl font-bold text-gray-900">{k.value}</div>
             {k.change != null && !isNaN(k.change) && (
               <div className="mt-1">
@@ -704,7 +704,7 @@ export default function ShareOfShelfPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Stacked overview */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
-          <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+          <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-1">
             SOS {page === "p1" ? "Página 1" : "Total"}{category ? ` · ${category}` : ""}{channel ? ` · ${channel}` : ""}
           </div>
           <div className="text-xs text-gray-400 mb-3">Share acumulado de todos los fabricantes</div>
@@ -724,7 +724,7 @@ export default function ShareOfShelfPage() {
 
         {/* Por retail */}
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
-          <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+          <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-1">
             SOS por retail · {selectedSellerLabel}
           </div>
           <div className="text-xs text-gray-400 mb-3">Presencia en cada retail</div>
@@ -749,7 +749,7 @@ export default function ShareOfShelfPage() {
       {/* ── Tendencia 12 semanas ──────────────────────────── */}
       <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-[10px] uppercase tracking-widest text-gray-400">
+          <div className="text-[11px] uppercase tracking-widest text-gray-500">
             Evolución SOS
           </div>
           {/* Multi-select dropdown — sellers ordered by SOS desc */}
@@ -818,7 +818,7 @@ export default function ShareOfShelfPage() {
       {/* ── Drill-down table ──────────────────────────────── */}
       <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <div className="text-[10px] uppercase tracking-widest text-gray-400">
+          <div className="text-[11px] uppercase tracking-widest text-gray-500">
             {category || "Todas las categorías"} · {channel || "Todos los retails"}
           </div>
           <div className="flex items-center gap-3">

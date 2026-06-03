@@ -319,21 +319,21 @@ export default function RankingScorePage() {
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Retail</span>
-          <select value={channel} onChange={e => setChannel(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+          <select value={channel} onChange={e => setChannel(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]">
             <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[110px]">
             <option value="">Todos</option>
             {availableMercados.map(m => <option key={m}>{m}</option>)}
           </select>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Segmento</span>
-          <select value={segmento} onChange={e => setSegmento(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+          <select value={segmento} onChange={e => setSegmento(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]">
             <option value="">Todos</option>
             {availableSegmentos.map(s => <option key={s}>{s}</option>)}
           </select>
@@ -381,7 +381,7 @@ export default function RankingScorePage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Categoria</span>
-          <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+          <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[150px]">
             <option value="">Todas las categorias</option>
             {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
@@ -425,7 +425,7 @@ export default function RankingScorePage() {
             },
           ].map(k => (
             <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 flex flex-col items-center justify-center min-h-[110px] text-center">
-              <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
+              <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-2">{k.label}</div>
               <div className="text-2xl font-bold text-gray-900">{k.value}</div>
             </div>
           ))}
@@ -433,7 +433,7 @@ export default function RankingScorePage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
-            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+            <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-1">
               Score {page === "p1" ? "Pagina 1" : "Total"}{category ? ` - ${category}` : ""}{channel ? ` - ${channel}` : ""}
             </div>
             <div className="text-xs text-gray-400 mb-3">Distribucion del score acumulado por fabricante</div>
@@ -450,7 +450,7 @@ export default function RankingScorePage() {
           </div>
 
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
-            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+            <div className="text-[11px] uppercase tracking-widest text-gray-500 mb-1">
               Score por retail - {selectedSeller || "Todos"}
             </div>
             <div className="text-xs text-gray-400 mb-3">Score acumulado de posicion en cada retail</div>
@@ -473,7 +473,7 @@ export default function RankingScorePage() {
 
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 mt-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] uppercase tracking-widest text-gray-400">Evolucion Score</div>
+            <div className="text-[11px] uppercase tracking-widest text-gray-500">Evolucion Score</div>
             <div className="relative" ref={trendRef}>
               <button onClick={() => setTrendOpen(prev => !prev)}
                 className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
@@ -522,7 +522,7 @@ export default function RankingScorePage() {
 
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 mt-4">
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <div className="text-[10px] uppercase tracking-widest text-gray-400">
+            <div className="text-[11px] uppercase tracking-widest text-gray-500">
               {category || "Todas las categorias"} - {channel || "Todos los retails"}
             </div>
             <div className="flex items-center gap-3">

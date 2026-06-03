@@ -69,9 +69,9 @@ export default function Sidebar() {
           </Link>
           {expanded && (
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-white truncate">Share of Shelf</div>
+              <div className="text-[15px] font-semibold text-white truncate">Share of Shelf</div>
               {client?.name && (
-                <div className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
+                <div className="text-[12px] truncate" style={{ color: "rgba(255,255,255,0.4)" }}>
                   {client.name}
                 </div>
               )}
@@ -92,13 +92,13 @@ export default function Sidebar() {
         <nav className="flex-1 py-3 px-2 overflow-y-auto">
           {expanded && (
             <div className="px-2 mb-2">
-              <div className="text-[9px] uppercase tracking-widest font-bold mb-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
+              <div className="text-[11px] uppercase tracking-widest font-bold mb-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
                 Pais
               </div>
               <select
                 value={country}
                 onChange={e => setCountry(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 text-[11px] text-white px-2 py-1.5 outline-none"
+                className="w-full rounded-lg border border-white/10 bg-white/5 text-[13px] text-white px-2 py-1.5 outline-none"
               >
                 {countries.map(c => (
                   <option key={c} value={c} className="text-black">{countryLabel(c)}</option>
@@ -109,7 +109,7 @@ export default function Sidebar() {
 
           {expanded && (
             <div
-              className="text-[9px] uppercase tracking-widest font-bold px-2 py-1.5"
+              className="text-[11px] uppercase tracking-widest font-bold px-2 py-1.5"
               style={{ color: "rgba(255,255,255,0.25)" }}
             >
               Módulos
@@ -127,7 +127,7 @@ export default function Sidebar() {
                 onMouseLeave={e => { if (!isActive) e.currentTarget.style.backgroundColor = "transparent" }}
               >
                 <Icon size={15} className="flex-shrink-0" />
-                {expanded && <span className="text-[13px] font-light truncate">{label}</span>}
+                {expanded && <span className="text-[15px] font-light truncate">{label}</span>}
               </Link>
             )
           })}
@@ -153,13 +153,13 @@ export default function Sidebar() {
             }}
           >
             <LogOut size={15} className="flex-shrink-0" />
-            {expanded && <span className="text-[12px] font-light">Cerrar sesión</span>}
+            {expanded && <span className="text-[14px] font-light">Cerrar sesión</span>}
           </button>
 
           {expanded && client && (
             <div className="px-2 pt-1 min-w-0">
-              <div className="text-[11px] font-semibold text-white truncate">{client.name}</div>
-              <div className="text-[9px]" style={{ color: "rgba(255,255,255,0.35)" }}>{client.industry}</div>
+              <div className="text-[13px] font-semibold text-white truncate">{client.name}</div>
+              <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>{client.industry}</div>
             </div>
           )}
         </div>

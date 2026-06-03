@@ -42,7 +42,7 @@ export default function MainPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] gap-8">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Panel de analítica</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">E-commerce Index</h1>
         <p className="text-sm text-gray-400">Selecciona un módulo para comenzar</p>
       </div>
 
