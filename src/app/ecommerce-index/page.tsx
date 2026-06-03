@@ -135,8 +135,6 @@ function TrendChart({
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
         className="w-full cursor-crosshair"
-        preserveAspectRatio="none"
-        style={{ height: 220 }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredIdx(null)}
       >
