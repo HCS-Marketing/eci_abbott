@@ -681,11 +681,11 @@ export default function RankingPage() {
               </thead>
               <tbody>
                 {drillSellerData.map((e, i) => {
-                  const isOwn = e.fabricante === selectedSeller
-                  const color = COLORS[e.fabricante] || "#9ca3af"
+                  const isOwn = e.seller === selectedSeller
+                  const color = COLORS[e.seller] || "#9ca3af"
                   return (
-                    <tr key={e.fabricante}
-                      onClick={() => setSelectedSeller(isOwn ? "" : e.fabricante)}
+                    <tr key={e.seller}
+                      onClick={() => setSelectedSeller(isOwn ? "" : e.seller)}
                       className={clsx("border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors",
                         isOwn && "bg-purple-50/30"
                       )}>
@@ -693,7 +693,7 @@ export default function RankingPage() {
                       <td className="px-2 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                          <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{e.fabricante}</span>
+                          <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{e.seller}</span>
                           {isOwn && <span className="text-[9px] px-1.5 rounded bg-purple-100 text-purple-600 font-bold">tú</span>}
                         </div>
                       </td>
