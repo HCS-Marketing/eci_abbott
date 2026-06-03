@@ -14,7 +14,6 @@ const NAV = [
   { href: "/ecommerce-index", label: "SOS",               icon: Search       },
   { href: "/search",          label: "Search",            icon: ScanSearch   },
   { href: "/ranking",         label: "Ranking",           icon: ListOrdered  },
-  { href: "/pricing",         label: "Pricing Live",      icon: Tag          },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
