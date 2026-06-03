@@ -17,6 +17,17 @@ function retailColor(name: string, fallbackIdx: number): string {
 const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END`
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
 
+// Retail name normalization — maps search table names to canonical SOS names
+const RETAIL_NORMALIZE: Record<string, string> = {
+  "FARMACIAS BENAVIDES": "BENAVIDES",
+  "TU DROGUERIA VIRTUAL": "DROGUERIA VIRTUAL",
+}
+// Canonical name → all DB aliases to include when filtering
+const RETAIL_ALIASES: Record<string, string[]> = {
+  "BENAVIDES": ["BENAVIDES", "FARMACIAS BENAVIDES"],
+  "DROGUERIA VIRTUAL": ["DROGUERIA VIRTUAL", "TU DROGUERIA VIRTUAL"],
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const action  = searchParams.get("action") || "sellers"
@@ -54,7 +65,15 @@ export async function GET(req: Request) {
     function buildWhere(params: unknown[]) {
       params.push(startD, endD)
       let w = `fecha >= $${params.length - 1} AND fecha <= $${params.length}`
-      if (channel) { params.push(channel); w += ` AND retail = $${params.length}` }
+      if (channel) {
+        const vals = RETAIL_ALIASES[channel] || [channel]
+        if (vals.length === 1) {
+          params.push(vals[0]); w += ` AND retail = $${params.length}`
+        } else {
+          const phs = vals.map(v => { params.push(v); return `$${params.length}` }).join(", ")
+          w += ` AND retail IN (${phs})`
+        }
+      }
       if (search)  { params.push(search);  w += ` AND search = $${params.length}` }
       if (country) { params.push(country); w += ` AND pais = $${params.length}` }
       return w
@@ -91,7 +110,13 @@ export async function GET(req: Request) {
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      // Normalize names to SOS canonical, deduplicate
+      const seen = new Set<string>()
+      const normalized = rows
+        .map(r => RETAIL_NORMALIZE[r.n] ?? r.n)
+        .filter(n => !seen.has(n) && seen.add(n))
+        .sort()
+      return NextResponse.json(normalized)
     }
 
     // ── countries list — uses MV ──
@@ -329,7 +354,7 @@ export async function GET(req: Request) {
       `
       const rows = await prisma.$queryRawUnsafe<{ channel: string; sos_p1: number; sos_total: number }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
-        channel:          r.channel,
+        channel:          RETAIL_NORMALIZE[r.channel] ?? r.channel,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,

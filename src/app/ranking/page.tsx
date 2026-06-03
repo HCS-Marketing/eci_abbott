@@ -397,7 +397,13 @@ export default function RankingScorePage() {
         </div>
       </div>
 
-      <div className={`transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center rounded-2xl">
+            <div className="w-9 h-9 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+        <div className={`space-y-4 ${loading ? "pointer-events-none" : ""}`}>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             {
@@ -418,14 +424,14 @@ export default function RankingScorePage() {
               })(),
             },
           ].map(k => (
-            <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
+            <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 flex flex-col items-center justify-center min-h-[110px] text-center">
               <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
               <div className="text-2xl font-bold text-gray-900">{k.value}</div>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
             <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
               Score {page === "p1" ? "Pagina 1" : "Total"}{category ? ` - ${category}` : ""}{channel ? ` - ${channel}` : ""}
@@ -645,6 +651,7 @@ export default function RankingScorePage() {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

@@ -5,15 +5,16 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Tag, LogOut, ScanSearch,
+  Tag, LogOut, ScanSearch, LayoutGrid,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 import { useGlobalFilters } from "@/lib/filter-context"
 
 const NAV = [
-  { href: "/ecommerce-index", label: "SOS",               icon: Search       },
-  { href: "/search",          label: "Search",            icon: ScanSearch   },
-  { href: "/ranking",         label: "Ranking",           icon: ListOrdered  },
+  { href: "/main",           label: "Inicio",   icon: LayoutGrid  },
+  { href: "/ecommerce-index", label: "SOS",      icon: Search      },
+  { href: "/search",          label: "Search",   icon: ScanSearch  },
+  { href: "/ranking",         label: "Ranking",  icon: ListOrdered },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
@@ -63,7 +64,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 px-3 py-4 flex-shrink-0"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}
         >
-          <Link href="/ecommerce-index" className="flex-shrink-0">
+          <Link href="/main" className="flex-shrink-0">
             <SOSBrandmark size={28} />
           </Link>
           {expanded && (

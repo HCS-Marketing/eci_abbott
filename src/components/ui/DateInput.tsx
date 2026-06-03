@@ -33,7 +33,12 @@ export default function DateInput({
       value={local}
       min={min}
       max={max}
-      onChange={e => setLocal(e.target.value)}
+      onChange={e => {
+        const v = e.target.value
+        setLocal(v)
+        // Commit immediately when a full YYYY-MM-DD date is picked (e.g. via calendar popup)
+        if (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && v !== value) onChange(v)
+      }}
       onBlur={commit}
       onKeyDown={e => { if (e.key === "Enter") commit() }}
       className={className || "border border-gray-200 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg outline-none bg-white"}
