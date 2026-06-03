@@ -26,7 +26,8 @@ interface RankingProduct {
   id: string
   titulo: string
   marca: string
-  seller: string
+  seller: string      // retail name
+  fabricante: string  // manufacturer
   ranking: number
   appearances_p1: number
   appearances_total: number
@@ -85,8 +86,8 @@ function PlanogramaDigital({
           {row.map((entry, ci) => {
             const pos    = ri * 5 + ci + 1   // posición visual en el ranking
             const weight = posWeight(pos)
-            const isOwn  = entry.seller === selectedSeller
-            const color  = isOwn ? (colors[entry.seller] || "#A427FF") : (colors[entry.seller] || "#9ca3af")
+            const isOwn  = entry.fabricante === selectedSeller
+            const color  = isOwn ? (colors[entry.fabricante] || "#A427FF") : (colors[entry.fabricante] || "#9ca3af")
             const isTop3  = pos <= 3
             const isTop10 = pos <= 10
 
@@ -117,9 +118,9 @@ function PlanogramaDigital({
 
                 {/* Seller */}
                 <div className="flex items-center gap-1.5 mb-1">
-                  <SellerInitial seller={entry.seller} size={14} color={color} />
+                  <SellerInitial seller={entry.fabricante} size={14} color={color} />
                   <span className="text-[10px] font-bold truncate" style={{ color: isOwn ? color : "#374151" }}>
-                    {entry.seller}
+                    {entry.fabricante}
                   </span>
                 </div>
 
@@ -328,10 +329,10 @@ export default function RankingPage() {
     const map = new Map<string, { seller: string; bestRank: number; productsP1: number; productsTotal: number; scoreSum: number; count: number; capture: number }>()
     data.forEach((e, i) => {
       const pos = i + 1
-      if (!map.has(e.seller)) {
-        map.set(e.seller, { seller: e.seller, bestRank: pos, productsP1: 0, productsTotal: 0, scoreSum: 0, count: 0, capture: 0 })
+      if (!map.has(e.fabricante)) {
+        map.set(e.fabricante, { seller: e.fabricante, bestRank: pos, productsP1: 0, productsTotal: 0, scoreSum: 0, count: 0, capture: 0 })
       }
-      const row = map.get(e.seller)!
+      const row = map.get(e.fabricante)!
       if (pos < row.bestRank) row.bestRank = pos
       row.productsP1    += e.appearances_p1
       row.productsTotal += e.appearances_total
@@ -351,7 +352,7 @@ export default function RankingPage() {
       const key = e.marca || "(sin marca)"
       const pos = i + 1
       if (!map.has(key)) {
-        map.set(key, { marca: key, seller: e.seller, bestRank: pos, productsP1: 0, scoreSum: 0, count: 0 })
+        map.set(key, { marca: key, seller: e.fabricante, bestRank: pos, productsP1: 0, scoreSum: 0, count: 0 })
       }
       const row = map.get(key)!
       if (pos < row.bestRank) row.bestRank = pos
@@ -376,10 +377,10 @@ export default function RankingPage() {
   )
 
   // KPIs — siempre Abbott vs todos (ignora filtro de seller)
-  const kpiNewsan    = kpiData.filter(e => e.seller === KPI_SELLER)
-  const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => e.seller === KPI_SELLER); return idx >= 0 ? idx + 1 : null })()
-  const kpiTop3      = kpiData.slice(0, 3).filter(e => e.seller === KPI_SELLER).length
-  const kpiTop10     = kpiData.slice(0, 10).filter(e => e.seller === KPI_SELLER).length
+  const kpiNewsan    = kpiData.filter(e => e.fabricante === KPI_SELLER)
+  const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => e.fabricante === KPI_SELLER); return idx >= 0 ? idx + 1 : null })()
+  const kpiTop3      = kpiData.slice(0, 3).filter(e => e.fabricante === KPI_SELLER).length
+  const kpiTop10     = kpiData.slice(0, 10).filter(e => e.fabricante === KPI_SELLER).length
   const kpiBestScore = kpiNewsan.length > 0 ? kpiNewsan[0].ranking : null
   const kpiCapture   = kpiNewsan.length
     ? Math.round(kpiNewsan.reduce((s, e) => {
@@ -389,7 +390,7 @@ export default function RankingPage() {
     : 0
 
   // Sellers presentes en resultados (para colores)
-  const sellersInView = Array.from(new Set(data.map(e => e.seller)))
+  const sellersInView = Array.from(new Set(data.map(e => e.fabricante)))
 
   function downloadCSV() {
     const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"
@@ -401,7 +402,7 @@ export default function RankingPage() {
     const rows = filtered.map((e, i) => [
       String(i + 1),
       e.titulo,
-      e.seller,
+      e.fabricante,
       e.marca || "",
       String(e.ranking),
       String(e.appearances_p1),
@@ -679,11 +680,11 @@ export default function RankingPage() {
               </thead>
               <tbody>
                 {drillSellerData.map((e, i) => {
-                  const isOwn = e.seller === selectedSeller
-                  const color = COLORS[e.seller] || "#9ca3af"
+                  const isOwn = e.fabricante === selectedSeller
+                  const color = COLORS[e.fabricante] || "#9ca3af"
                   return (
-                    <tr key={e.seller}
-                      onClick={() => setSelectedSeller(isOwn ? "" : e.seller)}
+                    <tr key={e.fabricante}
+                      onClick={() => setSelectedSeller(isOwn ? "" : e.fabricante)}
                       className={clsx("border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors",
                         isOwn && "bg-purple-50/30"
                       )}>
@@ -691,7 +692,7 @@ export default function RankingPage() {
                       <td className="px-2 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                          <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{e.seller}</span>
+                          <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{e.fabricante}</span>
                           {isOwn && <span className="text-[9px] px-1.5 rounded bg-purple-100 text-purple-600 font-bold">tú</span>}
                         </div>
                       </td>
@@ -750,8 +751,8 @@ export default function RankingPage() {
               {filtered.map((entry, i) => {
                 const pos     = i + 1
                 const w       = posWeight(pos)
-                const isOwn   = entry.seller === selectedSeller
-                const color   = isOwn ? (COLORS[entry.seller] || "#A427FF") : (COLORS[entry.seller] || "#9ca3af")
+                const isOwn   = entry.fabricante === selectedSeller
+                const color   = isOwn ? (COLORS[entry.fabricante] || "#A427FF") : (COLORS[entry.fabricante] || "#9ca3af")
                 const isTop3  = pos <= 3
                 const isTop10 = pos <= 10
                 return (
@@ -769,7 +770,7 @@ export default function RankingPage() {
                       isTop3    ? "bg-green-50 text-green-700" :
                       isTop10   ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-500"
                     )}>#{pos}</span>
-                    <SellerInitial seller={entry.seller} size={22} color={color} />
+                    <SellerInitial seller={entry.fabricante} size={22} color={color} />
                     <div className="flex-1 min-w-0">
                       <div className={clsx("text-xs font-semibold truncate", isOwn ? "" : "text-gray-700")}
                         style={isOwn ? { color } : {}}>
@@ -779,7 +780,7 @@ export default function RankingPage() {
                             style={{ backgroundColor: color + "20", color }}>tú</span>
                         )}
                       </div>
-                      <div className="text-[10px] text-gray-400 truncate">{entry.seller}{entry.marca ? ` · ${entry.marca}` : ""}</div>
+                      <div className="text-[10px] text-gray-400 truncate">{entry.fabricante}{entry.marca ? ` · ${entry.marca}` : ""}</div>
                     </div>
                     <div className="hidden lg:block text-right flex-shrink-0">
                       <div className="text-[10px] text-gray-400">Score prom.</div>
@@ -813,7 +814,7 @@ export default function RankingPage() {
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[s] || "#9ca3af" }} />
                   <span className="text-xs text-gray-600">{s}</span>
                   <span className="text-[10px] font-mono text-gray-400">
-                    ({data.filter(e => e.seller === s).length})
+                    ({data.filter(e => e.fabricante === s).length})
                   </span>
                 </div>
               ))}
