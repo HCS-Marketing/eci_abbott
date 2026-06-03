@@ -300,7 +300,11 @@ export default function ShareOfShelfPage() {
 
     setSelectedSellers(prev => {
       const kept = prev.filter(s => sellers.includes(s))
-      return kept.length ? kept : sellers.slice(0, 5)
+      const next = kept.length ? kept : sellers.slice(0, 5)
+      // Return prev (same reference) when values are unchanged – prevents api useCallback
+      // from recreating and triggering an infinite fetch loop
+      if (next.length === prev.length && next.every((s, i) => s === prev[i])) return prev
+      return next
     })
 
     setSelectedSeller(prev => {
