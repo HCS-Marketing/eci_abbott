@@ -1009,6 +1009,7 @@ export default function ShareOfShelfPage() {
           </div>
         )}
       </div>
+      </div>
     </div>
   )
 }
