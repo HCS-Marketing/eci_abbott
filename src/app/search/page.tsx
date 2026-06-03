@@ -239,7 +239,6 @@ export default function ShareOfShelfPage() {
   // Filtros
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
-  const [country,    setCountry]    = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
   const [startDate,  setStartDate]  = useState("")
@@ -250,7 +249,6 @@ export default function ShareOfShelfPage() {
   // Opciones dinámicas de los selects
   const [availableChannels,    setAvailableChannels]    = useState<string[]>([])
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
-  const [availableCountries,   setAvailableCountries]   = useState<string[]>([])
   const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
   const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
   const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "ABBOTT")
@@ -313,10 +311,6 @@ export default function ShareOfShelfPage() {
         setStartDate(d.min); setEndDate(d.max)
       })
       .catch(() => {})
-    fetch("/api/search?action=countries")
-      .then(r => r.json())
-      .then((data: string[]) => { if (Array.isArray(data)) setAvailableCountries(data) })
-      .catch(() => {})
   }, [])
 
   // ── Cascading: retails filtrados por categoría + país + fechas ───
@@ -324,7 +318,6 @@ export default function ShareOfShelfPage() {
     if (!startDate || !endDate) return
     const p = new URLSearchParams({ action: "channels" })
     if (category)  p.set("search",  category)
-    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     fetch(`/api/search?${p}`)
@@ -334,14 +327,13 @@ export default function ShareOfShelfPage() {
         setAvailableChannels(data)
         if (channel && !data.includes(channel)) setChannel("")
       })
-  }, [category, country, startDate, endDate])
+  }, [category, startDate, endDate])
 
   // ── Cascading: búsquedas filtradas por retail + país + fechas ────
   useEffect(() => {
     if (!startDate || !endDate) return
     const p = new URLSearchParams({ action: "searches" })
     if (channel)   p.set("channel",   channel)
-    if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     fetch(`/api/search?${p}`)
@@ -351,12 +343,11 @@ export default function ShareOfShelfPage() {
         setAvailableCategories(data)
         if (category && !data.includes(category)) setCategory("")
       })
-  }, [channel, country, startDate, endDate])
+  }, [channel, startDate, endDate])
 
-  // ── Cascading: segmentos filtrados por país ───────────────
+  // ── Cascading: segmentos ───────────────────────────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
-    if (country) p.set("country", country)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -364,12 +355,11 @@ export default function ShareOfShelfPage() {
         setAvailableSegmentos(data)
         if (segmento && !data.includes(segmento)) setSegmento("")
       })
-  }, [country])
+  }, [])
 
-  // ── Cascading: mercados filtrados por país + segmento ─────
+  // ── Cascading: mercados filtrados por segmento ─────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
-    if (country)  p.set("country", country)
     if (segmento) p.set("segmento", segmento)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
@@ -378,7 +368,7 @@ export default function ShareOfShelfPage() {
         setAvailableMercados(data)
         if (mercado && !data.includes(mercado)) setMercado("")
       })
-  }, [country, segmento])
+  }, [segmento])
 
   const api = useCallback(
     (action: string) =>
@@ -386,7 +376,6 @@ export default function ShareOfShelfPage() {
         `/api/search?action=${action}` +
         `&channel=${encodeURIComponent(channel)}` +
         `&search=${encodeURIComponent(category)}` +
-        `&country=${encodeURIComponent(country)}` +
         `&segmento=${encodeURIComponent(segmento)}` +
         `&mercado=${encodeURIComponent(mercado)}` +
         `&seller=${encodeURIComponent(selectedSeller)}` +
@@ -397,7 +386,7 @@ export default function ShareOfShelfPage() {
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, country, segmento, mercado, selectedSeller, selectedSellers, page, startDate, endDate]
+    [channel, category, segmento, mercado, selectedSeller, selectedSellers, page, startDate, endDate]
   )
 
   useEffect(() => {
@@ -526,19 +515,6 @@ export default function ShareOfShelfPage() {
           >
             <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* País */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">País</span>
-          <select
-            value={country}
-            onChange={e => setCountry(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todos</option>
-            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
           </select>
         </div>
 
