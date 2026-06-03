@@ -25,6 +25,18 @@ export function fmtPricePrefixed(n: number | null | undefined, country?: string)
   return `${code} ${amount}`
 }
 
+/** Format ISO date string YYYY-MM-DD → DD/MM */
+export function fmtDateDM(iso: string): string {
+  if (!iso || iso.length < 10) return iso
+  return iso.slice(8, 10) + "/" + iso.slice(5, 7)
+}
+
+/** Format ISO date string YYYY-MM-DD → DD/MM/YYYY */
+export function fmtDateDMY(iso: string): string {
+  if (!iso || iso.length < 10) return iso
+  return iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4)
+}
+
 /** Fixed colors per retailer — visually distinct */
 export const RETAIL_COLORS: Record<string, string> = {
   "AMAZON":              "#FF9900",
