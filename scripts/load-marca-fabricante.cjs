@@ -176,6 +176,34 @@ async function main() {
   }
   console.log(`  Upserted ${upserts.length} rows`)
 
+  // ── 4b. Also fix any existing NULL-fabricante rows using the xlsx map ──────
+  console.log('\nFixing remaining NULL fabricante rows from xlsx...')
+  const { rows: nullRows } = await client.query(`
+    SELECT marca FROM eci.marca_fabricante WHERE fabricante IS NULL
+  `)
+  const nullUpdates = []
+  for (const { marca } of nullRows) {
+    const fab = marcaMap.get(normalize(marca))
+    if (fab) nullUpdates.push([fab, marca])
+  }
+  if (nullUpdates.length > 0) {
+    // Bulk update in chunks of 500 using VALUES CTE
+    for (let i = 0; i < nullUpdates.length; i += 500) {
+      const chunk = nullUpdates.slice(i, i + 500)
+      const vals  = chunk.map((_, j) => `($${j*2+1}, $${j*2+2})`).join(', ')
+      const flat  = chunk.flat()
+      await client.query(`
+        UPDATE eci.marca_fabricante mf
+        SET fabricante = v.fabricante
+        FROM (VALUES ${vals}) AS v(fabricante, marca)
+        WHERE mf.marca = v.marca
+      `, flat)
+    }
+    console.log(`  Updated ${nullUpdates.length} rows`)
+  } else {
+    console.log('  No NULL rows to fix')
+  }
+
   // ── 5. Recreate ALL MVs (SOS + search + ranking) without pais join ─────────
   const FAB_UNIFIED = `CASE WHEN UPPER(COALESCE(s.fabricante, mf.fabricante, '')) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(s.fabricante, mf.fabricante, 'MARCA LOCAL') END`
   const mfJoin = `LEFT JOIN eci.marca_fabricante mf ON UPPER(s.marca) = UPPER(mf.marca)`
