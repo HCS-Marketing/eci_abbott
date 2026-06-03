@@ -140,7 +140,6 @@ export async function GET(req: Request) {
     if (action === "segmentos") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
-      if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -151,7 +150,6 @@ export async function GET(req: Request) {
     if (action === "mercados") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL`
-      if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -164,7 +162,6 @@ export async function GET(req: Request) {
       let sub = ` AND ${tableAlias}.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
       if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
       if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
-      if (country)  { params.push(country);  sub += ` AND mf2.pais = $${params.length}` }
       sub += ")"
       return sub
     }
@@ -175,7 +172,6 @@ export async function GET(req: Request) {
       let sub = ` AND marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
       if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
       if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
-      if (country)  { params.push(country);  sub += ` AND mf2.pais = $${params.length}` }
       sub += ")"
       return sub
     }

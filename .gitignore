@@ -31,3 +31,4 @@ yarn-error.log*
 next-env.d.ts
 scripts/eci-export.sql
 scripts/export-sql.cjs
+marca y fabricante.xlsx
