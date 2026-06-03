@@ -288,6 +288,8 @@ export default function ShareOfShelfPage() {
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
   const [loading,     setLoading]     = useState(false)
   const fetchIdRef = useRef(0)
+  const selectedSellersRef = useRef<string[]>([])
+  selectedSellersRef.current = selectedSellers
 
   // Keep selected sellers consistent whenever the dataset changes.
   useEffect(() => {
@@ -396,17 +398,18 @@ export default function ShareOfShelfPage() {
         `&segmento=${encodeURIComponent(segmento)}` +
         `&mercado=${encodeURIComponent(mercado)}` +
         `&seller=${encodeURIComponent(selectedSeller)}` +
-        `&sellers=${selectedSellers.join(",")}` +
+        `&sellers=${selectedSellersRef.current.join(",")}` +
         `&page=${page}` +
         (startDate ? `&startDate=${startDate}` : "") +
         (endDate   ? `&endDate=${endDate}`     : "")
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, country, segmento, mercado, selectedSeller, selectedSellers, page, startDate, endDate]
+    [channel, category, country, segmento, mercado, selectedSeller, page, startDate, endDate]
   )
 
   useEffect(() => {
+    if (!startDate || !endDate) return
     const id = ++fetchIdRef.current
     setLoading(true)
     Promise.all([

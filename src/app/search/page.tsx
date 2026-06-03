@@ -287,6 +287,8 @@ export default function ShareOfShelfPage() {
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
   const [loading,     setLoading]     = useState(false)
   const fetchIdRef = useRef(0)
+  const selectedSellersRef = useRef<string[]>([])
+  selectedSellersRef.current = selectedSellers
 
   // Default selectedSeller and selectedSellers to top 5 by SOS when sellerData loads
   useEffect(() => {
@@ -379,14 +381,14 @@ export default function ShareOfShelfPage() {
         `&segmento=${encodeURIComponent(segmento)}` +
         `&mercado=${encodeURIComponent(mercado)}` +
         `&seller=${encodeURIComponent(selectedSeller)}` +
-        `&sellers=${selectedSellers.join(",")}` +
+        `&sellers=${selectedSellersRef.current.join(",")}` +
         `&page=${page}` +
         (startDate ? `&startDate=${startDate}` : "") +
         (endDate   ? `&endDate=${endDate}`     : "")
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, segmento, mercado, selectedSeller, selectedSellers, page, startDate, endDate]
+    [channel, category, segmento, mercado, selectedSeller, page, startDate, endDate]
   )
 
   useEffect(() => {
