@@ -391,6 +391,142 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── rank_sellers — SUM(ranking) per fabricante ───────
+    if (action === "rank_sellers") {
+      const p: unknown[] = []
+      const w = buildWhere(p)
+      const mf = marcaFilterSQL(p, "d")
+      const table = (segmento || mercado) ? "eci.mv_ranking_daily_marca" : "eci.mv_ranking_daily_fab"
+      const sql = `
+        SELECT
+          fabricante AS seller,
+          SUM(sum_ranking_p1)    AS score_p1,
+          SUM(sum_ranking_total) AS score_total
+        FROM ${table} d WHERE ${w}${mf}
+        GROUP BY fabricante
+        ORDER BY score_p1 DESC
+        LIMIT 50
+      `
+      const rows = await prisma.$queryRawUnsafe<{ seller: string; score_p1: number; score_total: number }[]>(sql, ...p)
+      return NextResponse.json(rows.map((r, i) => ({
+        seller:       r.seller,
+        score_p1:     Math.round(Number(r.score_p1)),
+        score_total:  Math.round(Number(r.score_total)),
+        color:        retailColor(r.seller, i),
+        rank:         i + 1,
+      })))
+    }
+
+    // ── rank_brands — SUM(ranking) per marca ─────────────
+    if (action === "rank_brands") {
+      const p: unknown[] = []
+      const w = buildWhere(p)
+      let sellerCond = ""
+      if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+      const mf = marcaFilterSQL(p, "d")
+      const sql = `
+        SELECT
+          marca,
+          fabricante AS seller,
+          SUM(sum_ranking_p1)    AS score_p1,
+          SUM(sum_ranking_total) AS score_total
+        FROM eci.mv_ranking_daily_marca d
+        WHERE ${w}${sellerCond}${mf}
+        GROUP BY marca, fabricante
+        ORDER BY score_p1 DESC
+        LIMIT 50
+      `
+      const rows = await prisma.$queryRawUnsafe<{ marca: string; seller: string; score_p1: number; score_total: number }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        brand:       r.marca,
+        seller:      r.seller,
+        score_p1:    Math.round(Number(r.score_p1)),
+        score_total: Math.round(Number(r.score_total)),
+      })))
+    }
+
+    // ── rank_titulos — SUM(ranking) per titulo ────────────
+    if (action === "rank_titulos") {
+      const p: unknown[] = []
+      const w = buildWhere(p)
+      let sellerCond = ""
+      if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+      const mf = marcaFilterSQL(p, "d")
+      const sql = `
+        SELECT
+          titulo_id,
+          MAX(titulo)            AS titulo,
+          fabricante             AS seller,
+          SUM(sum_ranking_p1)    AS score_p1,
+          SUM(sum_ranking_total) AS score_total
+        FROM eci.mv_ranking_daily_titulo d
+        WHERE ${w}${sellerCond}${mf}
+        GROUP BY titulo_id, fabricante
+        ORDER BY score_p1 DESC
+        LIMIT 30
+      `
+      const rows = await prisma.$queryRawUnsafe<{ titulo_id: string; titulo: string; seller: string; score_p1: number; score_total: number }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        titulo_id:   r.titulo_id,
+        titulo:      r.titulo,
+        seller:      r.seller,
+        score_p1:    Math.round(Number(r.score_p1)),
+        score_total: Math.round(Number(r.score_total)),
+      })))
+    }
+
+    // ── rank_trend — daily SUM(ranking) per fabricante ───
+    if (action === "rank_trend") {
+      const sellerList = sellersParam.length ? sellersParam : []
+      if (sellerList.length === 0) return NextResponse.json([])
+      const p: unknown[] = []
+      const w = buildWhere(p)
+      const mf = marcaFilterSQL(p, "d")
+      const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
+      sellerList.forEach(s => p.push(s))
+      const table = (segmento || mercado) ? "eci.mv_ranking_daily_marca" : "eci.mv_ranking_daily_fab"
+      const sql = `
+        SELECT fecha::text AS day, fabricante AS seller,
+          SUM(sum_ranking_p1) AS score_p1
+        FROM ${table} d
+        WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})
+        GROUP BY fecha, fabricante
+        ORDER BY fecha, fabricante
+      `
+      const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; score_p1: number }[]>(sql, ...p)
+      const dayMap = new Map<string, Record<string, unknown>>()
+      rows.forEach(r => {
+        if (!dayMap.has(r.day)) dayMap.set(r.day, { week: r.day })
+        dayMap.get(r.day)![r.seller] = Math.round(Number(r.score_p1))
+      })
+      return NextResponse.json(Array.from(dayMap.values()))
+    }
+
+    // ── rank_by_channel — SUM(ranking) per retail for one seller ──
+    if (action === "rank_by_channel") {
+      if (!seller) return NextResponse.json([])
+      const p: unknown[] = []
+      const w = buildWhere(p, { channel: false, category: true, country: true })
+      const mf = marcaFilterSQL(p, "d")
+      p.push(seller)
+      const table = (segmento || mercado) ? "eci.mv_ranking_daily_marca" : "eci.mv_ranking_daily_fab"
+      const sql = `
+        SELECT retail AS channel,
+          SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_p1    ELSE 0 END) AS seller_p1,
+          SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_total  ELSE 0 END) AS seller_total
+        FROM ${table} d WHERE ${w}${mf}
+        GROUP BY retail
+        HAVING SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_p1 ELSE 0 END) > 0
+        ORDER BY seller_p1 DESC
+      `
+      const rows = await prisma.$queryRawUnsafe<{ channel: string; seller_p1: number; seller_total: number }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => ({
+        channel:      r.channel,
+        score_p1:     Math.round(Number(r.seller_p1)),
+        score_total:  Math.round(Number(r.seller_total)),
+      })))
+    }
+
     // ── ranking — from mv_sos_product_latest ────────────
     if (action === "ranking") {
       const pageFilter = searchParams.get("page_filter") || "all"

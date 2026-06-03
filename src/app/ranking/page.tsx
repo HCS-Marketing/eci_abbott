@@ -1,171 +1,134 @@
-"use client"
+﻿"use client"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Trophy, LayoutGrid, List, Search, Download, FileText } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
+import { getRetailColor, fmtDateDMY } from "@/lib/format"
 import { useGlobalFilters } from "@/lib/filter-context"
 
-// ── CLICK SHARE CURVE ─────────────────────────────────────────
-const CLICK_SHARE: Record<number, number> = {
-  1: 28.5, 2: 15.7, 3: 11.0, 4: 8.1,  5: 6.3,
-  6: 4.9,  7: 3.9,  8: 3.2,  9: 2.6, 10: 2.1,
-  11: 1.8, 12: 1.5, 13: 1.3, 14: 1.1, 15: 0.9,
-  16: 0.8, 17: 0.7, 18: 0.6, 19: 0.5, 20: 0.45,
-  21: 0.4, 22: 0.35, 23: 0.3, 24: 0.28, 25: 0.25,
-  26: 0.22, 27: 0.20, 28: 0.18, 29: 0.16, 30: 0.15,
-}
-function clickShare(pos: number) { return CLICK_SHARE[Math.min(30, Math.max(1, pos))] || 0.15 }
-const MAX_CLICK = CLICK_SHARE[1]
-function posWeight(pos: number) { return Math.round((clickShare(pos) / MAX_CLICK) * 100) }
-
-// ── TYPES ─────────────────────────────────────────────────────
-interface RankingProduct {
-  id: string
-  titulo: string
-  marca: string
-  seller: string      // retail name
-  fabricante: string  // manufacturer
-  ranking: number
-  appearances_p1: number
-  appearances_total: number
+function Change({ val }: { val: number }) {
+  if (val > 0) return <span className="text-green-600 text-xs flex items-center gap-0.5"><TrendingUp size={10} />+{val}</span>
+  if (val < 0) return <span className="text-red-600 text-xs flex items-center gap-0.5"><TrendingDown size={10} />{val}</span>
+  return <span className="text-gray-400 text-xs flex items-center gap-0.5"><Minus size={10} />0</span>
 }
 
-// ── HELPERS ───────────────────────────────────────────────────
-function SellerInitial({ seller, size = 20, color }: { seller: string | null; size?: number; color?: string }) {
-  const bg = color || "#A427FF"
-  const name = seller || "?"
-  const initials = name.length <= 3 ? name : name.slice(0, 2).toUpperCase()
+function ScoreBar({ val, color, max = 1 }: { val: number; color: string; max?: number }) {
   return (
-    <div
-      className="rounded-full flex items-center justify-center font-black text-white flex-shrink-0 select-none"
-      style={{ width: size, height: size, backgroundColor: bg, fontSize: size * 0.38 }}
-    >
-      {initials}
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${Math.min(100, (val / Math.max(max, 1)) * 100)}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-xs font-semibold text-gray-700 w-16 text-right font-mono">{val.toLocaleString()}</span>
     </div>
   )
 }
 
-function PosChange({ val }: { val: number }) {
-  if (val < 0) return <span className="text-green-600 text-xs flex items-center gap-0.5 font-bold"><TrendingUp size={10} />{Math.abs(val)}</span>
-  if (val > 0) return <span className="text-red-600 text-xs flex items-center gap-0.5 font-bold"><TrendingDown size={10} />+{val}</span>
-  return <span className="text-gray-300 text-xs">—</span>
-}
-
-// ── PLANOGRAMA ────────────────────────────────────────────────
-function PlanogramaDigital({
-  entries,
-  selectedSeller,
-  colors,
-}: {
-  entries: RankingProduct[]
-  selectedSeller: string
-  colors: Record<string, string>
-}) {
-  const rows: RankingProduct[][] = []
-  for (let i = 0; i < entries.length; i += 5) rows.push(entries.slice(i, i + 5))
-
+function StackedBar({ data }: { data: { label: string; value: number; color: string }[] }) {
+  const [tooltip, setTooltip] = useState<{ label: string; value: number; color: string; x: number } | null>(null)
+  const total = data.reduce((s, d) => s + d.value, 0) || 1
   return (
-    <div className="space-y-2">
-      {/* Leyenda */}
-      <div className="flex items-center gap-3 text-[10px] text-gray-400 mb-3 flex-wrap">
-        <span className="font-semibold uppercase tracking-wider">Potencial de captura por posición →</span>
-        {[1, 3, 5, 10, 20, 30].map(p => (
-          <div key={p} className="flex items-center gap-1">
-            <div className="rounded" style={{ width: 11, height: 11, backgroundColor: `rgba(164,39,255,${posWeight(p) / 100})`, border: "1px solid #e5e7eb" }} />
-            <span>#{p}={posWeight(p)}%</span>
-          </div>
+    <div className="relative">
+      <div className="flex rounded-lg overflow-hidden" style={{ height: 28 }} onMouseLeave={() => setTooltip(null)}>
+        {data.map(d => (
+          <div key={d.label}
+            style={{ width: `${(d.value / total) * 100}%`, backgroundColor: d.color, minWidth: d.value > 1 ? 2 : 0 }}
+            onMouseEnter={e => {
+              const pr = e.currentTarget.parentElement!.getBoundingClientRect()
+              const sr = e.currentTarget.getBoundingClientRect()
+              setTooltip({ label: d.label, value: d.value, color: d.color, x: sr.left - pr.left + sr.width / 2 })
+            }} />
         ))}
       </div>
-
-      {/* Góndola */}
-      {rows.map((row, ri) => (
-        <div key={ri} className="grid grid-cols-5 gap-2">
-          {row.map((entry, ci) => {
-            const pos    = ri * 5 + ci + 1   // posición visual en el ranking
-            const weight = posWeight(pos)
-            const isOwn  = entry.fabricante === selectedSeller
-            const color  = isOwn ? (colors[entry.fabricante] || "#A427FF") : (colors[entry.fabricante] || "#9ca3af")
-            const isTop3  = pos <= 3
-            const isTop10 = pos <= 10
-
-            return (
-              <div
-                key={entry.id}
-                className={clsx(
-                  "relative rounded-xl border-2 p-2.5 transition-all",
-                  isOwn ? "shadow-md" : "border-gray-100",
-                  isTop3 ? "bg-gradient-to-b from-yellow-50 to-white" :
-                  isTop10 ? "bg-gray-50/80" : "bg-white opacity-70"
-                )}
-                style={{ borderColor: isOwn ? color : isTop3 ? "#fde68a" : "#f3f4f6" }}
-              >
-                {/* Pos */}
-                <div className="flex items-start justify-between mb-1.5">
-                  <span className={clsx(
-                    "text-[10px] font-black font-mono rounded px-1.5 py-0.5",
-                    pos === 1 ? "bg-yellow-400 text-yellow-900" :
-                    pos <= 3  ? "bg-yellow-100 text-yellow-700" :
-                    pos <= 10 ? "bg-gray-100 text-gray-600" : "bg-gray-50 text-gray-400"
-                  )}>#{pos}</span>
-                  {pos === 1 && <Trophy size={10} className="text-yellow-500" />}
-                  {isOwn && (
-                    <span className="text-[9px] font-black rounded px-1 py-0.5" style={{ backgroundColor: color + "20", color }}>tú</span>
-                  )}
-                </div>
-
-                {/* Seller */}
-                <div className="flex items-center gap-1.5 mb-1">
-                  <SellerInitial seller={entry.fabricante} size={14} color={color} />
-                  <span className="text-[10px] font-bold truncate" style={{ color: isOwn ? color : "#374151" }}>
-                    {entry.fabricante}
-                  </span>
-                </div>
-
-                {/* Producto */}
-                <div className="text-[9px] text-gray-400 truncate leading-tight mb-2">
-                  {entry.titulo}
-                </div>
-
-                {/* Barra peso */}
-                <div className="mt-auto">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="text-[9px] text-gray-400">Potencial</span>
-                    <span className="text-[9px] font-black" style={{ color: isTop3 ? "#d97706" : "#6b7280" }}>{weight}%</span>
-                  </div>
-                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: weight + "%", backgroundColor: isOwn ? color : isTop3 ? "#f59e0b" : "#d1d5db" }} />
-                  </div>
-                </div>
-
-                {/* Marca + stats */}
-                {entry.marca && (
-                  <div className="text-[9px] text-gray-300 font-mono mt-1.5 truncate">{entry.marca}</div>
-                )}
-                <div className="text-[9px] text-gray-300 font-mono flex justify-between mt-0.5">
-                  <span>P1: {entry.appearances_p1}x</span>
-                  <span>avg {entry.ranking}</span>
-                </div>
-              </div>
-            )
-          })}
-          {/* Completar fila */}
-          {row.length < 5 && Array.from({ length: 5 - row.length }).map((_, i) => (
-            <div key={`empty-${i}`} className="rounded-xl border border-dashed border-gray-100 bg-gray-50/30 p-2.5 opacity-30" />
-          ))}
+      {tooltip && (
+        <div className="absolute z-20 pointer-events-none" style={{ left: Math.max(0, tooltip.x - 70), top: 34 }}>
+          <div className="bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-1.5 text-xs whitespace-nowrap">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: tooltip.color }} />
+              <span className="text-gray-700 font-medium">{tooltip.label}</span>
+              <span className="font-semibold font-mono text-gray-900 ml-1">{tooltip.value.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   )
 }
 
-// ── PAGE ──────────────────────────────────────────────────────
-export default function RankingPage() {
+function TrendChart({ data, sellers, colors }: { data: Record<string, unknown>[]; sellers: string[]; colors: Record<string, string> }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
+  const [tooltipScreenX, setTooltipScreenX] = useState(0)
+  const svgRef = useRef<SVGSVGElement>(null)
+  if (!data.length || !sellers.length) return null
+  const W = 900, H = 220, padL = 52, padR = 12, padT = 12, padB = 24
+  const allVals = data.flatMap(pt => sellers.map(s => Number(pt[s] || 0)))
+  const minV = Math.max(0, Math.min(...allVals) - 1)
+  const maxV = Math.max(...allVals, 1) + 1
+  const x = (i: number) => padL + (i / Math.max(data.length - 1, 1)) * (W - padL - padR)
+  const y = (v: number) => padT + (1 - (v - minV) / (maxV - minV)) * (H - padT - padB)
+  const labelStep = Math.max(1, Math.ceil(data.length / 12))
+  function handleMouseMove(e: React.MouseEvent<SVGSVGElement>) {
+    if (!svgRef.current || data.length === 0) return
+    const rect = svgRef.current.getBoundingClientRect()
+    const svgX = ((e.clientX - rect.left) / rect.width) * W
+    setHoveredIdx(Math.max(0, Math.min(data.length - 1, Math.round(((svgX - padL) / (W - padL - padR)) * (data.length - 1)))))
+    setTooltipScreenX(e.clientX - rect.left)
+  }
+  const hoveredPt = hoveredIdx !== null ? data[hoveredIdx] : null
+  return (
+    <div className="relative">
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full cursor-crosshair" onMouseMove={handleMouseMove} onMouseLeave={() => setHoveredIdx(null)}>
+        {[0, 0.25, 0.5, 0.75, 1].map(t => {
+          const yv = padT + t * (H - padT - padB)
+          return <g key={t}>
+            <line x1={padL} y1={yv} x2={W - padR} y2={yv} stroke="#e5e7eb" strokeWidth="1" />
+            <text x={padL - 4} y={yv + 3} textAnchor="end" fill="#9ca3af" fontSize="9">{Math.round(maxV - t * (maxV - minV))}</text>
+          </g>
+        })}
+        {sellers.map(s => {
+          const color = colors[s] || "#a427ff"
+          const pts = data.map((pt, i) => `${x(i)},${y(Number(pt[s] || 0))}`).join(" ")
+          const last = pts.split(" ").pop()?.split(",")
+          return <g key={s}>
+            <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            {last && <circle cx={last[0]} cy={last[1]} r="3" fill={color} />}
+          </g>
+        })}
+        {data.filter((_, i) => i % labelStep === 0).map((pt, i) => (
+          <text key={i} x={x(i * labelStep)} y={H - 6} textAnchor="middle" fill="#9ca3af" fontSize="8">{fmtDateDMY(String(pt.week))}</text>
+        ))}
+        {hoveredIdx !== null && <>
+          <line x1={x(hoveredIdx)} y1={padT} x2={x(hoveredIdx)} y2={H - padB} stroke="#6b7280" strokeWidth="1" strokeDasharray="3,2" />
+          {sellers.map(s => <circle key={s} cx={x(hoveredIdx)} cy={y(Number(data[hoveredIdx][s] || 0))} r="4" fill={colors[s] || "#a427ff"} stroke="white" strokeWidth="1.5" />)}
+        </>}
+      </svg>
+      {hoveredIdx !== null && hoveredPt && (
+        <div className="absolute top-0 z-20 pointer-events-none" style={{ left: tooltipScreenX > 300 ? tooltipScreenX - 150 : tooltipScreenX + 14, transform: "translateY(4px)" }}>
+          <div className="bg-white border border-gray-200 rounded-xl shadow-lg px-3 py-2 text-xs min-w-[160px]">
+            <div className="text-[10px] text-gray-400 font-medium mb-1.5 border-b border-gray-100 pb-1">{fmtDateDMY(String(hoveredPt.week))}</div>
+            {[...sellers].sort((a, b) => Number(hoveredPt[b] || 0) - Number(hoveredPt[a] || 0)).map(s => (
+              <div key={s} className="flex items-center gap-1.5 py-0.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[s] || "#a427ff" }} />
+                <span className="flex-1 text-gray-600 truncate max-w-[80px]">{s}</span>
+                <span className="font-semibold font-mono text-gray-900">{Number(hoveredPt[s] || 0).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+type DrillLevel = "seller" | "brand" | "titulo"
+type PageCtx    = "p1" | "total"
+
+export default function RankingScorePage() {
   const market = useMarket()
-  const COLORS  = market.colors
   const SELLERS = market.sellers
+  const COLORS  = market.colors
   const { country } = useGlobalFilters()
 
   const [channel,   setChannel]   = useState("")
@@ -176,652 +139,513 @@ export default function RankingPage() {
   const [endDate,   setEndDate]   = useState("")
   const [minDate,   setMinDate]   = useState("")
   const [maxDate,   setMaxDate]   = useState("")
-  const [pageFilter, setPageFilter] = useState<"all" | "p1">("p1")
-  const [topN,      setTopN]      = useState(30)
-  const [view,      setView]      = useState<"planograma" | "lista">("planograma")
-  const [drill,            setDrill]            = useState<"seller" | "brand" | "titulo">("titulo")
-  const [tableTitleFilter, setTableTitleFilter] = useState("")
 
-  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
-  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
-  const [selectedSeller, setSelectedSeller] = useState("")
+  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
+  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
 
-  const [data,    setData]    = useState<RankingProduct[]>([])
-  const [kpiData, setKpiData] = useState<RankingProduct[]>([])
-  const [loading, setLoading] = useState(false)
+  const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "ABBOTT")
+  const [selectedSellers, setSelectedSellers] = useState<string[]>([])
+  const [page,  setPage]  = useState<PageCtx>("p1")
+  const [drill, setDrill] = useState<DrillLevel>("seller")
 
-  // Seller dropdown
-  const [sellerOpen, setSellerOpen] = useState(false)
+  const [trendOpen, setTrendOpen] = useState(false)
+  const trendRef = useRef<HTMLDivElement>(null)
+  const [visibleCount, setVisibleCount] = useState(10)
+  const [sellerDropdownOpen, setSellerDropdownOpen] = useState(false)
   const [sellerSearch, setSellerSearch] = useState("")
-  const sellerRef = useRef<HTMLDivElement>(null)
+  const sellerDropdownRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
-    function h(e: MouseEvent) {
-      if (sellerRef.current && !sellerRef.current.contains(e.target as Node)) {
-        setSellerOpen(false); setSellerSearch("")
-      }
+    function handleClick(e: MouseEvent) {
+      if (trendRef.current && !trendRef.current.contains(e.target as Node)) setTrendOpen(false)
+      if (sellerDropdownRef.current && !sellerDropdownRef.current.contains(e.target as Node)) { setSellerDropdownOpen(false); setSellerSearch("") }
     }
-    document.addEventListener("mousedown", h)
-    return () => document.removeEventListener("mousedown", h)
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
   }, [])
 
-  // Default seller = Newsan
-  useEffect(() => {
-    if (SELLERS.length === 0) return
-    const preferred = SELLERS.find(s => s.toUpperCase() === "ABBOTT") ?? SELLERS[0]
-    setSelectedSeller(preferred)
-  }, [SELLERS[0]])
+  const [sellerData,  setSellerData]  = useState<Record<string, unknown>[]>([])
+  const [brandData,   setBrandData]   = useState<Record<string, unknown>[]>([])
+  const [tituloData,  setTituloData]  = useState<Record<string, unknown>[]>([])
+  const [trendData,   setTrendData]   = useState<Record<string, unknown>[]>([])
+  const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
+  const [loading,     setLoading]     = useState(false)
+  const fetchIdRef = useRef(0)
+  const selectedSellersRef = useRef<string[]>([])
+  selectedSellersRef.current = selectedSellers
 
-  // Segmentos
   useEffect(() => {
-    const p = new URLSearchParams({ action: "segmentos" })
-    if (country) p.set("country", country)
-    if (mercado) p.set("mercado", mercado)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableSegmentos(d)
-      if (segmento && !d.includes(segmento)) setSegmento("")
+    const sellers = sellerData.map(e => String(e.seller))
+    if (sellers.length === 0) { setSelectedSellers([]); setSelectedSeller(""); return }
+    setSelectedSellers(prev => {
+      const kept = prev.filter(s => sellers.includes(s))
+      const next = kept.length ? kept : sellers.slice(0, 5)
+      if (next.length === prev.length && next.every((s, i) => s === prev[i])) return prev
+      return next
     })
-  }, [country, mercado])
-
-  // Mercados
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "mercados" })
-    if (country)  p.set("country", country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableMercados(d)
-      if (mercado && !d.includes(mercado)) setMercado("")
+    setSelectedSeller(prev => {
+      if (prev && sellers.includes(prev)) return prev
+      return sellers.find(s => s.toUpperCase() === "ABBOTT") || sellers[0]
     })
-  }, [country])
+  }, [sellerData])
 
-  // Rango de fechas
+  useEffect(() => { setVisibleCount(10) }, [drill, sellerData, brandData, tituloData])
+
   useEffect(() => {
-    fetch("/api/sos?action=dates")
-      .then(r => r.json())
-      .then((d: { min: string; max: string }) => {
-        setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(d.min); setEndDate(d.max)
-      })
-      .catch(() => {})
+    fetch("/api/sos?action=dates").then(r => r.json()).then((d: { min: string; max: string }) => {
+      setMinDate(d.min); setMaxDate(d.max); setStartDate(d.min); setEndDate(d.max)
+    }).catch(() => {})
   }, [])
 
-  // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (country)   p.set("country",   country)
-    if (startDate) p.set("startDate", startDate)
-    if (endDate)   p.set("endDate",   endDate)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableChannels(d)
-      if (channel && !d.includes(channel)) setChannel("")
+    if (country) p.set("country", country); if (startDate) p.set("startDate", startDate); if (endDate) p.set("endDate", endDate)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
+      if (!Array.isArray(data)) return; setAvailableChannels(data)
+      if (channel && !data.includes(channel)) setChannel("")
     })
   }, [country, startDate, endDate])
 
-  // Cascading categories
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
-    if (channel)   p.set("channel",   channel)
-    if (country)   p.set("country",   country)
-    if (startDate) p.set("startDate", startDate)
-    if (endDate)   p.set("endDate",   endDate)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableCategories(d)
-      if (category && !d.includes(category)) setCategory("")
+    if (channel) p.set("channel", channel); if (country) p.set("country", country)
+    if (startDate) p.set("startDate", startDate); if (endDate) p.set("endDate", endDate)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
+      if (!Array.isArray(data)) return; setAvailableCategories(data)
+      if (category && !data.includes(category)) setCategory("")
     })
   }, [channel, country, startDate, endDate])
 
-  // Fetch ranking data
-  const fetchData = useCallback(() => {
-    if (!startDate || !endDate) return
-    setLoading(true)
-    const p = new URLSearchParams({
-      action:      "ranking",
-      page_filter: pageFilter,
-      limit:       String(topN),
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "segmentos" })
+    if (country) p.set("country", country); if (mercado) p.set("mercado", mercado)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
+      if (!Array.isArray(data)) return; setAvailableSegmentos(data)
+      if (segmento && !data.includes(segmento)) setSegmento("")
     })
-    if (channel)        p.set("channel",   channel)
-    if (category)       p.set("category",  category)
-    if (country)        p.set("country",   country)
-    if (startDate)      p.set("startDate", startDate)
-    if (endDate)        p.set("endDate",   endDate)
-    if (selectedSeller) p.set("seller",    selectedSeller)
-    if (segmento)       p.set("segmento",  segmento)
-    if (mercado)        p.set("mercado",   mercado)
-    fetch(`/api/sos?${p}`)
-      .then(r => r.json())
-      .then(d => setData(Array.isArray(d) ? d : []))
-      .finally(() => setLoading(false))
-  }, [channel, category, country, startDate, endDate, pageFilter, topN, selectedSeller, segmento, mercado])
-
-  useEffect(() => { fetchData() }, [fetchData])
-
-  // Fetch KPI data — siempre Abbott vs todos, ignora filtro de seller
-  const KPI_SELLER = kpiData.find(e => e.fabricante.toUpperCase().includes("ABBOT"))?.fabricante || "ABBOTT"
-  const fetchKpiData = useCallback(() => {
-    if (!startDate || !endDate) return
-    const p = new URLSearchParams({
-      action:      "ranking",
-      page_filter: pageFilter,
-      limit:       "200",
-    })
-    if (channel)   p.set("channel",   channel)
-    if (category)  p.set("category",  category)
-    if (country)   p.set("country",   country)
-    if (startDate) p.set("startDate", startDate)
-    if (endDate)   p.set("endDate",   endDate)
-    if (segmento)  p.set("segmento",  segmento)
-    if (mercado)   p.set("mercado",   mercado)
-    // sin seller → trae todos
-    fetch(`/api/sos?${p}`)
-      .then(r => r.json())
-      .then(d => setKpiData(Array.isArray(d) ? d : []))
-  }, [channel, category, country, startDate, endDate, pageFilter, segmento, mercado])
-
-  useEffect(() => { fetchKpiData() }, [fetchKpiData])
-
-
-  // Aggregated by seller for drill === "seller"
-  const drillSellerData = (() => {
-    const map = new Map<string, { seller: string; bestRank: number; productsP1: number; productsTotal: number; scoreSum: number; count: number; capture: number }>()
-    data.forEach((e, i) => {
-      const pos = i + 1
-      if (!map.has(e.fabricante)) {
-        map.set(e.fabricante, { seller: e.fabricante, bestRank: pos, productsP1: 0, productsTotal: 0, scoreSum: 0, count: 0, capture: 0 })
-      }
-      const row = map.get(e.fabricante)!
-      if (pos < row.bestRank) row.bestRank = pos
-      row.productsP1    += e.appearances_p1
-      row.productsTotal += e.appearances_total
-      row.scoreSum      += e.ranking
-      row.count         += 1
-      row.capture       += posWeight(pos)
-    })
-    return Array.from(map.values())
-      .map(r => ({ ...r, avgScore: Math.round(r.scoreSum / r.count), capture: Math.round(r.capture / r.count) }))
-      .sort((a, b) => a.bestRank - b.bestRank)
-  })()
-
-  // Aggregated by brand for drill === "brand"
-  const drillBrandData = (() => {
-    const map = new Map<string, { marca: string; seller: string; bestRank: number; productsP1: number; scoreSum: number; count: number }>()
-    data.forEach((e, i) => {
-      const key = e.marca || "(sin marca)"
-      const pos = i + 1
-      if (!map.has(key)) {
-        map.set(key, { marca: key, seller: e.fabricante, bestRank: pos, productsP1: 0, scoreSum: 0, count: 0 })
-      }
-      const row = map.get(key)!
-      if (pos < row.bestRank) row.bestRank = pos
-      row.productsP1 += e.appearances_p1
-      row.scoreSum   += e.ranking
-      row.count      += 1
-    })
-    return Array.from(map.values())
-      .map(r => ({ ...r, avgScore: Math.round(r.scoreSum / r.count) }))
-      .sort((a, b) => a.bestRank - b.bestRank)
-  })()
+  }, [country, mercado])
 
   useEffect(() => {
-    if (tableTitleFilter && !data.some(e => e.titulo.toLowerCase().includes(tableTitleFilter.toLowerCase()))) {
-      setTableTitleFilter("")
-    }
-  }, [data, tableTitleFilter])
+    const p = new URLSearchParams({ action: "mercados" })
+    if (country) p.set("country", country)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
+      if (!Array.isArray(data)) return; setAvailableMercados(data)
+      if (mercado && !data.includes(mercado)) setMercado("")
+    })
+  }, [country])
 
-  // Filtrar títulos por fabricante, marca y título
-  const filtered = data.filter(e =>
-    (!tableTitleFilter || e.titulo.toLowerCase().includes(tableTitleFilter.toLowerCase()))
+  const api = useCallback(
+    (action: string) =>
+      fetch(
+        `/api/sos?action=${action}` +
+        `&channel=${encodeURIComponent(channel)}` +
+        `&category=${encodeURIComponent(category)}` +
+        `&country=${encodeURIComponent(country)}` +
+        `&segmento=${encodeURIComponent(segmento)}` +
+        `&mercado=${encodeURIComponent(mercado)}` +
+        `&seller=${encodeURIComponent(selectedSeller)}` +
+        `&sellers=${selectedSellersRef.current.join(",")}` +
+        (startDate ? `&startDate=${startDate}` : "") +
+        (endDate   ? `&endDate=${endDate}`     : "")
+      ).then(r => r.json()).then(d => (Array.isArray(d) ? d : [])),
+    [channel, category, country, segmento, mercado, selectedSeller, startDate, endDate]
   )
 
-  // KPIs — siempre Abbott vs todos (ignora filtro de seller)
-  const isAbbott = (f: string) => f.toUpperCase().includes("ABBOT")
-  const kpiNewsan    = kpiData.filter(e => isAbbott(e.fabricante))
-  const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => isAbbott(e.fabricante)); return idx >= 0 ? idx + 1 : null })()
-  const kpiTop3      = kpiData.slice(0, 3).filter(e => isAbbott(e.fabricante)).length
-  const kpiTop10     = kpiData.slice(0, 10).filter(e => isAbbott(e.fabricante)).length
-  const kpiBestScore = kpiNewsan.length > 0 ? kpiNewsan[0].ranking : null
-  const kpiCapture   = kpiNewsan.length
-    ? Math.round(kpiNewsan.reduce((s, e) => {
-        const pos = kpiData.findIndex(k => k.id === e.id) + 1
-        return s + posWeight(pos)
-      }, 0) / kpiNewsan.length)
-    : 0
-
-  // Sellers presentes en resultados (para colores)
-  const sellersInView = Array.from(new Set(data.map(e => e.fabricante)))
+  useEffect(() => {
+    if (!startDate || !endDate) return
+    const id = ++fetchIdRef.current
+    setLoading(true)
+    Promise.all([
+      api("rank_sellers"), api("rank_brands"), api("rank_titulos"), api("rank_trend"), api("rank_by_channel"),
+    ]).then(([sellers, brands, titulos, trend, channels]) => {
+      if (id !== fetchIdRef.current) return
+      setSellerData(sellers); setBrandData(brands); setTituloData(titulos); setTrendData(trend); setChannelData(channels)
+    }).finally(() => { if (id === fetchIdRef.current) setLoading(false) })
+  }, [api])
 
   function downloadCSV() {
     const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"
-    const chanPart = (channel || "todos-canales").replace(/\s+/g, "-")
+    const chanPart = (channel || "todos-retails").replace(/\s+/g, "-")
     const catPart  = (category || "todas-categorias").replace(/\s+/g, "-")
-    const sellPart = (selectedSeller || "todos-sellers").replace(/\s+/g, "-")
-
-    const headers = ["Posición", "Título", "Fabricante", "Marca", "Score Promedio", "Ap. Pág 1", "Ap. Total", "Potencial (%)"]
-    const rows = filtered.map((e, i) => [
-      String(i + 1),
-      e.titulo,
-      e.fabricante,
-      e.marca || "",
-      String(e.ranking),
-      String(e.appearances_p1),
-      String(e.appearances_total),
-      String(posWeight(i + 1)),
-    ])
-
+    let headers: string[], rows: string[][]
+    if (drill === "seller") {
+      headers = ["#", "Fabricante", "Score Pag 1", "Score Total"]
+      rows = sellerData.map((e, i) => [String(i + 1), String(e.seller), String(e.score_p1), String(e.score_total)])
+    } else if (drill === "brand") {
+      headers = ["Marca", "Fabricante", "Score Pag 1", "Score Total"]
+      rows = brandData.map(b => [String(b.brand), String(b.seller), String(b.score_p1), String(b.score_total)])
+    } else {
+      headers = ["Titulo", "Fabricante", "Score Pag 1", "Score Total"]
+      rows = tituloData.map(t => [String(t.titulo), String(t.seller), String(t.score_p1), String(t.score_total)])
+    }
     const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
     const csv = [headers, ...rows].map(row => row.map(esc).join(",")).join("\n")
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `ranking_${datePart}_${chanPart}_${catPart}_${sellPart}.csv`
-    a.click()
+    const a = document.createElement("a"); a.href = url
+    a.download = `ranking_score_${drill}_${datePart}_${chanPart}_${catPart}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
+  const ownEntry      = sellerData.find(e => e.seller === selectedSeller) as Record<string, unknown> | undefined
+  const sellerOptions = sellerData.length ? sellerData.map(e => String(e.seller)) : SELLERS
+  const sellerRank    = selectedSeller ? sellerData.findIndex(e => e.seller === selectedSeller) + 1 : null
+  const scoreKey      = page === "p1" ? "score_p1" : "score_total"
+  const TOP_N = 8
+  const sortedSellers = [...sellerData].sort((a, b) => Number(b[scoreKey]) - Number(a[scoreKey]))
+  const top8    = sortedSellers.slice(0, TOP_N)
+  const rest    = sortedSellers.slice(TOP_N)
+  const otrosVal = rest.reduce((sum, e) => sum + Number(e[scoreKey]), 0)
+  const stackedData = [
+    ...top8.map(e => ({ label: String(e.seller), value: Number(e[scoreKey]), color: String(e.color) })),
+    ...(rest.length > 0 ? [{ label: "Otros", value: Math.round(otrosVal), color: "#d1d5db" }] : []),
+  ]
+  const maxScore   = Math.max(...sellerData.map(e => Number(e.score_p1)), 1)
+  const maxChannel = Math.max(...channelData.map(e => Number(e.score_p1)), 1)
+
   return (
     <div className="space-y-4">
-      <PageHeader
-        title="Planograma Digital · Ranking"
-        subtitle="Posiciones reales en la góndola virtual ponderadas por potencial de captura"
-      />
+      <PageHeader title="Ranking Score" subtitle="Suma del score de posicion por fabricante, marca y titulo" />
 
-      {/* ── Filtros ─────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
-
-        {/* Fechas */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Desde</span>
           <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
           <span className="text-xs text-gray-400">Hasta</span>
           <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
         </div>
-
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        {/* Canal */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Canal</span>
-          <select value={channel} onChange={e => setChannel(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todos los canales</option>
+          <span className="text-xs text-gray-400">Retail</span>
+          <select value={channel} onChange={e => setChannel(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-
-        {/* Mercado */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableMercados.map(m => <option key={m}>{m}</option>)}
           </select>
         </div>
-
-        {/* Segmento */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Segmento</span>
-          <select value={segmento} onChange={e => setSegmento(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+          <select value={segmento} onChange={e => setSegmento(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableSegmentos.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
-
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        {/* Fabricante con buscador */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fabricante</span>
-          <div className="relative" ref={sellerRef}>
-            <button
-              onClick={() => { setSellerOpen(p => !p); setSellerSearch("") }}
-              className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[140px] justify-between"
-            >
-              <span className="truncate">{selectedSeller || "Todos los sellers"}</span>
+          <div className="relative" ref={sellerDropdownRef}>
+            <button onClick={() => { setSellerDropdownOpen(prev => !prev); setSellerSearch("") }}
+              className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[140px] justify-between">
+              <span className="truncate">{selectedSeller || "Todos"}</span>
               <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {sellerOpen && (
+            {sellerDropdownOpen && (
               <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg w-64">
                 <div className="p-2 border-b border-gray-100">
-                  <input autoFocus type="text" placeholder="Buscar seller..." value={sellerSearch}
+                  <input autoFocus type="text" placeholder="Buscar fabricante..." value={sellerSearch}
                     onChange={e => setSellerSearch(e.target.value)}
-                    className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400"
-                  />
+                    className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400" />
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  {/* Opción todos */}
-                  {"todos los sellers".includes(sellerSearch.toLowerCase()) || sellerSearch === "" ? (
-                    <button
-                      onClick={() => { setSelectedSeller(""); setSellerOpen(false); setSellerSearch("") }}
+                  {("todos".includes(sellerSearch.toLowerCase()) || sellerSearch === "") && (
+                    <button onClick={() => { setSelectedSeller(""); setSellerDropdownOpen(false); setSellerSearch("") }}
                       className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors border-b border-gray-100",
-                        selectedSeller === "" ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-500"
-                      )}
-                    >Todos los sellers</button>
-                  ) : null}
-                  {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
-                    <button key={s}
-                      onClick={() => { setSelectedSeller(s); setSellerOpen(false); setSellerSearch("") }}
+                        selectedSeller === "" ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-500")}>
+                      Todos los fabricantes
+                    </button>
+                  )}
+                  {sellerOptions.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
+                    <button key={s} onClick={() => { setSelectedSeller(s); setSellerDropdownOpen(false); setSellerSearch("") }}
                       className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors",
-                        selectedSeller === s ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-700"
-                      )}
-                    >{s}</button>
+                        selectedSeller === s ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-700")}>
+                      {s}
+                    </button>
                   ))}
+                  {sellerOptions.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-3 text-xs text-gray-400 text-center">Sin resultados</div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
-
-        {/* Categoría */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white"
-          >
-            <option value="">Todas las categorías</option>
+          <span className="text-xs text-gray-400">Categoria</span>
+          <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todas las categorias</option>
             {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-
-        <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        {/* Página */}
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {([["p1", "Página 1"], ["all", "Total"]] as const).map(([val, label]) => (
-            <button key={val} onClick={() => setPageFilter(val)}
+          {(["p1", "total"] as PageCtx[]).map(p => (
+            <button key={p} onClick={() => setPage(p)}
               className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-                pageFilter === val ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-              )}
-            >{label}</button>
-          ))}
-        </div>
-
-        {/* Top N */}
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {[10, 30, 50].map(n => (
-            <button key={n} onClick={() => setTopN(n)}
-              className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-                topN === n ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-              )}
-            >Top {n}</button>
-          ))}
-        </div>
-
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => downloadCSV()}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Descargar CSV">
-            <Download size={12} /><span>CSV</span>
-          </button>
-          <button onClick={exportPDF}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Exportar PDF">
-            <FileText size={12} /><span>PDF</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── KPIs ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          {
-            label: `Mejor posición · ${KPI_SELLER}`,
-            value: kpiBestRank !== null ? `#${kpiBestRank}` : "—",
-            color: kpiBestRank !== null && kpiBestRank <= 3 ? "#16a34a" : kpiBestRank !== null && kpiBestRank <= 10 ? "#d97706" : "#6b7280",
-            sub: kpiBestScore !== null ? `score prom: ${kpiBestScore}` : undefined,
-          },
-          {
-            label: `Captura ponderada · ${KPI_SELLER}`,
-            value: `${kpiCapture}%`,
-            sub: `vs todos (${kpiData.length} productos)`,
-          },
-          {
-            label: `Prods. ${KPI_SELLER} en top 3`,
-            value: String(kpiTop3),
-            color: "#16a34a",
-            sub: `de ${kpiData.length} productos totales`,
-          },
-          {
-            label: `Prods. ${KPI_SELLER} en top 10`,
-            value: String(kpiTop10),
-            color: "#d97706",
-            sub: kpiData.length ? `${Math.round(kpiTop10 / kpiData.length * 100)}% del total` : "—",
-          },
-        ].map(k => (
-          <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
-            <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
-            <div className="text-2xl font-bold" style={{ color: k.color || "#111827" }}>{k.value}</div>
-            {k.sub && <div className="text-xs text-gray-400 mt-1">{k.sub}</div>}
-          </div>
-        ))}
-      </div>
-
-      {/* ── Drill-down table ──────────────────────────── */}
-      <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {category || "Todas las categorías"} · {channel || "Todos los canales"}
-            </div>
-            <div className="text-xs text-gray-400 mt-0.5">
-              {data.length} productos · {sellersInView.length} sellers presentes
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Dimension drill toggle */}
-            <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
-              {(["seller", "brand", "titulo"] as const).map(l => (
-                <button key={l} onClick={() => setDrill(l)}
-                  className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-                    drill === l ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-                  )}>
-                  {l === "seller" ? "Fabricante" : l === "brand" ? "Marca" : "Título"}
-                </button>
-              ))}
-            </div>
-            {/* Title search (only in titulo view) */}
-            {drill === "titulo" && (
-              <div className="flex items-center gap-1.5 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white">
-                <Search size={11} className="text-gray-400" />
-                <input type="text" placeholder="Filtrar título..."
-                  value={tableTitleFilter}
-                  onChange={e => setTableTitleFilter(e.target.value)}
-                  className="text-xs outline-none w-40 text-gray-700"
-                />
-              </div>
-            )}
-            {/* CSV */}
-            <button onClick={downloadCSV} disabled={filtered.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Descargar CSV">
-              <Download size={12} /><span>CSV</span>
+                page === p ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
+              {p === "p1" ? "Pagina 1" : "Total"}
             </button>
-            {/* Vista toggle — only for titulo */}
-            {drill === "titulo" && (
-              <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                <button onClick={() => setView("planograma")}
-                  className={clsx("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                    view === "planograma" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-                  )}>
-                  <LayoutGrid size={11} /> Planograma
-                </button>
-                <button onClick={() => setView("lista")}
-                  className={clsx("flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                    view === "lista" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700"
-                  )}>
-                  <List size={11} /> Lista
-                </button>
-              </div>
-            )}
-          </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={`transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              label: `Score ${page === "p1" ? "Pag 1" : "Total"} - ${selectedSeller || "Todos"}`,
+              value: (selectedSeller
+                ? Number((page === "p1" ? ownEntry?.score_p1 : ownEntry?.score_total) ?? 0)
+                : sellerData.reduce((s, e) => s + Number(e[scoreKey]), 0)
+              ).toLocaleString(),
+            },
+            { label: "Posicion (score)", value: sellerRank ? `#${sellerRank}` : "—" },
+            { label: "Fabricantes analizados", value: String(sellerData.length) },
+            {
+              label: "Share Abbott",
+              value: (() => {
+                const abbott = sellerData.find(e => String(e.seller).toUpperCase().includes("ABBOT"))
+                const total  = sellerData.reduce((s, e) => s + Number(e[scoreKey]), 0)
+                return abbott && total ? `${Math.round(Number(abbott[scoreKey]) / total * 100)}%` : "—"
+              })(),
+            },
+          ].map(k => (
+            <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
+              <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
+              <div className="text-2xl font-bold text-gray-900">{k.value}</div>
+            </div>
+          ))}
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : data.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
-        ) : drill === "seller" ? (
-          /* ── Fabricante table ── */
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[580px]">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  {["#", "Fabricante", "Mejor pos.", "Score prom.", "Prods P1", "Prods Total", "Captura %"].map(h => (
-                    <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {drillSellerData.map((e, i) => {
-                  const isOwn = e.seller === selectedSeller
-                  const color = COLORS[e.seller] || "#9ca3af"
-                  return (
-                    <tr key={e.seller}
-                      onClick={() => setSelectedSeller(isOwn ? "" : e.seller)}
-                      className={clsx("border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors",
-                        isOwn && "bg-purple-50/30"
-                      )}>
-                      <td className="px-2 py-2.5 text-xs text-gray-400">#{i + 1}</td>
-                      <td className="px-2 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                          <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{e.seller}</span>
-                          {isOwn && <span className="text-[9px] px-1.5 rounded bg-purple-100 text-purple-600 font-bold">tú</span>}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2.5 text-sm font-bold text-gray-900">#{e.bestRank}</td>
-                      <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{e.avgScore}</td>
-                      <td className="px-2 py-2.5 text-xs text-gray-500">{e.productsP1}</td>
-                      <td className="px-2 py-2.5 text-xs text-gray-500">{e.productsTotal}</td>
-                      <td className="px-2 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${e.capture}%`, backgroundColor: color }} />
-                          </div>
-                          <span className="text-xs font-semibold text-gray-700 font-mono">{e.capture}%</span>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : drill === "brand" ? (
-          /* ── Marca table ── */
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px]">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  {["#", "Marca", "Fabricante", "Mejor pos.", "Score prom.", "Prods P1"].map(h => (
-                    <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {drillBrandData.map((e, i) => (
-                  <tr key={e.marca} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
-                    <td className="px-2 py-2.5 text-xs text-gray-400">#{i + 1}</td>
-                    <td className="px-2 py-2.5 text-sm font-medium text-gray-800">{e.marca}</td>
-                    <td className="px-2 py-2.5 text-xs text-gray-500">{e.seller}</td>
-                    <td className="px-2 py-2.5 text-sm font-bold text-gray-900">#{e.bestRank}</td>
-                    <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{e.avgScore}</td>
-                    <td className="px-2 py-2.5 text-xs text-gray-500">{e.productsP1}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* ── Título view (planograma / lista) ── */
-          filtered.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
-          ) : view === "planograma" ? (
-            <PlanogramaDigital entries={filtered} selectedSeller={selectedSeller} colors={COLORS} />
-          ) : (
-            /* ── Vista lista ── */
-            <div className="space-y-1.5">
-              {filtered.map((entry, i) => {
-                const pos     = i + 1
-                const w       = posWeight(pos)
-                const isOwn   = entry.fabricante === selectedSeller
-                const color   = isOwn ? (COLORS[entry.fabricante] || "#A427FF") : (COLORS[entry.fabricante] || "#9ca3af")
-                const isTop3  = pos <= 3
-                const isTop10 = pos <= 10
-                return (
-                  <div
-                    key={entry.id}
-                    className={clsx(
-                      "flex items-center gap-3 px-4 py-2.5 rounded-xl border text-sm",
-                      isOwn ? "border-2 bg-violet-50/50" : "bg-white border-gray-100 hover:bg-gray-50"
-                    )}
-                    style={isOwn ? { borderColor: color } : {}}
-                  >
-                    <span className={clsx(
-                      "font-black font-mono text-xs px-1.5 py-0.5 rounded flex-shrink-0 min-w-[28px] text-center",
-                      pos === 1 ? "bg-yellow-100 text-yellow-700" :
-                      isTop3    ? "bg-green-50 text-green-700" :
-                      isTop10   ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-500"
-                    )}>#{pos}</span>
-                    <SellerInitial seller={entry.fabricante} size={22} color={color} />
-                    <div className="flex-1 min-w-0">
-                      <div className={clsx("text-xs font-semibold truncate", isOwn ? "" : "text-gray-700")}
-                        style={isOwn ? { color } : {}}>
-                        {entry.titulo}
-                        {isOwn && (
-                          <span className="ml-1 text-[9px] font-black px-1.5 py-0.5 rounded-full"
-                            style={{ backgroundColor: color + "20", color }}>tú</span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-gray-400 truncate">{entry.fabricante}{entry.marca ? ` · ${entry.marca}` : ""}</div>
-                    </div>
-                    <div className="hidden lg:block text-right flex-shrink-0">
-                      <div className="text-[10px] text-gray-400">Score prom.</div>
-                      <div className="text-xs font-bold text-gray-700">{entry.ranking}</div>
-                    </div>
-                    <div className="hidden lg:block text-right flex-shrink-0">
-                      <div className="text-[10px] text-gray-400">Ap. P1</div>
-                      <div className="text-xs font-bold text-gray-700">{entry.appearances_p1}</div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: w + "%", backgroundColor: color }} />
-                      </div>
-                      <span className="text-[10px] font-black w-7 text-right" style={{ color }}>{w}%</span>
-                    </div>
-                    {pos === 1 && <Trophy size={12} className="text-yellow-500 flex-shrink-0" />}
-                  </div>
-                )
-              })}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
+            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+              Score {page === "p1" ? "Pagina 1" : "Total"}{category ? ` - ${category}` : ""}{channel ? ` - ${channel}` : ""}
             </div>
-          )
-        )}
-
-        {/* Leyenda sellers */}
-        {!loading && data.length > 0 && (
-          <div className="mt-5 pt-4 border-t border-gray-100">
-            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-2">Fabricantes en resultados</div>
-            <div className="flex flex-wrap gap-2">
-              {sellersInView.map(s => (
-                <div key={s} className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[s] || "#9ca3af" }} />
-                  <span className="text-xs text-gray-600">{s}</span>
-                  <span className="text-[10px] font-mono text-gray-400">
-                    ({data.filter(e => e.fabricante === s).length})
-                  </span>
+            <div className="text-xs text-gray-400 mb-3">Distribucion del score acumulado por fabricante</div>
+            <StackedBar data={stackedData} />
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-3">
+              {stackedData.map(e => (
+                <div key={e.label} className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: e.color }} />
+                  <span className="text-[11px] text-gray-600">{e.label}</span>
+                  <span className="text-[11px] font-semibold text-gray-900 font-mono">{e.value.toLocaleString()}</span>
                 </div>
               ))}
             </div>
           </div>
-        )}
+
+          <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5">
+            <div className="text-[10px] uppercase tracking-widest text-gray-400 mb-1">
+              Score por retail - {selectedSeller || "Todos"}
+            </div>
+            <div className="text-xs text-gray-400 mb-3">Score acumulado de posicion en cada retail</div>
+            {selectedSeller ? (
+              <div className="space-y-3">
+                {channelData.map((d, i) => (
+                  <div key={String(d.channel)} className="flex items-center gap-2">
+                    <span className="text-xs text-gray-600 w-32 shrink-0 truncate">{String(d.channel)}</span>
+                    <div className="flex-1">
+                      <ScoreBar val={Number(d.score_p1)} color={getRetailColor(String(d.channel), i)} max={maxChannel * 1.2} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-gray-400">Selecciona un fabricante para ver el detalle por retail.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[10px] uppercase tracking-widest text-gray-400">Evolucion Score</div>
+            <div className="relative" ref={trendRef}>
+              <button onClick={() => setTrendOpen(prev => !prev)}
+                className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
+                <span>{selectedSellers.length === 0 ? "Ningun fabricante" : selectedSellers.length === 1 ? selectedSellers[0] : `${selectedSellers.length} fabricantes`}</span>
+                <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {trendOpen && (
+                <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg w-60 max-h-72 overflow-y-auto">
+                  {sellerData.map(e => {
+                    const s = String(e.seller)
+                    const checked = selectedSellers.includes(s)
+                    return (
+                      <label key={s} className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <input type="checkbox" checked={checked}
+                          onChange={() => setSelectedSellers(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}
+                          className="w-3.5 h-3.5 rounded accent-purple-600 shrink-0" />
+                        <span className="flex-1 text-xs text-gray-700 truncate">{s}</span>
+                        <span className="text-[11px] font-mono font-semibold text-gray-400">{Number(e[scoreKey]).toLocaleString()}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <TrendChart data={trendData} sellers={selectedSellers} colors={COLORS} />
+          <div className="flex flex-wrap gap-4 mt-3">
+            {selectedSellers.map(s => {
+              const last    = trendData[trendData.length - 1]
+              const prev    = trendData[trendData.length - 2]
+              const val     = last ? Number(last[s] || 0) : 0
+              const prevVal = prev ? Number(prev[s] || 0) : 0
+              return (
+                <div key={s} className="flex items-center gap-2">
+                  <span className="w-3 h-0.5 rounded" style={{ backgroundColor: COLORS[s] || "#a427ff" }} />
+                  <span className="text-xs text-gray-600">{s}</span>
+                  <span className="text-xs font-semibold text-gray-900 font-mono">{val.toLocaleString()}</span>
+                  <Change val={val - prevVal} />
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 mt-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div className="text-[10px] uppercase tracking-widest text-gray-400">
+              {category || "Todas las categorias"} - {channel || "Todos los retails"}
+            </div>
+            <div className="flex items-center gap-3">
+              <button onClick={downloadCSV}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors">
+                <Download size={12} /><span>CSV</span>
+              </button>
+              <button onClick={exportPDF}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors">
+                <FileText size={12} /><span>PDF</span>
+              </button>
+              <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                {(["seller", "brand", "titulo"] as DrillLevel[]).map(l => (
+                  <button key={l} onClick={() => setDrill(l)}
+                    className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
+                      drill === l ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
+                    {l === "seller" ? "Fabricante" : l === "brand" ? "Marca" : "Titulo"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {drill === "seller" && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    {["#", "Fabricante", "Score Pag 1", "Score Total", "Share Pag 1"].map(h => (
+                      <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sellerData.slice(0, visibleCount).map((e, i) => {
+                    const isOwn = e.seller === selectedSeller
+                    const totalScore = sellerData.reduce((s, x) => s + Number(x.score_p1), 0)
+                    return (
+                      <tr key={String(e.seller)} onClick={() => setSelectedSeller(String(e.seller))}
+                        className={clsx("border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 transition-colors", isOwn && "bg-purple-50/30")}>
+                        <td className="px-2 py-2.5 text-xs text-gray-400">#{i + 1}</td>
+                        <td className="px-2 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: String(e.color) }} />
+                            <span className={clsx("text-sm font-medium", isOwn ? "text-gray-900" : "text-gray-600")}>{String(e.seller)}</span>
+                            {isOwn && <span className="text-[9px] px-1.5 rounded bg-purple-100 text-purple-600 font-bold">tu</span>}
+                          </div>
+                        </td>
+                        <td className="px-2 py-2.5 w-40">
+                          <ScoreBar val={Number(e.score_p1)} color={String(e.color)} max={maxScore * 1.1} />
+                        </td>
+                        <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(e.score_total).toLocaleString()}</td>
+                        <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">
+                          {totalScore ? `${Math.round(Number(e.score_p1) / totalScore * 100)}%` : "—"}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              {visibleCount < sellerData.length && (
+                <button onClick={() => setVisibleCount(prev => Math.min(prev + 50, sellerData.length))}
+                  className="mt-3 w-full text-xs text-purple-600 hover:text-purple-800 font-medium py-2 border border-dashed border-purple-200 hover:border-purple-400 rounded-lg transition-colors">
+                  Ver mas ({Math.min(50, sellerData.length - visibleCount)} de {sellerData.length - visibleCount} restantes)
+                </button>
+              )}
+            </div>
+          )}
+
+          {drill === "brand" && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    {["Marca", "Fabricante", "Score Pag 1", "Score Total"].map(h => (
+                      <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {brandData.slice(0, visibleCount).map(b => (
+                    <tr key={`${String(b.brand)}-${String(b.seller)}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                      <td className="px-2 py-2.5 text-sm font-medium text-gray-800">{String(b.brand)}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500">{String(b.seller)}</td>
+                      <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(b.score_p1).toLocaleString()}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(b.score_total).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {visibleCount < brandData.length && (
+                <button onClick={() => setVisibleCount(prev => Math.min(prev + 50, brandData.length))}
+                  className="mt-3 w-full text-xs text-purple-600 hover:text-purple-800 font-medium py-2 border border-dashed border-purple-200 hover:border-purple-400 rounded-lg transition-colors">
+                  Ver mas ({Math.min(50, brandData.length - visibleCount)} de {brandData.length - visibleCount} restantes)
+                </button>
+              )}
+            </div>
+          )}
+
+          {drill === "titulo" && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    {["Titulo", "Fabricante", "Score Pag 1", "Score Total"].map(h => (
+                      <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tituloData.slice(0, visibleCount).map(t => (
+                    <tr key={String(t.titulo_id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                      <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[240px] truncate">{String(t.titulo)}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500">{String(t.seller)}</td>
+                      <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(t.score_p1).toLocaleString()}</td>
+                      <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(t.score_total).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {visibleCount < tituloData.length && (
+                <button onClick={() => setVisibleCount(prev => Math.min(prev + 50, tituloData.length))}
+                  className="mt-3 w-full text-xs text-purple-600 hover:text-purple-800 font-medium py-2 border border-dashed border-purple-200 hover:border-purple-400 rounded-lg transition-colors">
+                  Ver mas ({Math.min(50, tituloData.length - visibleCount)} de {tituloData.length - visibleCount} restantes)
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
