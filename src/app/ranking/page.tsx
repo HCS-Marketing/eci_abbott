@@ -209,7 +209,7 @@ export default function RankingPage() {
   // Default seller = Newsan
   useEffect(() => {
     if (SELLERS.length === 0) return
-    const preferred = SELLERS.find(s => s === "Abbott") ?? SELLERS[0]
+    const preferred = SELLERS.find(s => s.toUpperCase() === "ABBOTT") ?? SELLERS[0]
     setSelectedSeller(preferred)
   }, [SELLERS[0]])
 
@@ -300,7 +300,7 @@ export default function RankingPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   // Fetch KPI data — siempre Abbott vs todos, ignora filtro de seller
-  const KPI_SELLER = "Abbott"
+  const KPI_SELLER = kpiData.find(e => e.fabricante.toUpperCase().includes("ABBOT"))?.fabricante || "ABBOTT"
   const fetchKpiData = useCallback(() => {
     if (!startDate || !endDate) return
     const p = new URLSearchParams({
@@ -377,10 +377,11 @@ export default function RankingPage() {
   )
 
   // KPIs — siempre Abbott vs todos (ignora filtro de seller)
-  const kpiNewsan    = kpiData.filter(e => e.fabricante === KPI_SELLER)
-  const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => e.fabricante === KPI_SELLER); return idx >= 0 ? idx + 1 : null })()
-  const kpiTop3      = kpiData.slice(0, 3).filter(e => e.fabricante === KPI_SELLER).length
-  const kpiTop10     = kpiData.slice(0, 10).filter(e => e.fabricante === KPI_SELLER).length
+  const isAbbott = (f: string) => f.toUpperCase().includes("ABBOT")
+  const kpiNewsan    = kpiData.filter(e => isAbbott(e.fabricante))
+  const kpiBestRank  = (() => { const idx = kpiData.findIndex(e => isAbbott(e.fabricante)); return idx >= 0 ? idx + 1 : null })()
+  const kpiTop3      = kpiData.slice(0, 3).filter(e => isAbbott(e.fabricante)).length
+  const kpiTop10     = kpiData.slice(0, 10).filter(e => isAbbott(e.fabricante)).length
   const kpiBestScore = kpiNewsan.length > 0 ? kpiNewsan[0].ranking : null
   const kpiCapture   = kpiNewsan.length
     ? Math.round(kpiNewsan.reduce((s, e) => {
