@@ -132,6 +132,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
+      if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))

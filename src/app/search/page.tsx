@@ -347,9 +347,10 @@ export default function ShareOfShelfPage() {
       })
   }, [channel, startDate, endDate])
 
-  // ── Cascading: segmentos ───────────────────────────────────
+  // ── Cascading: segmentos filtrados por mercado ────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
+    if (mercado) p.set("mercado", mercado)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -357,7 +358,7 @@ export default function ShareOfShelfPage() {
         setAvailableSegmentos(data)
         if (segmento && !data.includes(segmento)) setSegmento("")
       })
-  }, [])
+  }, [mercado])
 
   // ── Cascading: mercados filtrados por segmento ─────────────
   useEffect(() => {
