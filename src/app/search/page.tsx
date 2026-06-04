@@ -1,5 +1,6 @@
 "use client"
 import { useMarket } from "@/lib/use-market"
+import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { useState, useEffect, useCallback, useRef } from "react"
@@ -235,6 +236,7 @@ export default function ShareOfShelfPage() {
   const market = useMarket()
   const SELLERS = market.sellers
   const COLORS  = market.colors
+  const { country } = useGlobalFilters()
 
   // Filtros
   const [channel,    setChannel]    = useState("")
@@ -322,6 +324,7 @@ export default function ShareOfShelfPage() {
     if (category)  p.set("search",  category)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
+    if (country)   p.set("country",  country)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -329,7 +332,7 @@ export default function ShareOfShelfPage() {
         setAvailableChannels(data)
         if (channel && !data.includes(channel)) setChannel("")
       })
-  }, [category, startDate, endDate])
+  }, [category, startDate, endDate, country])
 
   // ── Cascading: búsquedas filtradas por retail + país + fechas ────
   useEffect(() => {
@@ -338,6 +341,7 @@ export default function ShareOfShelfPage() {
     if (channel)   p.set("channel",   channel)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
+    if (country)   p.set("country",   country)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -345,12 +349,13 @@ export default function ShareOfShelfPage() {
         setAvailableCategories(data)
         if (category && !data.includes(category)) setCategory("")
       })
-  }, [channel, startDate, endDate])
+  }, [channel, startDate, endDate, country])
 
   // ── Cascading: segmentos filtrados por mercado ────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
-    if (mercado) p.set("mercado", mercado)
+    if (mercado)  p.set("mercado", mercado)
+    if (country)  p.set("country", country)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -358,12 +363,13 @@ export default function ShareOfShelfPage() {
         setAvailableSegmentos(data)
         if (segmento && !data.includes(segmento)) setSegmento("")
       })
-  }, [mercado])
+  }, [mercado, country])
 
   // ── Cascading: mercados filtrados por segmento ─────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
     if (segmento) p.set("segmento", segmento)
+    if (country)  p.set("country",  country)
     fetch(`/api/search?${p}`)
       .then(r => r.json())
       .then((data: string[]) => {
@@ -371,7 +377,7 @@ export default function ShareOfShelfPage() {
         setAvailableMercados(data)
         if (mercado && !data.includes(mercado)) setMercado("")
       })
-  }, [segmento])
+  }, [segmento, country])
 
   const api = useCallback(
     (action: string) =>
@@ -384,12 +390,13 @@ export default function ShareOfShelfPage() {
         `&seller=${encodeURIComponent(selectedSeller)}` +
         `&sellers=${selectedSellersRef.current.join(",")}` +
         `&page=${page}` +
+        `&country=${encodeURIComponent(country)}` +
         (startDate ? `&startDate=${startDate}` : "") +
         (endDate   ? `&endDate=${endDate}`     : "")
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, segmento, mercado, selectedSeller, page, startDate, endDate]
+    [channel, category, segmento, mercado, selectedSeller, page, country, startDate, endDate]
   )
 
   useEffect(() => {
