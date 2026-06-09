@@ -170,13 +170,14 @@ export async function GET(req: Request) {
     if (action === "sellers") {
       const p: unknown[] = []
       const w = buildWhere(p)
+      const mf = marcaFilter(p)
       const sql = `
         WITH agg AS (
           SELECT fabricante AS fab,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
           FROM eci.mv_search_daily_fab
-          WHERE ${w}
+          WHERE ${w}${mf}
           GROUP BY fabricante
         ),
         totals AS (
@@ -309,15 +310,16 @@ export async function GET(req: Request) {
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
+      const mf = marcaFilter(p)
       const sql = `
         WITH daily_total AS (
           SELECT fecha AS day, SUM(count_p1) AS total_p1, SUM(count_total) AS total_all
-          FROM eci.mv_search_daily_fab WHERE ${w}
+          FROM eci.mv_search_daily_fab WHERE ${w}${mf}
           GROUP BY fecha
         ),
         seller_daily AS (
           SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1, SUM(count_total) AS products_total
-          FROM eci.mv_search_daily_fab WHERE ${w} AND fabricante IN (${sellerPlaceholders})
+          FROM eci.mv_search_daily_fab WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})
           GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
@@ -344,6 +346,7 @@ export async function GET(req: Request) {
       let w = `fecha >= $${p.length - 1} AND fecha <= $${p.length}`
       if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
+      const mf = marcaFilter(p)
       p.push(seller)
       const sellerIdx = p.length
       const sql = `
@@ -353,7 +356,7 @@ export async function GET(req: Request) {
             SUM(count_total) AS total_all,
             SUM(count_p1) FILTER (WHERE fabricante = $${sellerIdx}) AS seller_p1,
             SUM(count_total) FILTER (WHERE fabricante = $${sellerIdx}) AS seller_all
-          FROM eci.mv_search_daily_fab WHERE ${w}
+          FROM eci.mv_search_daily_fab WHERE ${w}${mf}
           GROUP BY retail
         )
         SELECT retail AS channel,
