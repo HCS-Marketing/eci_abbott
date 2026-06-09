@@ -85,17 +85,19 @@ export default function BestsellersPage() {
   // Segmentos
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
+    if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableSegmentos(d)
       if (segmento && !d.includes(segmento)) setSegmento("")
     })
-  }, [country])
+  }, [channel, country])
 
   // Mercados
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
+    if (channel)  p.set("channel",  channel)
     if (country)  p.set("country", country)
     if (segmento) p.set("segmento", segmento)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
@@ -103,7 +105,7 @@ export default function BestsellersPage() {
       setAvailableMercados(d)
       if (mercado && !d.includes(mercado)) setMercado("")
     })
-  }, [country, segmento])
+  }, [channel, country, segmento])
 
   // Fecha única — re-fetchea cuando cambia el canal para ajustar al max del canal
   useEffect(() => {

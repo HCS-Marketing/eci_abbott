@@ -361,9 +361,10 @@ export default function ShareOfShelfPage() {
       })
   }, [channel, country, startDate, endDate])
 
-  // ── Cascading: segmentos filtrados por país + mercado ───────────────
+  // ── Cascading: segmentos filtrados por retail + país + mercado ───────────────
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
+    if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`)
@@ -373,11 +374,12 @@ export default function ShareOfShelfPage() {
         setAvailableSegmentos(data)
         if (segmento && !data.includes(segmento)) setSegmento("")
       })
-  }, [country, mercado])
+  }, [channel, country, mercado])
 
-  // ── Cascading: mercados filtrados por país ─────
+  // ── Cascading: mercados filtrados por retail + país ─────
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
+    if (channel)  p.set("channel", channel)
     if (country)  p.set("country", country)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
@@ -386,7 +388,7 @@ export default function ShareOfShelfPage() {
         setAvailableMercados(data)
         if (mercado && !data.includes(mercado)) setMercado("")
       })
-  }, [country])
+  }, [channel, country])
 
   const api = useCallback(
     (action: string) =>

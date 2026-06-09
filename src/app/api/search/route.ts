@@ -133,6 +133,11 @@ export async function GET(req: Request) {
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
+      if (channel) {
+        const vals = RETAIL_ALIASES[channel] || [channel]
+        if (vals.length === 1) { p.push(vals[0]); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail = $${p.length})` }
+        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail IN (${phs}))` }
+      }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
@@ -144,6 +149,11 @@ export async function GET(req: Request) {
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL`
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
+      if (channel) {
+        const vals = RETAIL_ALIASES[channel] || [channel]
+        if (vals.length === 1) { p.push(vals[0]); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail = $${p.length})` }
+        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail IN (${phs}))` }
+      }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))

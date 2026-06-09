@@ -220,21 +220,21 @@ export default function RankingScorePage() {
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
-    if (country) p.set("country", country); if (mercado) p.set("mercado", mercado)
+    if (channel) p.set("channel", channel); if (country) p.set("country", country); if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
       if (!Array.isArray(data)) return; setAvailableSegmentos(data)
       if (segmento && !data.includes(segmento)) setSegmento("")
     })
-  }, [country, mercado])
+  }, [channel, country, mercado])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
-    if (country) p.set("country", country)
+    if (channel) p.set("channel", channel); if (country) p.set("country", country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
       if (!Array.isArray(data)) return; setAvailableMercados(data)
       if (mercado && !data.includes(mercado)) setMercado("")
     })
-  }, [country])
+  }, [channel, country])
 
   const api = useCallback(
     (action: string) =>

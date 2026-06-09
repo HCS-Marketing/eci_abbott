@@ -141,6 +141,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
+      if (channel) { p.push(channel); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE retail = $${p.length})` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
@@ -151,6 +152,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
+      if (channel) { p.push(channel); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE retail = $${p.length})` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))

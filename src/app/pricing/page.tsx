@@ -73,6 +73,7 @@ export default function PricingPage() {
   // Segmentos
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
+    if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
@@ -80,18 +81,19 @@ export default function PricingPage() {
       setAvailableSegmentos(d)
       if (segmento && !d.includes(segmento)) setSegmento("")
     })
-  }, [country, mercado])
+  }, [channel, country, mercado])
 
   // Mercados
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
+    if (channel)  p.set("channel", channel)
     if (country)  p.set("country", country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableMercados(d)
       if (mercado && !d.includes(mercado)) setMercado("")
     })
-  }, [country])
+  }, [channel, country])
 
   // Fecha — canal-aware
   useEffect(() => {
