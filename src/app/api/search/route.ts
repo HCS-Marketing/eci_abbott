@@ -81,10 +81,10 @@ export async function GET(req: Request) {
 
     function marcaFilter(params: unknown[]): string {
       if (!segmento && !mercado) return ""
-      let sub = ` AND marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+      // eci.search.marca contains product codes, not brand names — filter via fabricante instead
+      let sub = ` AND fabricante IN (SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
       if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
       if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
-      if (country)  { params.push(country);  sub += ` AND mf2.pais = $${params.length}` }
       sub += ")"
       return sub
     }
