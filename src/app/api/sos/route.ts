@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+export const dynamic = 'force-dynamic'
+
 // ── COLUMN MAPPING ──────────────────────────────────────────
 // Abbott DB (eci.sos) columns:
 //   id, pais, fecha, titulo, ean, marca, precio_venta, precio_neto,
