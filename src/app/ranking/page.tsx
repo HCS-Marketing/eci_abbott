@@ -229,12 +229,12 @@ export default function RankingScorePage() {
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "mercados" })
-    if (channel) p.set("channel", channel); if (country) p.set("country", country)
+    if (channel) p.set("channel", channel); if (country) p.set("country", country); if (segmento) p.set("segmento", segmento)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
       if (!Array.isArray(data)) return; setAvailableMercados(data)
       if (mercado && !data.includes(mercado)) setMercado("")
     })
-  }, [channel, country])
+  }, [channel, country, segmento])
 
   const api = useCallback(
     (action: string) =>

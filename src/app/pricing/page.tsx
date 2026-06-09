@@ -88,12 +88,13 @@ export default function PricingPage() {
     const p = new URLSearchParams({ action: "mercados" })
     if (channel)  p.set("channel", channel)
     if (country)  p.set("country", country)
+    if (segmento) p.set("segmento", segmento)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableMercados(d)
       if (mercado && !d.includes(mercado)) setMercado("")
     })
-  }, [channel, country])
+  }, [channel, country, segmento])
 
   // Fecha — canal-aware
   useEffect(() => {

@@ -87,12 +87,13 @@ export default function BestsellersPage() {
     const p = new URLSearchParams({ action: "segmentos" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
+    if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableSegmentos(d)
       if (segmento && !d.includes(segmento)) setSegmento("")
     })
-  }, [channel, country])
+  }, [channel, country, mercado])
 
   // Mercados
   useEffect(() => {

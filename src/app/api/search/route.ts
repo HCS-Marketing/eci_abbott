@@ -135,8 +135,8 @@ export async function GET(req: Request) {
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
-        if (vals.length === 1) { p.push(vals[0]); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail = $${p.length})` }
-        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail IN (${phs}))` }
+        if (vals.length === 1) { p.push(vals[0]); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_marca WHERE retail = $${p.length})` }
+        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_marca WHERE retail IN (${phs}))` }
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -151,8 +151,8 @@ export async function GET(req: Request) {
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
-        if (vals.length === 1) { p.push(vals[0]); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail = $${p.length})` }
-        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_fab WHERE retail IN (${phs}))` }
+        if (vals.length === 1) { p.push(vals[0]); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_marca WHERE retail = $${p.length})` }
+        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_search_daily_marca WHERE retail IN (${phs}))` }
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
