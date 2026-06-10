@@ -12,7 +12,7 @@ import { useGlobalFilters } from "@/lib/filter-context"
 
 const NAV = [
   { href: "/main",           label: "Inicio",   icon: LayoutGrid  },
-  { href: "/ecommerce-index", label: "SOS",      icon: Search      },
+  { href: "/share-of-shelf", label: "SOS",      icon: Search      },
   { href: "/search",          label: "Search",   icon: ScanSearch  },
   { href: "/ranking",         label: "Ranking",  icon: ListOrdered },
 ]
@@ -184,7 +184,7 @@ export default function Sidebar() {
             <rect y="12" width="12" height="2" rx="1" fill="white"/>
           </svg>
         </button>
-        <Link href="/ecommerce-index" className="flex items-center gap-2 flex-1">
+        <Link href="/share-of-shelf" className="flex items-center gap-2 flex-1">
           <SOSBrandmark size={24} />
           <span className="text-sm font-bold text-white">Share of Shelf</span>
         </Link>

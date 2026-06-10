@@ -4,7 +4,7 @@ import { Search, ScanSearch, ListOrdered } from "lucide-react"
 
 const MODULES = [
   {
-    href: "/ecommerce-index",
+    href: "/share-of-shelf",
     icon: Search,
     title: "Share of Shelf",
     description: "Presencia por fabricante, marca y título en página 1 y total",

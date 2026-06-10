@@ -132,7 +132,7 @@ export async function GET(req: Request) {
     // ── segmentos ──
     if (action === "segmentos") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL`
+      let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
@@ -147,7 +147,7 @@ export async function GET(req: Request) {
     // ── mercados ──
     if (action === "mercados") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL`
+      let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
