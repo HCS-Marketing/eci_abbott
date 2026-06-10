@@ -307,7 +307,11 @@ export async function GET(req: Request) {
       const trendStart = new Date(endD.getTime() - 30 * 24 * 60 * 60 * 1000)
       const p: unknown[] = [trendStart, endD]
       let w = `fecha >= $1 AND fecha <= $2`
-      if (channel) { p.push(channel); w += ` AND retail = $${p.length}` }
+      if (channel) {
+        const vals = RETAIL_ALIASES[channel] || [channel]
+        if (vals.length === 1) { p.push(vals[0]); w += ` AND retail = $${p.length}` }
+        else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); w += ` AND retail IN (${phs})` }
+      }
       if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
@@ -351,15 +355,24 @@ export async function GET(req: Request) {
       const mf = marcaFilter(p)
       p.push(seller)
       const sellerIdx = p.length
+      // Normalize retail aliases IN SQL so BENAVIDES+FARMACIAS BENAVIDES are merged before aggregation
+      const normCases = Object.entries(RETAIL_NORMALIZE)
+        .map(([k, v]) => `WHEN retail = '${k.replace(/'/g, "''")}' THEN '${v.replace(/'/g, "''")}'`)
+        .join(' ')
+      const normExpr = normCases ? `CASE ${normCases} ELSE retail END` : `retail`
       const sql = `
-        WITH per_retail AS (
-          SELECT retail,
+        WITH norm AS (
+          SELECT ${normExpr} AS retail_norm, fabricante, count_p1, count_total
+          FROM eci.mv_search_daily_fab WHERE ${w}${mf}
+        ),
+        per_retail AS (
+          SELECT retail_norm AS retail,
             SUM(count_p1) AS total_p1,
             SUM(count_total) AS total_all,
             SUM(count_p1) FILTER (WHERE fabricante = $${sellerIdx}) AS seller_p1,
             SUM(count_total) FILTER (WHERE fabricante = $${sellerIdx}) AS seller_all
-          FROM eci.mv_search_daily_fab WHERE ${w}${mf}
-          GROUP BY retail
+          FROM norm
+          GROUP BY retail_norm
         )
         SELECT retail AS channel,
           ROUND(seller_p1 * 100.0 / NULLIF(total_p1, 0), 2) AS sos_p1,
@@ -370,7 +383,7 @@ export async function GET(req: Request) {
       `
       const rows = await prisma.$queryRawUnsafe<{ channel: string; sos_p1: number; sos_total: number }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
-        channel:          RETAIL_NORMALIZE[r.channel] ?? r.channel,
+        channel:          r.channel,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,
