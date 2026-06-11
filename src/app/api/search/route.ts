@@ -256,15 +256,10 @@ export async function GET(req: Request) {
     if (action === "titulos") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      let sellerCond = ""
-      if (seller) {
-        p.push(seller)
-        sellerCond = ` AND ${FABRICANTE_UNIFIED} = $${p.length}`
-      }
       const mf = marcaFilter(p)
       const sql = `
         WITH base AS (
-          SELECT * FROM eci.search WHERE ${w}${mf}${sellerCond} AND pagina <= 3
+          SELECT * FROM eci.search WHERE ${w}${mf} AND pagina <= 3
         ),
         agg AS (
           SELECT COALESCE(ean, skuid) AS titulo_id, MAX(titulo) AS titulo,

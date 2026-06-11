@@ -284,11 +284,6 @@ export async function GET(req: Request) {
     if (action === "titulos") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      let sellerCond = ""
-      if (seller) {
-        p.push(seller)
-        sellerCond = ` AND fabricante = $${p.length}`
-      }
       const mf = fabricanteFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
@@ -298,7 +293,7 @@ export async function GET(req: Request) {
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
           FROM eci.mv_sos_daily_titulo d
-          WHERE ${w}${sellerCond}${mf}
+          WHERE ${w}${mf}
           GROUP BY producto_id, fabricante
         ),
         totals AS (
@@ -461,8 +456,6 @@ export async function GET(req: Request) {
     if (action === "rank_titulos") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      let sellerCond = ""
-      if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
       const mf = fabricanteFilterSQL(p, "d")
       const sql = `
         SELECT
@@ -472,7 +465,7 @@ export async function GET(req: Request) {
           SUM(sum_ranking_p1)    AS score_p1,
           SUM(sum_ranking_total) AS score_total
         FROM eci.mv_ranking_daily_titulo d
-        WHERE ${w}${sellerCond}${mf}
+        WHERE ${w}${mf}
         GROUP BY titulo_id, fabricante
         ORDER BY score_p1 DESC
         LIMIT 30
