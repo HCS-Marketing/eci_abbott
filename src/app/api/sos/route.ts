@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export const dynamic = 'force-dynamic'
+// force rebuild - vercel cache issue 2026-06-11T17:50
 
 // ── COLUMN MAPPING ──────────────────────────────────────────
 // Abbott DB (eci.sos) columns:
