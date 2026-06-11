@@ -160,10 +160,20 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // Helper: build marca filter subquery from segmento/mercado
+    // Helper: build marca filter subquery from segmento/mercado (for MVs with a marca column)
     function marcaFilterSQL(params: unknown[], tableAlias: string): string {
       if (!segmento && !mercado) return ""
       let sub = ` AND ${tableAlias}.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+      if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
+      if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
+      sub += ")"
+      return sub
+    }
+
+    // For titulo MVs (no marca column) — filter by fabricante instead
+    function fabricanteFilterSQL(params: unknown[], tableAlias: string): string {
+      if (!segmento && !mercado) return ""
+      let sub = ` AND ${tableAlias}.fabricante IN (SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
       if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
       if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
       sub += ")"
@@ -279,7 +289,7 @@ export async function GET(req: Request) {
         p.push(seller)
         sellerCond = ` AND fabricante = $${p.length}`
       }
-      const mf = marcaFilterSQL(p, "d")
+      const mf = fabricanteFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT producto_id, MAX(titulo) AS titulo,
@@ -453,7 +463,7 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       let sellerCond = ""
       if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
-      const mf = marcaFilterSQL(p, "d")
+      const mf = fabricanteFilterSQL(p, "d")
       const sql = `
         SELECT
           titulo_id,

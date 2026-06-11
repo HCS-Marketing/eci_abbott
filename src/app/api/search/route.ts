@@ -254,27 +254,30 @@ export async function GET(req: Request) {
 
     // ── título breakdown ──
     if (action === "titulos") {
-      if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      p.push(seller)
-      const sellerCond = `${FABRICANTE_UNIFIED} = $${p.length}`
+      let sellerCond = ""
+      if (seller) {
+        p.push(seller)
+        sellerCond = ` AND ${FABRICANTE_UNIFIED} = $${p.length}`
+      }
       const mf = marcaFilter(p)
       const sql = `
         WITH base AS (
-          SELECT * FROM eci.search WHERE ${w}${mf} AND ${sellerCond} AND pagina <= 3
+          SELECT * FROM eci.search WHERE ${w}${mf}${sellerCond} AND pagina <= 3
         ),
         agg AS (
           SELECT COALESCE(ean, skuid) AS titulo_id, MAX(titulo) AS titulo,
+            ${FABRICANTE_UNIFIED} AS fab,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total,
             MIN(ranking) AS best_ranking
-          FROM base GROUP BY COALESCE(ean, skuid)
+          FROM base GROUP BY COALESCE(ean, skuid), ${FABRICANTE_UNIFIED}
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
-        SELECT a.titulo_id, a.titulo,
+        SELECT a.titulo_id, a.titulo, a.fab AS seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
@@ -283,13 +286,13 @@ export async function GET(req: Request) {
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
-        titulo_id: string; titulo: string; products_p1: number; products_total: number
+        titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
         titulo:           r.titulo,
-        seller,
+        seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,
