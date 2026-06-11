@@ -139,36 +139,38 @@ export async function GET(req: Request) {
     }
 
     // ── segmentos list — from marca_fabricante ────────────
-    // Note: marca_fabricante has no pais column — country filter applied via MV subquery on channel/retail
+    // Country/channel filter via fabricante (not marca) because marca differs between tables.
     if (action === "segmentos") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
-      if (channel) { p.push(channel); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE retail = $${p.length})` }
-      else if (country) { p.push(country); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE pais = $${p.length})` }
+      if (channel) { p.push(channel); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE retail = $${p.length})` }
+      else if (country) { p.push(country); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE pais = $${p.length})` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
     // ── mercados list — from marca_fabricante ─────────────
-    // Note: marca_fabricante has no pais column — country filter applied via MV subquery on channel/retail
+    // Country/channel filter via fabricante (not marca) because marca differs between tables.
     if (action === "mercados") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
-      if (channel) { p.push(channel); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE retail = $${p.length})` }
-      else if (country) { p.push(country); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE pais = $${p.length})` }
+      if (channel) { p.push(channel); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE retail = $${p.length})` }
+      else if (country) { p.push(country); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE pais = $${p.length})` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // Helper: build marca filter subquery from segmento/mercado (for MVs with a marca column)
-    // Note: marca_fabricante has no pais column — filter by segmento/mercado only
+    // Helper: build segmento/mercado filter for queries with a table alias.
+    // Filters by fabricante (not marca) because marca values in marca_fabricante
+    // are product-line names (e.g. "ENFAMIL CONFORT 1") while marca in the MVs
+    // is the brand family (e.g. "ENFAMIL"), so a marca-IN match drops most rows.
     function marcaFilterSQL(params: unknown[], tableAlias: string): string {
       if (!segmento && !mercado) return ""
-      let sub = ` AND ${tableAlias}.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+      let sub = ` AND ${tableAlias}.fabricante IN (SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
       if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
       if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
       sub += ")"
@@ -185,10 +187,10 @@ export async function GET(req: Request) {
       return sub
     }
 
-    // Simpler version for queries without table alias
+    // Simpler version for queries without table alias (same semantics: filter by fabricante)
     function marcaFilter(params: unknown[]): string {
       if (!segmento && !mercado) return ""
-      let sub = ` AND marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+      let sub = ` AND fabricante IN (SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
       if (segmento) { params.push(segmento); sub += ` AND mf2.segmento = $${params.length}` }
       if (mercado)  { params.push(mercado);  sub += ` AND mf2.mercado = $${params.length}` }
       sub += ")"
@@ -924,7 +926,7 @@ export async function GET(req: Request) {
       if (country)  { p.push(country);  countrySql  = `AND s.pais = $${p.length}` }
       let mfBuybox = ""
       if (segmento || mercado) {
-        let sub = `AND s.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
+        let sub = `AND s.fabricante IN (SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
         if (segmento) { p.push(segmento); sub += ` AND mf2.segmento = $${p.length}` }
         if (mercado)  { p.push(mercado);  sub += ` AND mf2.mercado = $${p.length}` }
         sub += ")"
