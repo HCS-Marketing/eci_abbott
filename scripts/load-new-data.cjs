@@ -396,7 +396,7 @@ async function main() {
   await client.query(`UPDATE eci.search SET fabricante = 'ABBOTT' WHERE UPPER(fabricante) LIKE '%ABBOT%' AND fabricante != 'ABBOTT'`);
 
   console.log('\nRefreshing materialized views...');
-  for (const mv of ['eci.mv_sos_daily_fab','eci.mv_sos_daily_marca','eci.mv_search_daily_fab','eci.mv_search_daily_marca','eci.mv_sos_dimensions']) {
+  for (const mv of ['eci.mv_sos_daily_fab','eci.mv_sos_daily_marca','eci.mv_sos_daily_titulo','eci.mv_search_daily_fab','eci.mv_search_daily_marca','eci.mv_sos_dimensions']) {
     try {
       await client.query(`REFRESH MATERIALIZED VIEW ${mv}`);
       console.log(`  Refreshed ${mv}`);
