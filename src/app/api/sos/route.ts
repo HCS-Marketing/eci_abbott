@@ -139,22 +139,26 @@ export async function GET(req: Request) {
     }
 
     // ── segmentos list — from marca_fabricante ────────────
+    // Note: marca_fabricante has no pais column — country filter applied via MV subquery on channel/retail
     if (action === "segmentos") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       if (channel) { p.push(channel); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE retail = $${p.length})` }
+      else if (country) { p.push(country); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE pais = $${p.length})` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
     // ── mercados list — from marca_fabricante ─────────────
+    // Note: marca_fabricante has no pais column — country filter applied via MV subquery on channel/retail
     if (action === "mercados") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
       if (channel) { p.push(channel); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE retail = $${p.length})` }
+      else if (country) { p.push(country); sql += ` AND marca IN (SELECT DISTINCT marca FROM eci.mv_sos_daily_marca WHERE pais = $${p.length})` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
