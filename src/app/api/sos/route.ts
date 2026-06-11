@@ -161,6 +161,7 @@ export async function GET(req: Request) {
     }
 
     // Helper: build marca filter subquery from segmento/mercado (for MVs with a marca column)
+    // Note: marca_fabricante has no pais column — filter by segmento/mercado only
     function marcaFilterSQL(params: unknown[], tableAlias: string): string {
       if (!segmento && !mercado) return ""
       let sub = ` AND ${tableAlias}.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
@@ -922,7 +923,6 @@ export async function GET(req: Request) {
         let sub = `AND s.marca IN (SELECT mf2.marca FROM eci.marca_fabricante mf2 WHERE 1=1`
         if (segmento) { p.push(segmento); sub += ` AND mf2.segmento = $${p.length}` }
         if (mercado)  { p.push(mercado);  sub += ` AND mf2.mercado = $${p.length}` }
-        if (country)  { p.push(country);  sub += ` AND mf2.pais = $${p.length}` }
         sub += ")"
         mfBuybox = sub
       }
