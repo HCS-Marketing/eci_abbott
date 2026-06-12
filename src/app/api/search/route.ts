@@ -212,25 +212,24 @@ export async function GET(req: Request) {
 
     // ── brand breakdown — uses MV marca ──
     if (action === "brands") {
-      if (!seller) return NextResponse.json([])
       const p: unknown[] = []
       const w = buildWhere(p)
-      p.push(seller)
-      const sellerCond = `fabricante = $${p.length}`
       const mf = marcaFilter(p)
       const sql = `
         WITH agg AS (
           SELECT marca,
+            fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
           FROM eci.mv_search_daily_marca
-          WHERE ${w}${mf} AND ${sellerCond}
-          GROUP BY marca
+          WHERE ${w}${mf}
+          GROUP BY marca, fabricante
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
         SELECT a.marca AS brand,
+          a.seller,
           a.products_p1::int, a.products_total::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
           ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
@@ -238,12 +237,12 @@ export async function GET(req: Request) {
         ORDER BY sos_p1 DESC LIMIT 50
       `
       const rows = await prisma.$queryRawUnsafe<{
-        brand: string; products_p1: number; products_total: number
+        brand: string; seller: string; products_p1: number; products_total: number
         sos_p1: number; sos_total: number
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         brand:            r.brand,
-        seller,
+        seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         sos_p1_change:    0,

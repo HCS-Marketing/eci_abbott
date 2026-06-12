@@ -310,6 +310,7 @@ export default function ShareOfShelfPage() {
     })
 
     setSelectedSeller(prev => {
+      if (prev === "") return prev
       if (prev && sellers.includes(prev)) return prev
       const abbott = sellers.find(s => s.toUpperCase() === "ABBOTT")
       return abbott || sellers[0]

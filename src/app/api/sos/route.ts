@@ -244,11 +244,6 @@ export async function GET(req: Request) {
     if (action === "brands") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      let sellerCond = ""
-      if (seller) {
-        p.push(seller)
-        sellerCond = ` AND fabricante = $${p.length}`
-      }
       const mf = marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
@@ -257,7 +252,7 @@ export async function GET(req: Request) {
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
           FROM eci.mv_sos_daily_marca d
-          WHERE ${w}${sellerCond}${mf}
+          WHERE ${w}${mf}
           GROUP BY marca, fabricante
         ),
         totals AS (
@@ -435,8 +430,6 @@ export async function GET(req: Request) {
     if (action === "rank_brands") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      let sellerCond = ""
-      if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
       const mf = marcaFilterSQL(p, "d")
       const sql = `
         SELECT
@@ -445,7 +438,7 @@ export async function GET(req: Request) {
           SUM(sum_ranking_p1)    AS score_p1,
           SUM(sum_ranking_total) AS score_total
         FROM eci.mv_ranking_daily_marca d
-        WHERE ${w}${sellerCond}${mf}
+        WHERE ${w}${mf}
         GROUP BY marca, fabricante
         ORDER BY score_p1 DESC
         LIMIT 50

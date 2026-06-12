@@ -5,9 +5,17 @@
  * not yet present in the DB.
  *
  * Usage:
- *   node scripts/load-new-data.cjs          # both SOS + Search, all countries
- *   node scripts/load-new-data.cjs sos       # SOS only
- *   node scripts/load-new-data.cjs search    # Search only
+ *   node scripts/load-new-data.cjs               # both SOS + Search, all countries
+ *   node scripts/load-new-data.cjs sos            # SOS only
+ *   node scripts/load-new-data.cjs search         # Search only
+ *   node scripts/load-new-data.cjs both --force           # force re-upload all files (upsert)
+ *   node scripts/load-new-data.cjs both --force --from 2026-05-01 --to 2026-05-31  # upsert May 2026 only
+ *
+ * Brand-from-title extraction:
+ *   When a row has no 'marca' column value, we attempt to match known brand
+ *   names (from eci.marca_fabricante) against the product title. Longest
+ *   match wins, whole-word boundary required. This prevents null-marca rows
+ *   from incorrectly becoming 'MARCA LOCAL'.
  */
 
 const XLSX = require('xlsx');
@@ -15,6 +23,42 @@ const { Client } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+
+// ── Brand-from-title extractor ────────────────────────────────────────────
+// Populated by loadMarcaLookup() before processing files.
+let MARCA_PATTERNS = []; // [{pattern: RegExp, marca: string}, ...] sorted longest first
+
+function stripAccentsSimple(s) {
+  return s.normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+async function loadMarcaLookup(client) {
+  const res = await client.query(
+    `SELECT DISTINCT marca FROM eci.marca_fabricante WHERE marca IS NOT NULL AND marca != '' ORDER BY marca`
+  );
+  // Sort by length descending so longest match wins
+  const sorted = res.rows.map(r => r.marca).sort((a, b) => b.length - a.length);
+  // Build regex patterns
+  MARCA_PATTERNS = sorted.map(marca => {
+    const normalized = stripAccentsSimple(marca).toUpperCase();
+    // Escape regex special chars, then wrap in word-boundary-like check
+    const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return {
+      pattern: new RegExp(`(?<![A-Z0-9])${escaped}(?![A-Z0-9])`, 'i'),
+      marca: marca,
+    };
+  });
+  console.log(`Loaded ${MARCA_PATTERNS.length} marca patterns for title extraction`);
+}
+
+function extractMarcaFromTitulo(titulo) {
+  if (!titulo || !MARCA_PATTERNS.length) return null;
+  const normalized = stripAccentsSimple(String(titulo)).toUpperCase();
+  for (const { pattern, marca } of MARCA_PATTERNS) {
+    if (pattern.test(normalized)) return marca;
+  }
+  return null;
+}
 
 // ── Config ────────────────────────────────────────────────────────────────
 const DB = fs.readFileSync(
@@ -242,6 +286,11 @@ function normalizeRows(rawRows, pais, fileDate, kind) {
     // Drop rows missing critical fields
     if (!r.titulo || !r.retail) continue;
 
+    // Extract marca from titulo when missing (brand-from-title)
+    if (!r.marca) {
+      r.marca = extractMarcaFromTitulo(r.titulo) || null;
+    }
+
     // Compute id
     r.id = computeId(r);
 
@@ -286,12 +335,21 @@ async function insertBatch(client, table, cols, rows) {
 // ── Main ──────────────────────────────────────────────────────────────────
 async function main() {
   const mode = process.argv[2]?.toLowerCase() || 'both';
+  const force = process.argv.includes('--force');
+  const fromIdx = process.argv.indexOf('--from');
+  const toIdx   = process.argv.indexOf('--to');
+  const forceFrom = fromIdx !== -1 ? process.argv[fromIdx + 1] : null;
+  const forceTo   = toIdx   !== -1 ? process.argv[toIdx   + 1] : null;
   const doSOS    = mode === 'both' || mode === 'sos';
   const doSearch = mode === 'both' || mode === 'search';
 
   const client = new Client({ connectionString: DB });
   await client.connect();
   console.log('Connected to DB\n');
+
+  // Pre-load marca patterns for brand-from-title extraction
+  await loadMarcaLookup(client);
+  console.log('');
 
   // Get max dates already in DB
   const sosMaxRes = await client.query(
@@ -316,14 +374,19 @@ async function main() {
       const dir = path.join(base, country);
       if (!fs.existsSync(dir)) { console.log(`Skipping ${kindLabel}/${country} — folder not found`); continue; }
 
-      const maxDate = maxDates[pais] || '2000-01-01';
+      const maxDate = force ? '2000-01-01' : (maxDates[pais] || '2000-01-01');
       const xlsxFiles = fs.readdirSync(dir)
         .filter(f => f.endsWith('.xlsx') && !f.startsWith('~') && !f.startsWith('.'))
         .map(f => {
           const m = f.match(/(\d{4}-\d{2}-\d{2})/);
           return m ? { name: f, date: m[1] } : null;
         })
-        .filter(f => f && f.date > maxDate)
+        .filter(f => {
+          if (!f) return false;
+          if (force && forceFrom && f.date < forceFrom) return false;
+          if (force && forceTo   && f.date > forceTo)   return false;
+          return f.date > maxDate || (force && (!forceFrom || f.date >= forceFrom));
+        })
         .sort((a, b) => a.date.localeCompare(b.date));
 
       if (!xlsxFiles.length) {
@@ -365,6 +428,48 @@ async function main() {
       }
       console.log(`  → Total inserted for ${kindLabel}/${country}: ${totalInserted}\n`);
     }
+  }
+
+  // Fix existing rows with null marca from May 4 onwards (brand-from-title).
+  // This repairs rows already in the DB that were previously loaded without brand extraction.
+  // Uses batched multi-row UPDATE VALUES approach for efficiency.
+  console.log('Fixing null/empty marca in existing DB rows (from 2026-05-04) via title matching...');
+  const fixFromDate = '2026-05-04';
+
+  for (const [table, label] of [['eci.sos', 'SOS'], ['eci.search', 'Search']]) {
+    const nullRows = await client.query(
+      `SELECT ctid::text, titulo FROM ${table} WHERE fecha >= $1 AND (marca IS NULL OR marca = '')`,
+      [fixFromDate]
+    );
+    if (!nullRows.rows.length) { console.log(`  ${label}: no null-marca rows to fix`); continue; }
+
+    const updates = [];
+    for (const row of nullRows.rows) {
+      const extracted = extractMarcaFromTitulo(row.titulo);
+      if (extracted) updates.push([row.ctid, extracted]);
+    }
+    if (!updates.length) { console.log(`  ${label}: 0 matches found in ${nullRows.rows.length} null-marca rows`); continue; }
+
+    // Batch update: build one UPDATE ... FROM (VALUES ...) statement per 1000 rows
+    let updated = 0;
+    const chunkSize = 1000;
+    for (let i = 0; i < updates.length; i += chunkSize) {
+      const chunk = updates.slice(i, i + chunkSize);
+      // Build VALUES list: ($1::text, $2::text), ($3, $4), ...
+      const vals = [];
+      const params = [];
+      for (const [ctid, marca] of chunk) {
+        vals.push(`($${params.length + 1}::text::tid, $${params.length + 2}::text)`);
+        params.push(ctid, marca);
+      }
+      await client.query(
+        `UPDATE ${table} t SET marca = v.marca FROM (VALUES ${vals.join(',')}) AS v(ctid, marca) WHERE t.ctid = v.ctid`,
+        params
+      );
+      updated += chunk.length;
+      process.stdout.write(`  ${label}: updated ${updated}/${updates.length}...\r`);
+    }
+    console.log(`  ${label}: fixed ${updated}/${nullRows.rows.length} null-marca rows        `);
   }
 
   // Update fabricante from marca_fabricante where null

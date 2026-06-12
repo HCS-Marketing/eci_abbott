@@ -186,6 +186,7 @@ export default function RankingScorePage() {
       return next
     })
     setSelectedSeller(prev => {
+      if (prev === "") return prev
       if (prev && sellers.includes(prev)) return prev
       return sellers.find(s => s.toUpperCase() === "ABBOTT") || sellers[0]
     })
