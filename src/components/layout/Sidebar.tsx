@@ -5,16 +5,18 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Tag, LogOut, ScanSearch, LayoutGrid,
+  Tag, LogOut, ScanSearch, LayoutGrid, Zap, Package,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 import { useGlobalFilters } from "@/lib/filter-context"
 
 const NAV = [
-  { href: "/main",           label: "Inicio",   icon: LayoutGrid  },
-  { href: "/share-of-shelf", label: "SOS",      icon: Search      },
-  { href: "/search",          label: "Search",   icon: ScanSearch  },
-  { href: "/ranking",         label: "Ranking",  icon: ListOrdered },
+  { href: "/main",           label: "Inicio",     icon: LayoutGrid  },
+  { href: "/share-of-shelf", label: "SOS",        icon: Search      },
+  { href: "/search",          label: "Search",     icon: ScanSearch  },
+  { href: "/ranking",         label: "Ranking",    icon: ListOrdered },
+  { href: "/buybox",          label: "BuyBox",     icon: Zap         },
+  { href: "/inventory",       label: "Inventario", icon: Package     },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
