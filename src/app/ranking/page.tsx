@@ -178,7 +178,7 @@ export default function RankingScorePage() {
 
   useEffect(() => {
     const sellers = sellerData.map(e => String(e.seller))
-    if (sellers.length === 0) { setSelectedSellers([]); setSelectedSeller(""); return }
+    if (sellers.length === 0) { setSelectedSellers([]); return }
     setSelectedSellers(prev => {
       const kept = prev.filter(s => sellers.includes(s))
       const next = kept.length ? kept : sellers.slice(0, 5)
@@ -186,7 +186,6 @@ export default function RankingScorePage() {
       return next
     })
     setSelectedSeller(prev => {
-      if (prev === "") return prev
       if (prev && sellers.includes(prev)) return prev
       return sellers.find(s => s.toUpperCase() === "ABBOTT") || sellers[0]
     })
