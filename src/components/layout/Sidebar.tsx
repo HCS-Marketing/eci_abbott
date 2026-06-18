@@ -102,6 +102,7 @@ export default function Sidebar() {
                 onChange={e => setCountry(e.target.value)}
                 className="w-full rounded-lg border border-white/10 bg-white/5 text-[13px] text-white px-2 py-1.5 outline-none"
               >
+                <option value="" className="text-black">Todos</option>
                 {countries.map(c => (
                   <option key={c} value={c} className="text-black">{countryLabel(c)}</option>
                 ))}

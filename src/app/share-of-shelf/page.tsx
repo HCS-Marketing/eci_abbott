@@ -409,7 +409,7 @@ export default function ShareOfShelfPage() {
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, country, segmento, mercado, selectedSeller, page, startDate, endDate]
+    [channel, category, country, segmento, mercado, selectedSeller, page, startDate, endDate, selectedSellers]
   )
 
   useEffect(() => {
@@ -676,7 +676,9 @@ export default function ShareOfShelfPage() {
         {[
           {
             label: `SOS ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSellerLabel}`,
-            value: `${selectedSeller ? ((page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0) : 100}%`,
+            value: sellerData.length === 0
+              ? "—"
+              : `${selectedSeller ? ((page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0) : 100}%`,
             change: Number(page === "p1" ? ownEntry?.sos_p1_change : ownEntry?.sos_total_change),
           },
           {
@@ -684,8 +686,10 @@ export default function ShareOfShelfPage() {
             value: sellerRank ? `#${sellerRank}` : "—",
           },
           {
-            label: "Productos en pág 1",
-            value: String(selectedSeller ? (ownEntry?.products_p1 ?? 0) : totalProductsP1),
+            label: "Apariciones en pág. 1",
+            value: sellerData.length === 0
+              ? "—"
+              : String(selectedSeller ? (ownEntry?.products_p1 ?? 0) : totalProductsP1),
           },
           {
             label: "Fabricantes analizados",

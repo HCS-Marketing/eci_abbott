@@ -653,7 +653,7 @@ export default function ShareOfShelfPage() {
             value: `#${(sellerData.findIndex(e => e.seller === selectedSeller) + 1) || "—"}`,
           },
           {
-            label: "Productos en pág 1",
+            label: "Apariciones en pág. 1",
             value: String(ownEntry?.products_p1 ?? 0),
           },
           {

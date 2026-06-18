@@ -29,14 +29,32 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     fetch("/api/sos?action=countries")
       .then(r => r.json())
-      .then((data: string[]) => {
-        if (!Array.isArray(data)) return
-        setCountries(data)
-        setCountryState(prev => (prev && data.includes(prev) ? prev : ""))
+      .then((data: unknown) => {
+        if (cancelled) return
+        if (!Array.isArray(data) || data.length === 0) return
+        const list = (data as string[]).filter(Boolean)
+        if (list.length === 0) return
+        setCountries(list)
+        setCountryState(prev => {
+          if (prev && list.includes(prev)) return prev
+          if (prev) return prev // keep saved value even if not in list yet
+          const next = list[0]
+          try { window.localStorage.setItem(STORAGE_KEY, next) } catch {}
+          return next
+        })
       })
-      .finally(() => setLoadingCountries(false))
+      .catch(() => {
+        // network error: keep saved country untouched
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCountries(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const setCountry = (next: string) => {

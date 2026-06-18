@@ -1,0 +1,1452 @@
+===== FABRICANTES =====
+
+Typographic clusters with proposed canonical (67):
+
+  -> "MARCA LOCAL"
+        (keep)    2469187  "MARCA LOCAL"
+        merge           5  "'MARCA LOCAL'"
+
+  -> "MEAD JOHNSON"
+        (keep)      84137  "MEAD JOHNSON"
+        merge       37165  "MEAD & JOHNSON"
+
+  -> "PROCTER & GAMBLE"
+        (keep)      78229  "PROCTER & GAMBLE"
+        merge          66  "PROCTER&GAMBLE"
+
+  -> "L'OREAL"
+        merge       42435  "L’OREAL"
+        (keep)        653  "L'OREAL"
+        merge         194  "LOREAL"
+
+  -> "ENFAGROW (MEAD JOHNSON NUTRITION)"
+        merge       35362  "ENFAGROW (MEAD JOHNSON NUTRITION"
+        (keep)        677  "ENFAGROW (MEAD JOHNSON NUTRITION)"
+
+  -> "KIMBERLY-CLARK"
+        merge       16689  "KIMBERLY CLARK"
+        (keep)      13039  "KIMBERLY-CLARK"
+
+  -> "HEB"
+        merge       28191  "H-E-B"
+        (keep)        258  "HEB"
+
+  -> "SC JOHNSON"
+        (keep)      11610  "SC JOHNSON"
+        merge        6039  "S.C. JOHNSON"
+
+  -> "MEGALABS"
+        (keep)      15464  "MEGALABS"
+        merge        2016  "MEGA LABS"
+
+  -> "KEZER-LAB"
+        merge        8093  "KEZER LAB"
+        (keep)       4565  "KEZER-LAB"
+
+  -> "DR. BROWN'S"
+        merge        6881  "DR. BROWN’S"
+        merge        5182  "DR BROWNS"
+        (keep)         82  "DR. BROWN'S"
+        merge           4  "DR. BROWNS"
+
+  -> "ABBVIE"
+        (keep)       6663  "ABBVIE"
+        merge        5249  "ABBVIE."
+
+  -> "NATURE'S BOUNTY"
+        (keep)       4204  "NATURE'S BOUNTY"
+        merge        3902  "NATURE’S BOUNTY"
+        merge         348  "NATURES BOUNTY"
+        merge          12  "NATURE S BOUNTY"
+
+  -> "NUTRASTEVIA"
+        (keep)       6798  "NUTRASTEVIA"
+        merge        1272  "NUTRA STEVIA"
+
+  -> "GLAXOSMITHKLINE"
+        (keep)       7224  "GLAXOSMITHKLINE"
+        merge         172  "GLAXO SMITHKLINE"
+
+  -> "KELLOGG'S"
+        (keep)       4604  "KELLOGG'S"
+        merge        2714  "KELLOGG’S"
+
+  -> "OLI 21"
+        (keep)       7113  "OLI 21"
+        merge         101  "OLI21"
+
+  -> "MEGA LIFE"
+        (keep)       7184  "MEGA LIFE"
+        merge           6  "MEGALIFE"
+
+  -> "PRO NUTRITION"
+        (keep)       5966  "PRO NUTRITION"
+        merge         521  "PRONUTRITION"
+
+  -> "GOTO MARKET"
+        (keep)       6070  "GOTO MARKET"
+        merge           8  "GO TO MARKET"
+
+  -> "BSN MEDICAL"
+        (keep)       3006  "BSN MEDICAL"
+        merge        2455  "BSNMEDICAL"
+
+  -> "ADN WOMEN'S"
+        (keep)       5004  "ADN WOMEN'S"
+        merge          16  "ADN WOMEN’S"
+
+  -> "TECNOQUIMICAS (MK)"
+        merge        4893  "TECNOQUIMICAS (MK"
+        (keep)         79  "TECNOQUIMICAS (MK)"
+
+  -> "MERCK SHARP & DOHME"
+        (keep)       4630  "MERCK SHARP & DOHME"
+        merge           4  "MERCK SHARP DOHME"
+
+  -> "BOTANICAL'S"
+        (keep)       3039  "BOTANICAL'S"
+        merge        1582  "BOTANICALS"
+        merge           6  "BOTANICAL’S"
+        merge           3  "BOTANICAL S"
+
+  -> "JOHNSON'S"
+        (keep)       4260  "JOHNSON'S"
+        merge          69  "JOHNSONS"
+
+  -> "NATURAL SLIM"
+        (keep)       3082  "NATURAL SLIM"
+        merge         778  "NATURALSLIM"
+
+  -> "SMARTBLENDS"
+        (keep)       3802  "SMARTBLENDS"
+        merge          45  "SMART BLENDS"
+
+  -> "SUNDESA (BLENDERBOTTLE)"
+        merge        3323  "SUNDESA (BLENDERBOTTLE"
+        (keep)         45  "SUNDESA (BLENDERBOTTLE)"
+
+  -> "MORE"
+        (keep)       1879  "MORE"
+        merge         628  "MORE+"
+
+  -> "L'OREAL PARIS"
+        merge        1807  "LOREAL PARIS"
+        (keep)          9  "L'OREAL PARIS"
+
+  -> "HERBALS HEALTH"
+        (keep)       1280  "HERBALS HEALTH"
+        merge         312  "HERBALS & HEALTH"
+
+  -> "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY)"
+        merge        1434  "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY"
+        (keep)         91  "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY)"
+
+  -> "ECO TU"
+        (keep)       1435  "ECO TU"
+        merge           6  "ECOTU"
+
+  -> "BRISTOL-MYERS SQUIBB"
+        merge        1120  "BRISTOL MYERS SQUIBB"
+        (keep)        264  "BRISTOL-MYERS SQUIBB"
+
+  -> "DR RASHEL"
+        (keep)       1352  "DR RASHEL"
+        merge          10  "DR. RASHEL"
+
+  -> "SANPELLEGRINO S.P.A"
+        (keep)       1228  "SANPELLEGRINO S.P.A"
+        merge          14  "SANPELLEGRINO S.P.A."
+
+  -> "OPTION S.A"
+        (keep)        599  "OPTION S.A"
+        merge         541  "OPTION SA"
+
+  -> "COLVENFAR S.A.S"
+        (keep)       1099  "COLVENFAR S.A.S"
+        merge           8  "COLVENFAR SAS"
+
+  -> "BLACK FIT"
+        (keep)        870  "BLACK FIT"
+        merge          99  "BLACKFIT"
+
+  -> "LAB QS EXCLUSIVO"
+        (keep)        764  "LAB QS EXCLUSIVO"
+        merge           2  "LAB QS  EXCLUSIVO"
+
+  -> "OMEGA (MARCA LOCAL)"
+        merge         725  "OMEGA (MARCA LOCAL"
+        (keep)         32  "OMEGA (MARCA LOCAL)"
+
+  -> "NESTLE (TERRAFERTIL)"
+        merge         673  "NESTLE (TERRAFERTIL"
+        (keep)         10  "NESTLE (TERRAFERTIL)"
+
+  -> "PURITAN'S PRIDE"
+        merge         384  "PURITANS PRIDE"
+        merge         277  "PURITAN’S PRIDE"
+
+  -> "BAUSCH & LOMB"
+        merge         541  "BAUSCH + LOMB"
+        (keep)        116  "BAUSCH & LOMB"
+
+  -> "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP)"
+        merge         582  "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP"
+        (keep)         50  "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP)"
+
+  -> "COSECHA DEL PARAISO"
+        (keep)        610  "COSECHA DEL PARAISO"
+        merge          12  "COSECHA DEL PARAISO ."
+
+  -> "MY PROTEIN"
+        (keep)        330  "MY PROTEIN"
+        merge         203  "MYPROTEIN"
+
+  -> "NATURE'S TRUTH"
+        merge         372  "NATURE’S TRUTH"
+        (keep)        142  "NATURE'S TRUTH"
+
+  -> "BABYLISS PRO"
+        (keep)        262  "BABYLISS PRO"
+        merge         215  "BABYLISSPRO"
+
+  -> "MICROINGREDIENTS"
+        (keep)        376  "MICROINGREDIENTS"
+        merge          81  "MICRO INGREDIENTS"
+
+  -> "PANTOGAR (MERZ PHARMA"
+        (keep)        377  "PANTOGAR (MERZ PHARMA"
+        merge          53  "PANTOGAR (MERZ PHARMA)"
+
+  -> "NATURE’S WAY PRODUCTS"
+        (keep)        314  "NATURE’S WAY PRODUCTS"
+        merge          20  "NATURE’S WAY PRODUCTS,"
+
+  -> "KAST PE"
+        (keep)        220  "KAST PE"
+        merge         104  "KASTPE"
+
+  -> "PROTEIN WORLD LTD"
+        (keep)        265  "PROTEIN WORLD LTD"
+        merge           3  "PROTEIN WORLD LTD."
+
+  -> "MERCK SHARP & DOHME (MSD"
+        (keep)        237  "MERCK SHARP & DOHME (MSD"
+        merge          11  "MERCK SHARP & DOHME (MSD)"
+
+  -> "BOB'S RED MILL NATURAL FOODS"
+        (keep)        151  "BOB'S RED MILL NATURAL FOODS"
+        merge          43  "BOB’S RED MILL NATURAL FOODS"
+
+  -> "METAGENICS"
+        (keep)         76  "METAGENICS"
+        merge          72  "METAGENICS,"
+
+  -> "GSK (GLAXOSMITHKLINE"
+        (keep)        134  "GSK (GLAXOSMITHKLINE"
+        merge           5  "GSK (GLAXOSMITHKLINE)"
+
+  -> "SUNWARRIOR,"
+        (keep)         64  "SUNWARRIOR,"
+        merge          33  "SUNWARRIOR"
+
+  -> "PHYSICIANS CHOICE"
+        (keep)         65  "PHYSICIANS CHOICE"
+        merge          24  "PHYSICIAN’S CHOICE"
+
+  -> "DESIGNS FOR HEALTH"
+        (keep)         79  "DESIGNS FOR HEALTH"
+        merge           7  "DESIGNS FOR HEALTH,"
+
+  -> "SALUS HAUS"
+        (keep)         27  "SALUS HAUS"
+        merge           3  "SALUS-HAUS"
+
+  -> "BIO-OIL"
+        (keep)         18  "BIO-OIL"
+        merge           1  "BIO OIL"
+
+  -> "THE VITAMIN SHOPPE,"
+        (keep)         16  "THE VITAMIN SHOPPE,"
+        merge           3  "THE VITAMIN SHOPPE"
+
+  -> "FOOTWORKS"
+        (keep)          8  "FOOTWORKS"
+        merge           4  "FOOT WORKS"
+
+  -> "KIRKMAN GROUP,"
+        (keep)          3  "KIRKMAN GROUP,"
+        merge           2  "KIRKMAN GROUP"
+
+
+Hard merges from the agreed table (3):
+
+        90213  "SOTTCOR"  ->  "SOTTCOR LABS"
+        13654  "TRIFARMA OTC"  ->  "TRIFARMA"
+         4893  "TECNOQUIMICAS (MK"  ->  "TECNOQUIMICAS (MK)"
+
+Country/region suffix pairs (42):
+
+   [MERGE_INTO_BARE]
+     suffixed: "3M COLOMBIA"  rows=7472  pais=CO,MX
+     bare:     "3M"  rows=1113  pais=CO,MX
+     -> "3M"
+
+   [MERGE_INTO_BARE]
+     suffixed: "3M PERU"  rows=216  pais=PE
+     bare:     "3M"  rows=1113  pais=CO,MX
+     -> "3M"
+
+   [MERGE_INTO_BARE]
+     suffixed: "ALCON COLOMBIA"  rows=359  pais=CO
+     bare:     "ALCON"  rows=7163  pais=CO,MX
+     -> "ALCON"
+
+   [MERGE_INTO_BARE]
+     suffixed: "ASPEN PERU"  rows=1267  pais=PE
+     bare:     "ASPEN"  rows=8410  pais=CO,MX
+     -> "ASPEN"
+
+   [MERGE_INTO_BARE]
+     suffixed: "ASTRAZENECA COL"  rows=7577  pais=CO,MX
+     bare:     "ASTRAZENECA"  rows=7426  pais=CO,MX
+     -> "ASTRAZENECA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "BABARIA COLOMBIA"  rows=839  pais=CO
+     bare:     "BABARIA"  rows=14879  pais=CO,MX,PE
+     -> "BABARIA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "BAGO COLOMBIA"  rows=541  pais=CO
+     bare:     "BAGO"  rows=9970  pais=CO,PE
+     -> "BAGO"
+
+   [MERGE_INTO_BARE]
+     suffixed: "BENINO PERU"  rows=5611  pais=PE
+     bare:     "BENINO"  rows=23461  pais=PE
+     -> "BENINO"
+
+   [MERGE_INTO_BARE]
+     suffixed: "BIOLOGISTICA PERU"  rows=1455  pais=PE
+     bare:     "BIOLOGISTICA"  rows=1127  pais=PE
+     -> "BIOLOGISTICA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "COLOMBIA NATURA"  rows=80  pais=CO
+     bare:     "NATURA"  rows=44  pais=PE
+     -> "NATURA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "CONTEXPORT COLOMBIA"  rows=2849  pais=CO
+     bare:     "CONTEXPORT"  rows=484  pais=CO,MX
+     -> "CONTEXPORT"
+
+   [MERGE_INTO_BARE]
+     suffixed: "EMCURE PHARMA PERU"  rows=279  pais=PE
+     bare:     "EMCURE PHARMA"  rows=6  pais=PE
+     -> "EMCURE PHARMA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "EUROFARMA PERU"  rows=2  pais=PE
+     bare:     "EUROFARMA"  rows=17101  pais=CO,MX,PE
+     -> "EUROFARMA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "EXELTIS PERU"  rows=2  pais=PE
+     bare:     "EXELTIS"  rows=8220  pais=CO,MX
+     -> "EXELTIS"
+
+   [MERGE_INTO_BARE]
+     suffixed: "GALENICUM HEALTH PERU"  rows=2  pais=PE
+     bare:     "GALENICUM HEALTH"  rows=2  pais=PE
+     -> "GALENICUM HEALTH"
+
+   [MERGE_INTO_BARE]
+     suffixed: "GENOMMA LAB. PERU"  rows=1347  pais=PE
+     bare:     "GENOMMA LAB"  rows=27219  pais=CO,MX,PE
+     -> "GENOMMA LAB"
+
+   [MERGE_INTO_BARE]
+     suffixed: "GLAXO SMITHKLINE PERU"  rows=2596  pais=PE
+     bare:     "GLAXOSMITHKLINE"  rows=7396  pais=PE,CO,MX
+     -> "GLAXOSMITHKLINE"
+
+   [MERGE_INTO_BARE]
+     suffixed: "HALEON COLOMBIA"  rows=221  pais=CO
+     bare:     "HALEON"  rows=22265  pais=CO,MX
+     -> "HALEON"
+
+   [MERGE_INTO_BARE]
+     suffixed: "HEEL COLOMBIA"  rows=2711  pais=CO
+     bare:     "HEEL"  rows=8486  pais=CO
+     -> "HEEL"
+
+   [MERGE_INTO_BARE]
+     suffixed: "ISDIN COLOMBIA"  rows=575  pais=CO
+     bare:     "ISDIN"  rows=30106  pais=CO,MX,PE
+     -> "ISDIN"
+
+   [MERGE_INTO_BARE]
+     suffixed: "ITF FARMACEUTICA PERU"  rows=5666  pais=PE
+     bare:     "ITF FARMACEUTICA"  rows=210  pais=PE
+     -> "ITF FARMACEUTICA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "LOREAL COLOMBIA"  rows=18720  pais=CO,MX
+     bare:     "L'OREAL"  rows=43282  pais=CO,MX,PE
+     -> "L'OREAL"
+
+   [MERGE_INTO_BARE]
+     suffixed: "LOREAL PERU"  rows=76  pais=PE
+     bare:     "L'OREAL"  rows=43282  pais=CO,MX,PE
+     -> "L'OREAL"
+
+   [MERGE_INTO_BARE]
+     suffixed: "MAGELLAN TRADING PERU"  rows=2505  pais=PE
+     bare:     "MAGELLAN TRADING"  rows=744  pais=PE
+     -> "MAGELLAN TRADING"
+
+   [MERGE_INTO_BARE]
+     suffixed: "MAVER PERU"  rows=2  pais=PE
+     bare:     "MAVER"  rows=1  pais=MX
+     -> "MAVER"
+
+   [MERGE_INTO_BARE]
+     suffixed: "MEGA LABS LATAM"  rows=4  pais=PE
+     bare:     "MEGALABS"  rows=17480  pais=PE,CO
+     -> "MEGALABS"
+
+   [MERGE_INTO_BARE]
+     suffixed: "NAOS PERU"  rows=4  pais=PE
+     bare:     "NAOS"  rows=2028  pais=CO,MX,PE
+     -> "NAOS"
+
+   [MERGE_INTO_BARE]
+     suffixed: "NEOLPHARMA PERU"  rows=4  pais=PE
+     bare:     "NEOLPHARMA"  rows=10  pais=PE
+     -> "NEOLPHARMA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "NESTLE COLOMBIA"  rows=36664  pais=CO,MX
+     bare:     "NESTLE"  rows=391028  pais=CO,MX,PE
+     -> "NESTLE"
+
+   [MERGE_INTO_BARE]
+     suffixed: "PANIJU PERU"  rows=203  pais=PE
+     bare:     "PANIJU"  rows=2016  pais=CO,PE
+     -> "PANIJU"
+
+   [MERGE_INTO_BARE]
+     suffixed: "PHARMARIS PERU"  rows=263  pais=PE
+     bare:     "PHARMARIS"  rows=21427  pais=CO,PE
+     -> "PHARMARIS"
+
+   [MERGE_INTO_BARE]
+     suffixed: "PUIG COLOMBIA"  rows=564  pais=CO
+     bare:     "PUIG"  rows=479  pais=MX,PE
+     -> "PUIG"
+
+   [MERGE_INTO_BARE]
+     suffixed: "PUIG PERU"  rows=772  pais=PE
+     bare:     "PUIG"  rows=479  pais=MX,PE
+     -> "PUIG"
+
+   [MERGE_INTO_BARE]
+     suffixed: "QUIMICA SUIZA COLOMBIA"  rows=525  pais=CO
+     bare:     "QUIMICA SUIZA"  rows=92  pais=PE
+     -> "QUIMICA SUIZA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "RB HEALTH PERU"  rows=253  pais=PE
+     bare:     "RB HEALTH"  rows=315  pais=CO
+     -> "RB HEALTH"
+
+   [MERGE_INTO_BARE]
+     suffixed: "SANULAC COLOMBIA"  rows=8671  pais=CO
+     bare:     "SANULAC"  rows=37810  pais=CO,MX,PE
+     -> "SANULAC"
+
+   [MERGE_INTO_BARE]
+     suffixed: "SANULAC NUTRICION PERU"  rows=3697  pais=PE
+     bare:     "SANULAC NUTRICION"  rows=124  pais=PE
+     -> "SANULAC NUTRICION"
+
+   [MERGE_INTO_BARE]
+     suffixed: "SESDERMA COLOMBIA"  rows=982  pais=CO
+     bare:     "SESDERMA"  rows=8677  pais=CO,MX,PE
+     -> "SESDERMA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "SEVEN PHARMA COLOMBIA"  rows=101  pais=CO
+     bare:     "SEVEN PHARMA"  rows=157  pais=PE
+     -> "SEVEN PHARMA"
+
+   [MERGE_INTO_BARE]
+     suffixed: "STARBRANDS PERU"  rows=508  pais=PE
+     bare:     "STARBRANDS"  rows=1831  pais=CO,PE
+     -> "STARBRANDS"
+
+   [MERGE_INTO_BARE]
+     suffixed: "UNILEVER ANDINA"  rows=26548  pais=CO,MX
+     bare:     "UNILEVER"  rows=54053  pais=CO,MX,PE
+     -> "UNILEVER"
+
+   [MERGE_INTO_BARE]
+     suffixed: "ZAMBON COLOMBIA"  rows=2040  pais=CO
+     bare:     "ZAMBON"  rows=10553  pais=CO,MX
+     -> "ZAMBON"
+
+
+===== MARCAS =====
+
+Typographic clusters with proposed canonical (222):
+
+  -> "B-LIFE"
+        (keep)      18436  "B-LIFE"
+        merge       10818  "B LIFE"
+        merge        9413  "BLIFE"
+
+  -> "BIODERMA"
+        (keep)      28218  "BIODERMA"
+        merge         548  "BIODER MA"
+
+  -> "LA ROCHE-POSAY"
+        (keep)      26701  "LA ROCHE-POSAY"
+        merge        1457  "LA ROCHE POSAY"
+
+  -> "DR BROWNS"
+        (keep)      19382  "DR BROWNS"
+        merge        5579  "DR. BROWN'S"
+        merge         156  "DR BROWN'S"
+        merge          17  "DR BROWN S"
+        merge           4  "DR. BROWNS"
+
+  -> "NEWHEALTH"
+        (keep)      19120  "NEWHEALTH"
+        merge         524  "NEW HEALTH"
+
+  -> "ALFA SAFE"
+        (keep)      11488  "ALFA SAFE"
+        merge        2689  "ALFASAFE"
+
+  -> "MEMBER'S MARK"
+        (keep)      13340  "MEMBER'S MARK"
+        merge          61  "MEMBERS MARK"
+
+  -> "LOREAL"
+        (keep)      12464  "LOREAL"
+        merge         838  "L'OREAL"
+
+  -> "PONDS"
+        (keep)      10064  "PONDS"
+        merge        2901  "POND'S"
+
+  -> "OLI21"
+        (keep)       9161  "OLI21"
+        merge        2539  "OLI 21"
+
+  -> "L'OREAL PARIS"
+        (keep)       8269  "L'OREAL PARIS"
+        merge        3326  "LOREAL PARIS"
+        merge           2  "L’OREAL PARIS"
+
+  -> "WAKEUP"
+        (keep)      10865  "WAKEUP"
+        merge          49  "WAKE UP"
+
+  -> "LIFE 360+"
+        (keep)       8662  "LIFE 360+"
+        merge        1451  "LIFE 360"
+        merge          58  "LIFE360+"
+
+  -> "MYPROTEIN"
+        (keep)       9694  "MYPROTEIN"
+        merge         338  "MY PROTEIN"
+
+  -> "BEIERSDORF (B.D.F.)"
+        (keep)       9733  "BEIERSDORF (B.D.F.)"
+        merge          31  "BEIERSDORF  (B.D.F.)"
+
+  -> "NUTRIBABY"
+        (keep)       9315  "NUTRIBABY"
+        merge         391  "NUTRI BABY"
+
+  -> "ACCU-CHEK"
+        (keep)       9103  "ACCU-CHEK"
+        merge         293  "ACCU CHEK"
+        merge         197  "ACCUCHEK"
+
+  -> "ORAL-B"
+        (keep)       8818  "ORAL-B"
+        merge         195  "ORAL B"
+
+  -> "MAH!"
+        (keep)       4726  "MAH!"
+        merge        4213  "MAH"
+
+  -> "FISHER PRICE"
+        (keep)       4886  "FISHER PRICE"
+        merge        3641  "FISHER-PRICE"
+
+  -> "NUTRASTEVIA"
+        (keep)       6798  "NUTRASTEVIA"
+        merge        1272  "NUTRA STEVIA"
+
+  -> "RED BULL"
+        (keep)       7998  "RED BULL"
+        merge          19  "REDBULL"
+
+  -> "JOHNSON'S"
+        (keep)       6354  "JOHNSON'S"
+        merge        1207  "JOHNSONS"
+        merge           9  "JOHNSON S"
+
+  -> "NATURE'S BOUNTY"
+        (keep)       7020  "NATURE'S BOUNTY"
+        merge         407  "NATURES BOUNTY"
+
+  -> "MULTIBLUE"
+        (keep)       7072  "MULTIBLUE"
+        merge          41  "MULTI BLUE"
+
+  -> "H2OH"
+        (keep)       3969  "H2OH"
+        merge        2900  "H2OH!"
+
+  -> "MEGALABS"
+        (keep)       6345  "MEGALABS"
+        merge         520  "MEGA LABS"
+
+  -> "NATURES HEART"
+        (keep)       5557  "NATURES HEART"
+        merge         684  "NATURE'S HEART"
+
+  -> "DNATTIVE"
+        (keep)       5888  "DNATTIVE"
+        merge          55  "D'NATTIVE"
+
+  -> "GARNIER SKIN ACTIVE"
+        (keep)       5662  "GARNIER SKIN ACTIVE"
+        merge         279  "GARNIER-SKIN ACTIVE"
+
+  -> "MORE"
+        (keep)       4981  "MORE"
+        merge         628  "MORE+"
+
+  -> "TECNOQUIMICAS S.A"
+        (keep)       4365  "TECNOQUIMICAS S.A"
+        merge        1194  "TECNOQUIMICAS SA"
+
+  -> "MERCK SHARP DOHME"
+        (keep)       4585  "MERCK SHARP DOHME"
+        merge          13  "MERCK SHARP  DOHME"
+
+  -> "COCA-COLA"
+        (keep)       4368  "COCA-COLA"
+        merge          43  "COCA COLA"
+
+  -> "ALITRAQ"
+        (keep)       4391  "ALITRAQ"
+        merge           1  "ALITRA Q"
+
+  -> "NATURAL SLIM"
+        (keep)       3082  "NATURAL SLIM"
+        merge        1268  "NATURALSLIM"
+
+  -> "PROCTER GAMBLE COLOMBIA LTDA"
+        (keep)       4286  "PROCTER GAMBLE COLOMBIA LTDA"
+        merge           9  "PROCTER & GAMBLE COLOMBIA LTDA"
+
+  -> "NUTRICOST"
+        (keep)       4210  "NUTRICOST"
+        merge           1  "NUTRI COST"
+
+  -> "MONT BLANC"
+        (keep)       3138  "MONT BLANC"
+        merge         788  "MONTBLANC"
+
+  -> "BOTANICAL'S"
+        (keep)       2307  "BOTANICAL'S"
+        merge        1593  "BOTANICALS"
+
+  -> "SMARTBLENDS"
+        (keep)       3805  "SMARTBLENDS"
+        merge          45  "SMART BLENDS"
+
+  -> "CURE BAND"
+        (keep)       2827  "CURE BAND"
+        merge         894  "CUREBAND"
+
+  -> "BIPRO"
+        (keep)       2020  "BIPRO"
+        merge        1612  "BI PRO"
+
+  -> "BRONCHO-VAXOM"
+        (keep)       3224  "BRONCHO-VAXOM"
+        merge         233  "BRONCHO VAXOM"
+
+  -> "GELHADA"
+        (keep)       3272  "GELHADA"
+        merge         160  "GEL HADA"
+
+  -> "MEGA LIFE"
+        (keep)       3011  "MEGA LIFE"
+        merge         396  "MEGALIFE"
+
+  -> "SLIMFAST"
+        (keep)       3197  "SLIMFAST"
+        merge         200  "SLIM FAST"
+
+  -> "ASTRAZENECA"
+        (keep)       3136  "ASTRAZENECA"
+        merge           8  "ASTRA - ZENECA"
+
+  -> "GUM"
+        (keep)       1964  "GUM"
+        merge         991  "G.U.M"
+
+  -> "DR. SCHOLL'S"
+        (keep)       2085  "DR. SCHOLL'S"
+        merge         742  "DR SCHOLLS"
+        merge          67  "DR SCHOLL'S"
+        merge           9  "DR. SCHOLLS"
+        merge           2  "DR. SCHOLL S"
+
+  -> "A-DERMA"
+        (keep)       2613  "A-DERMA"
+        merge         287  "ADERMA"
+
+  -> "KLEEN BEBE"
+        (keep)       1437  "KLEEN BEBE"
+        merge        1414  "KLEENBEBE"
+
+  -> "NATNACK"
+        (keep)       2802  "NATNACK"
+        merge          23  "NAT NACK"
+
+  -> "PIREFEN"
+        (keep)       2564  "PIREFEN"
+        merge         242  "PIRE-FEN"
+
+  -> "GOOD N NATURAL"
+        (keep)       2323  "GOOD N NATURAL"
+        merge         349  "GOOD'N NATURAL"
+
+  -> "BD ULTRA-FINE"
+        (keep)       2539  "BD ULTRA-FINE"
+        merge          98  "BD ULTRA FINE"
+
+  -> "DONT WORRY"
+        (keep)       2533  "DONT WORRY"
+        merge          83  "DON'TWORRY"
+        merge           9  "DON'T WORRY"
+
+  -> "PALMER'S"
+        (keep)       1525  "PALMER'S"
+        merge        1015  "PALMERS"
+
+  -> "C-BOOST"
+        (keep)       2089  "C-BOOST"
+        merge         358  "CBOOST"
+        merge          22  "C BOOST"
+
+  -> "T'BEST"
+        (keep)       1550  "T'BEST"
+        merge         864  "T BEST"
+
+  -> "LIVNUTRITION"
+        (keep)       2349  "LIVNUTRITION"
+        merge          60  "LIV NUTRITION"
+
+  -> "FITO KIDS"
+        (keep)       1677  "FITO KIDS"
+        merge         595  "FITOKIDS"
+
+  -> "SUN PRO"
+        (keep)       1990  "SUN PRO"
+        merge         236  "SUNPRO"
+
+  -> "AGUARDIENTE ANTIOQUENO 24°"
+        (keep)       2182  "AGUARDIENTE ANTIOQUENO 24°"
+        merge           5  "AGUARDIENTE ANTIOQUENO 24"
+
+  -> "DOLO-NEUROBION"
+        (keep)       1857  "DOLO-NEUROBION"
+        merge         309  "DOLO NEUROBION"
+
+  -> "GASTRO FULL"
+        (keep)       1698  "GASTRO FULL"
+        merge         362  "GASTROFULL"
+
+  -> "PEDIASURE 10+"
+        (keep)       1986  "PEDIASURE 10+"
+        merge          35  "PEDIASURE 10"
+
+  -> "HERSHEYS"
+        (keep)       1771  "HERSHEYS"
+        merge         178  "HERSHEY'S"
+
+  -> "HEALTHY AMERICA COLOMBIA S.A.S."
+        (keep)       1682  "HEALTHY AMERICA COLOMBIA S.A.S."
+        merge         256  "HEALTHY AMERICA COLOMBIA SAS"
+        merge           1  "HEALTHY AMERICA COLOMBIA S.A.S"
+
+  -> "RYBELSUS"
+        (keep)       1391  "RYBELSUS"
+        merge         375  "RYBELSUS®"
+
+  -> "NUTRICO"
+        (keep)       1030  "NUTRICO"
+        merge         692  "NUTRI CO"
+
+  -> "WATERWIPES"
+        (keep)       1311  "WATERWIPES"
+        merge         392  "WATER WIPES"
+
+  -> "SUPERMUNDO"
+        (keep)       1625  "SUPERMUNDO"
+        merge          71  "SUPER MUNDO"
+
+  -> "FORT ZINK"
+        (keep)       1083  "FORT ZINK"
+        merge         579  "FORTZINK"
+
+  -> "NENEDENT"
+        (keep)       1536  "NENEDENT"
+        merge          94  "NENE DENT"
+
+  -> "ANA MARIA LA JUSTICIA"
+        (keep)       1092  "ANA MARIA LA JUSTICIA"
+        merge         533  "ANA MARIA LAJUSTICIA"
+
+  -> "VIVO"
+        (keep)        916  "VIVO"
+        merge         698  "VIVO+"
+
+  -> "PROXTENPLUS"
+        (keep)       1429  "PROXTENPLUS"
+        merge         178  "PROXTEN PLUS"
+
+  -> "GRIPP-HEEL"
+        (keep)       1351  "GRIPP-HEEL"
+        merge         205  "GRIPP HEEL"
+
+  -> "ONE TOUCH"
+        (keep)       1295  "ONE TOUCH"
+        merge         256  "ONETOUCH"
+
+  -> "KLIHEEL"
+        (keep)       1499  "KLIHEEL"
+        merge           4  "KLI.HEEL"
+
+  -> "OLNATURA"
+        (keep)       1339  "OLNATURA"
+        merge          99  "OL NATURA"
+
+  -> "ULTRA-FINE"
+        (keep)       1336  "ULTRA-FINE"
+        merge          91  "ULTRA FINE"
+
+  -> "SESDERMA COLOMBIA S.A"
+        (keep)       1169  "SESDERMA COLOMBIA S.A"
+        merge         255  "SESDERMA COLOMBIA SA"
+
+  -> "VALARA NUTRITION"
+        (keep)       1369  "VALARA NUTRITION"
+        merge          11  "VALARA-NUTRITION"
+
+  -> "DR RASHEL"
+        (keep)       1352  "DR RASHEL"
+        merge          10  "DR. RASHEL"
+
+  -> "FARMACOL CHINOIN S.A.S"
+        (keep)       1346  "FARMACOL CHINOIN S.A.S"
+        merge          15  "FARMACOL CHINOIN SAS"
+
+  -> "TWENTY'S"
+        (keep)        882  "TWENTY'S"
+        merge         470  "TWENTYS"
+
+  -> "MICHELSONPHARMA"
+        (keep)        974  "MICHELSONPHARMA"
+        merge         361  "MICHELSON PHARMA"
+
+  -> "BIO-OIL"
+        (keep)       1278  "BIO-OIL"
+        merge          18  "BIO OIL"
+
+  -> "TEARSOFT"
+        (keep)       1138  "TEARSOFT"
+        merge         112  "TEARSOFT."
+
+  -> "CANAMOR"
+        (keep)        615  "CANAMOR"
+        merge         610  "CAN AMOR"
+
+  -> "PREVITA MOM"
+        (keep)        914  "PREVITA MOM"
+        merge         304  "PREVITA-MOM"
+
+  -> "TUKOL-D"
+        (keep)       1107  "TUKOL-D"
+        merge         100  "TUKOL D"
+
+  -> "BURT'S BEES"
+        (keep)        687  "BURT'S BEES"
+        merge         507  "BURTS BEES"
+
+  -> "EMERGEN-C"
+        (keep)       1133  "EMERGEN-C"
+        merge          54  "EMERGEN C"
+
+  -> "BLACK+DECKER"
+        (keep)       1156  "BLACK+DECKER"
+        merge          18  "BLACK & DECKER"
+
+  -> "ENFAMIL AR"
+        (keep)        901  "ENFAMIL AR"
+        merge         254  "ENFAMIL A.R."
+
+  -> "TIBETNATURA"
+        (keep)       1109  "TIBETNATURA"
+        merge          24  "TIBET NATURA"
+
+  -> "SAF-GEL"
+        (keep)       1084  "SAF-GEL"
+        merge          24  "SAF - GEL"
+
+  -> "NOVO NORDISK COLOMBIA S A S"
+        (keep)        963  "NOVO NORDISK COLOMBIA S A S"
+        merge         120  "NOVO NORDISK COLOMBIA SAS"
+
+  -> "DREAMBABY"
+        (keep)        994  "DREAMBABY"
+        merge          64  "DREAM BABY"
+
+  -> "PREDIAL"
+        (keep)       1039  "PREDIAL"
+        merge           4  "PRE DIAL"
+
+  -> "NATURE'S LIFE"
+        (keep)        958  "NATURE'S LIFE"
+        merge          52  "NATURES LIFE"
+
+  -> "BLACK FIT"
+        (keep)        870  "BLACK FIT"
+        merge          99  "BLACKFIT"
+
+  -> "ALLI TRIPLE"
+        (keep)        498  "ALLI TRIPLE"
+        merge         397  "ALLITRIPLE"
+        merge          37  "ALLI-TRIPLE"
+
+  -> "7 UP"
+        (keep)        929  "7 UP"
+        merge           1  "7UP"
+
+  -> "SK-INVITA"
+        (keep)        918  "SK-INVITA"
+        merge           6  "SK INVITA"
+
+  -> "SIMILAC ARROZ ADVANCE"
+        (keep)        776  "SIMILAC ARROZ ADVANCE"
+        merge         143  "SIMILAC ARROZ-ADVANCE"
+
+  -> "MEDIVELIUS FARMACEUTICA S.A"
+        (keep)        686  "MEDIVELIUS FARMACEUTICA S.A"
+        merge         213  "MEDIVELIUS FARMACEUTICA SA"
+
+  -> "BAMBOO"
+        (keep)        832  "BAMBOO"
+        merge          49  "BAM BOO"
+
+  -> "LA CROIX"
+        (keep)        668  "LA CROIX"
+        merge         181  "LACROIX"
+
+  -> "OFF!"
+        (keep)        663  "OFF!"
+        merge         169  "OFF"
+
+  -> "RINO LAST"
+        (keep)        648  "RINO LAST"
+        merge         171  "RINOLAST"
+
+  -> "POLY-VI-GOMIS"
+        (keep)        619  "POLY-VI-GOMIS"
+        merge         199  "POLY VI GOMIS"
+
+  -> "MINO FOAM"
+        (keep)        485  "MINO FOAM"
+        merge         327  "MINOFOAM"
+
+  -> "NUEVI D"
+        (keep)        512  "NUEVI D"
+        merge         298  "NUEVID"
+
+  -> "JOHNSON & JOHNSON"
+        (keep)        765  "JOHNSON & JOHNSON"
+        merge          13  "JOHNSON&JOHNSON"
+
+  -> "GLAXOSMITHKLINE"
+        (keep)        592  "GLAXOSMITHKLINE"
+        merge         172  "GLAXO SMITHKLINE"
+
+  -> "CHOCO MILK"
+        (keep)        631  "CHOCO MILK"
+        merge          87  "CHOCOMILK"
+
+  -> "DUO-DECADRON"
+        (keep)        698  "DUO-DECADRON"
+        merge          10  "DUO DECADRON"
+
+  -> "NUTRIBELA 15"
+        (keep)        363  "NUTRIBELA 15"
+        merge         330  "NUTRIBELA15"
+
+  -> "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S.A.S"
+        (keep)        374  "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S.A.S"
+        merge         301  "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S A S"
+
+  -> "HMB"
+        (keep)        672  "HMB"
+        merge           2  "HMB!"
+
+  -> "BI PROFENID"
+        (keep)        630  "BI PROFENID"
+        merge          33  "BIPROFENID"
+
+  -> "TRI-VI-SOL"
+        (keep)        312  "TRI-VI-SOL"
+        merge         283  "TRIVISOL"
+        merge          50  "TRI VI SOL"
+
+  -> "XRAY"
+        (keep)        466  "XRAY"
+        merge         172  "X RAY"
+
+  -> "TRANSVITAL D"
+        (keep)        601  "TRANSVITAL D"
+        merge          28  "TRANSVITAL-D"
+
+  -> "DR. TEALS"
+        (keep)        480  "DR. TEALS"
+        merge         110  "DR TEALS"
+        merge          12  "DR. TEAL'S"
+
+  -> "VITALBOTANICS"
+        (keep)        331  "VITALBOTANICS"
+        merge         264  "VITAL BOTANICS"
+
+  -> "BABYLISSPRO"
+        (keep)        292  "BABYLISSPRO"
+        merge         262  "BABYLISS PRO"
+
+  -> "PURITANS PRIDE"
+        (keep)        399  "PURITANS PRIDE"
+        merge         147  "PURITAN'S PRIDE"
+
+  -> "NEPRO HP"
+        (keep)        534  "NEPRO HP"
+        merge           4  "NEPRO-HP"
+
+  -> "ARM & HAMMER"
+        (keep)        431  "ARM & HAMMER"
+        merge         100  "ARM&HAMMER"
+
+  -> "PROSCIENCE"
+        (keep)        464  "PROSCIENCE"
+        merge          61  "PRO SCIENCE"
+
+  -> "E PURA"
+        (keep)        267  "E PURA"
+        merge         254  "EPURA"
+
+  -> "MARYRUTH"
+        (keep)        416  "MARYRUTH"
+        merge          98  "MARY RUTH"
+
+  -> "MARY RUTHS"
+        (keep)        399  "MARY RUTHS"
+        merge          92  "MARYRUTHS"
+
+  -> "XT- VR"
+        (keep)        253  "XT- VR"
+        merge         234  "XT-VR"
+
+  -> "LERACO"
+        (keep)        409  "LERACO"
+        merge          71  "LERA-CO"
+
+  -> "MICROINGREDIENTS"
+        (keep)        376  "MICROINGREDIENTS"
+        merge         103  "MICRO INGREDIENTS"
+
+  -> "CLOB X"
+        (keep)        313  "CLOB X"
+        merge         153  "CLOB-X"
+
+  -> "T/L/D"
+        (keep)        379  "T/L/D"
+        merge          84  "TLD"
+
+  -> "KELLOGGS"
+        (keep)        432  "KELLOGGS"
+        merge          29  "KELLOGG'S"
+
+  -> "ILAB SAS"
+        (keep)        416  "ILAB SAS"
+        merge          30  "I-LAB SAS"
+
+  -> "NATURAL SMARTNUTRITION"
+        (keep)        384  "NATURAL SMARTNUTRITION"
+        merge          55  "NATURAL SMART NUTRITION"
+
+  -> "LABORATORIOS BAXTER S.A."
+        (keep)        301  "LABORATORIOS BAXTER S.A."
+        merge         135  "LABORATORIOS BAXTER SA"
+
+  -> "NYQUILZ"
+        (keep)        306  "NYQUILZ"
+        merge         130  "NYQUIL Z"
+
+  -> "PROWINNER"
+        (keep)        330  "PROWINNER"
+        merge         102  "PRO WINNER"
+
+  -> "DR JOOHN"
+        (keep)        362  "DR JOOHN"
+        merge          64  "DRJOOHN"
+
+  -> "GLITACAR-1"
+        (keep)        393  "GLITACAR-1"
+        merge          33  "GLITACAR 1"
+
+  -> "CENTRUM GENDER+50"
+        (keep)        275  "CENTRUM GENDER+50"
+        merge         123  "CENTRUM GENDER +50"
+
+  -> "HOMECHOICE"
+        (keep)        387  "HOMECHOICE"
+        merge          10  "HOME CHOICE"
+
+  -> "CRISTAL UP"
+        (keep)        321  "CRISTAL UP"
+        merge          70  "CRISTALUP"
+
+  -> "TAIFELD'S"
+        (keep)        372  "TAIFELD'S"
+        merge           7  "TAIFELDS"
+
+  -> "CLARAX"
+        (keep)        274  "CLARAX"
+        merge         100  "CLARA'X"
+
+  -> "BIODERMA SENSIBIO"
+        (keep)        263  "BIODERMA SENSIBIO"
+        merge         101  "BIODERMA-SENSIBIO"
+
+  -> "VASCULFLOW"
+        (keep)        300  "VASCULFLOW"
+        merge          59  "VASCUL-FLOW"
+
+  -> "DIABETRICS HEALTHCARE S.A.S"
+        (keep)        205  "DIABETRICS HEALTHCARE S.A.S"
+        merge         135  "DIABETRICS HEALTHCARE SAS"
+        merge          12  "DIABETRICS HEALTHCARE S A S"
+
+  -> "DR ALTHEA"
+        (keep)        256  "DR ALTHEA"
+        merge          92  "DR. ALTHEA"
+
+  -> "POLY-VI-SOL"
+        (keep)        323  "POLY-VI-SOL"
+        merge          22  "POLY VI SOL"
+
+  -> "SNATURAL"
+        (keep)        331  "SNATURAL"
+        merge          14  "S NATURAL"
+
+  -> "LIPOVITASI-OR"
+        (keep)        320  "LIPOVITASI-OR"
+        merge          24  "LIPOVITASI OR"
+
+  -> "COLVENFAR S.A.S."
+        (keep)        327  "COLVENFAR S.A.S."
+        merge          15  "COLVENFAR SAS"
+
+  -> "BARRINOLAS"
+        (keep)        308  "BARRINOLAS"
+        merge          28  "BARRI NOLAS"
+
+  -> "FLOSPRO"
+        (keep)        332  "FLOSPRO"
+        merge           3  "FLOS-PRO"
+
+  -> "NATURE'S WAY"
+        (keep)        314  "NATURE'S WAY"
+        merge          20  "NATURES WAY"
+
+  -> "SCOTCH BRITE"
+        (keep)        320  "SCOTCH BRITE"
+        merge           8  "SCOTCH-BRITE"
+
+  -> "KAST PE"
+        (keep)        220  "KAST PE"
+        merge         104  "KASTPE"
+
+  -> "DR. BECKMANN"
+        (keep)        285  "DR. BECKMANN"
+        merge          36  "DR BECKMANN"
+
+  -> "L'MAR SPA"
+        (keep)        256  "L'MAR SPA"
+        merge          58  "LMAR SPA"
+
+  -> "LIFE 180"
+        (keep)        230  "LIFE 180"
+        merge          74  "LIFE180"
+
+  -> "VITAMIN WATER"
+        (keep)        277  "VITAMIN WATER"
+        merge           8  "VITAMINWATER"
+
+  -> "FER-IN-SOL"
+        (keep)        269  "FER-IN-SOL"
+        merge          15  "FERINSOL"
+
+  -> "ORANGEL ART"
+        (keep)        218  "ORANGEL ART"
+        merge          61  "ORANGELART"
+
+  -> "PROQUIDENT S.A"
+        (keep)        259  "PROQUIDENT S.A"
+        merge          15  "PROQUIDENT SA"
+
+  -> "LABORATORIOS CHALVER DE COLOMBIA SA"
+        (keep)        173  "LABORATORIOS CHALVER DE COLOMBIA SA"
+        merge          98  "LABORATORIOS CHALVER DE COLOMBIA S.A."
+
+  -> "MYOS NOR"
+        (keep)        154  "MYOS NOR"
+        merge         115  "MYOS-NOR"
+
+  -> "PURA"
+        (keep)        147  "PURA"
+        merge         122  "PURA+"
+
+  -> "IMMU-FLO"
+        (keep)        136  "IMMU-FLO"
+        merge         129  "IMMU-FLO®"
+
+  -> "BIOELECTRO"
+        (keep)        208  "BIOELECTRO"
+        merge          44  "BIO-ELECTRO"
+
+  -> "JADORE"
+        (keep)        167  "JADORE"
+        merge          80  "J'ADORE"
+
+  -> "ARISTOCAPS RB"
+        (keep)        228  "ARISTOCAPS RB"
+        merge          12  "ARISTOCAPS-RB"
+
+  -> "LIFE CARE"
+        (keep)        198  "LIFE CARE"
+        merge          36  "LIFECARE"
+
+  -> "GN+ VIDA"
+        (keep)        115  "GN+ VIDA"
+        merge         114  "GN+VIDA"
+
+  -> "SIMONDS"
+        (keep)        198  "SIMONDS"
+        merge          18  "SIMOND'S"
+
+  -> "NUTRAVITPLUS"
+        (keep)        103  "NUTRAVITPLUS"
+        merge          92  "NUTRAVIT PLUS"
+
+  -> "BOB'S RED MILL"
+        (keep)        151  "BOB'S RED MILL"
+        merge          43  "BOBS RED MILL"
+
+  -> "DEPOMEDROL"
+        (keep)        169  "DEPOMEDROL"
+        merge          19  "DEPO-MEDROL"
+
+  -> "CARBIDOPA LEVODOPA"
+        (keep)        185  "CARBIDOPA LEVODOPA"
+        merge           2  "CARBIDOPA-LEVODOPA"
+
+  -> "PREMIUM BABY"
+        (keep)        151  "PREMIUM BABY"
+        merge          24  "P'REMIUM BABY"
+
+  -> "HOME TRENDS"
+        (keep)        161  "HOME TRENDS"
+        merge           7  "HOMETRENDS"
+
+  -> "ADEKON C"
+        (keep)        159  "ADEKON C"
+        merge           8  "ADEKON-C"
+
+  -> "BAUSCH + LOMB"
+        (keep)        120  "BAUSCH + LOMB"
+        merge          44  "BAUSCH & LOMB"
+
+  -> "WAY TO CELEBRATE"
+        (keep)        148  "WAY TO CELEBRATE"
+        merge          11  "WAY TO CELEBRATE!"
+
+  -> "CHOCOZERO"
+        (keep)        102  "CHOCOZERO"
+        merge          56  "CHOCO ZERO"
+
+  -> "UROCIT K"
+        (keep)        102  "UROCIT K"
+        merge          40  "UROCIT-K"
+
+  -> "HUMALOG."
+        (keep)         72  "HUMALOG."
+        merge          68  "HUMALOG"
+
+  -> "FARMA DE COLOMBIA SAS"
+        (keep)        130  "FARMA DE COLOMBIA SAS"
+        merge           9  "FARMA DE COLOMBIA S.A.S."
+
+  -> "DATASAVE"
+        (keep)        100  "DATASAVE"
+        merge          34  "DATA SAVE"
+
+  ... 22 more clusters in JSON
+
+===== CATEGORIES (per pais/retail) =====
+
+
+--- CO / CRUZ VERDE  (8 clusters) ---
+  -> "Alimento Infantil"
+        (keep)      22665  "Alimento Infantil"
+        merge         118  "ALIMENTO INFANTIL"
+  -> "Diabetes"
+        (keep)       6748  "Diabetes"
+        merge          47  "DIABETES"
+  -> "Formulas Infantiles"
+        (keep)      26396  "Formulas Infantiles"
+        merge         122  "FORMULAS INFANTILES"
+  -> "Hidratación"
+        (keep)     162374  "Hidratación"
+        merge         586  "HIDRATACION"
+  -> "Nutricion"
+        (keep)      36222  "Nutricion"
+        merge          14  "NUTRICION"
+  -> "Nutricion Adultos"
+        (keep)     149520  "Nutricion Adultos"
+        merge         762  "NUTRICION ADULTOS"
+  -> "Nutricion Niños"
+        (keep)     174750  "Nutricion Niños"
+        merge         503  "NUTRICION NINOS"
+  -> "Rehidratantes"
+        (keep)      29078  "Rehidratantes"
+        merge         251  "REHIDRATANTES"
+
+--- CO / FARMATODO  (6 clusters) ---
+  -> "Antidiarréicos y Sueros"
+        (keep)      18729  "Antidiarréicos y Sueros"
+        merge          61  "ANTIDIARREICOS Y SUEROS"
+  -> "Formulas Infantiles"
+        (keep)     289515  "Formulas Infantiles"
+        merge         295  "FORMULAS INFANTILES"
+  -> "Hidratación"
+        (keep)     124310  "Hidratación"
+        merge         320  "HIDRATACION"
+  -> "Nutricion Adultos"
+        (keep)     164005  "Nutricion Adultos"
+        merge       32847  "Nutricion / Adultos"
+        merge         590  "NUTRICION ADULTOS"
+        merge         120  "NUTRICION / ADULTOS"
+  -> "Nutricion Niños"
+        (keep)     314391  "Nutricion Niños"
+        merge        4864  "Nutricion / Niños"
+        merge         322  "NUTRICION NINOS"
+        merge          17  "NUTRICION / NINOS"
+  -> "Rehidratantes"
+        (keep)      40473  "Rehidratantes"
+        merge         150  "REHIDRATANTES"
+
+--- CO / RAPPI  (4 clusters) ---
+  -> "Fórmula"
+        (keep)       1558  "Fórmula"
+        merge         395  "FORMULA"
+  -> "Niños"
+        (keep)       1582  "Niños"
+        merge         586  "NINOS"
+  -> "Proteína"
+        (keep)       1642  "Proteína"
+        merge         673  "PROTEINA"
+  -> "Salud Nutricional"
+        (keep)      21009  "Salud Nutricional"
+        merge         111  "SALUD NUTRICIONAL"
+
+--- CO / REBAJA VIRTUAL  (3 clusters) ---
+  -> "Crecimiento"
+        (keep)       5722  "Crecimiento"
+        merge          39  "CRECIMIENTO"
+  -> "Hidratación"
+        (keep)      24444  "Hidratación"
+        merge       10271  "Hidratacion"
+  -> "Nutricion Niños"
+        (keep)     100768  "Nutricion Niños"
+        merge        6321  "Nutricion / Niños"
+
+--- MX / AMAZON  (3 clusters) ---
+  -> "Fórmula Láctea"
+        (keep)       6340  "Fórmula Láctea"
+        merge        1355  "Formula Lactea"
+        merge          96  "FORMULA LACTEA"
+  -> "Proteina"
+        (keep)      25493  "Proteina"
+        merge          95  "PROTEINA"
+  -> "Vitaminas"
+        (keep)      14012  "Vitaminas"
+        merge          96  "VITAMINAS"
+
+--- MX / FARMACIA SAN PABLO  (1 clusters) ---
+  -> "Fórmula Láctea"
+        (keep)      50948  "Fórmula Láctea"
+        merge          28  "FORMULA LACTEA"
+
+--- MX / HEB  (2 clusters) ---
+  -> "Proteina"
+        (keep)       8781  "Proteina"
+        merge         400  "PROTEINA"
+  -> "Vitaminas"
+        (keep)       4316  "Vitaminas"
+        merge         271  "VITAMINAS"
+
+--- MX / WALMART  (2 clusters) ---
+  -> "Fórmula Láctea"
+        (keep)      25583  "Fórmula Láctea"
+        merge          96  "Formula Lactea"
+  -> "Proteínas y Suplementos"
+        (keep)      50584  "Proteínas y Suplementos"
+        merge         352  "Proteinas y Suplementos"
+
+--- PE / INKAFARMA  (2 clusters) ---
+  -> "Pediasure"
+        (keep)        456  "Pediasure"
+        merge          42  "PEDIASURE"
+  -> "Vitaminas"
+        (keep)      18447  "Vitaminas"
+        merge         995  "VITAMINAS"
+
+--- PE / MIFARMA  (3 clusters) ---
+  -> "Dermocosmética"
+        (keep)        491  "Dermocosmética"
+        merge           1  "Dermocosmetica"
+  -> "Pediasure"
+        (keep)        403  "Pediasure"
+        merge          24  "PEDIASURE"
+  -> "Vitaminas"
+        (keep)       7119  "Vitaminas"
+        merge         988  "VITAMINAS"

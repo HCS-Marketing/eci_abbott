@@ -47,6 +47,13 @@ export async function GET(req: Request) {
   const country  = searchParams.get("country") || ""
   const segmento = searchParams.get("segmento") || ""
   const mercado  = searchParams.get("mercado") || ""
+  const pageMode = (searchParams.get("page") || "p1") === "p1" ? "p1" : "total"
+  // When page=p1, skip rows that have no page-1 appearances. Pure perf optimization
+  // for SOS daily MVs (count_p1/count_total) — sos_p1 math is unchanged because
+  // count_p1=0 rows contribute 0 to both numerator and denominator.
+  const sosPageFilter = pageMode === "p1" ? " AND count_p1 > 0" : ""
+  // Same idea for ranking MVs (sum_ranking_p1/sum_ranking_total).
+  const rankPageFilter = pageMode === "p1" ? " AND sum_ranking_p1 > 0" : ""
 
   try {
     // ── date range (from mv_sos_dimensions — 83 rows) ────
@@ -139,26 +146,34 @@ export async function GET(req: Request) {
     }
 
     // ── segmentos list — from marca_fabricante ────────────
-    // Country/channel filter via fabricante (not marca) because marca differs between tables.
+    // Combine channel + country filters via a fabricante sub-query against mv_sos_daily_fab.
     if (action === "segmentos") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
-      if (channel) { p.push(channel); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE retail = $${p.length})` }
-      else if (country) { p.push(country); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE pais = $${p.length})` }
+      if (channel || country) {
+        const sub: string[] = []
+        if (channel) { p.push(channel); sub.push(`retail = $${p.length}`) }
+        if (country) { p.push(country); sub.push(`pais = $${p.length}`) }
+        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE ${sub.join(" AND ")})`
+      }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
     // ── mercados list — from marca_fabricante ─────────────
-    // Country/channel filter via fabricante (not marca) because marca differs between tables.
+    // Combine channel + country filters via a fabricante sub-query against mv_sos_daily_fab.
     if (action === "mercados") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND fabricante != 'MARCA LOCAL'`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
-      if (channel) { p.push(channel); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE retail = $${p.length})` }
-      else if (country) { p.push(country); sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE pais = $${p.length})` }
+      if (channel || country) {
+        const sub: string[] = []
+        if (channel) { p.push(channel); sub.push(`retail = $${p.length}`) }
+        if (country) { p.push(country); sub.push(`pais = $${p.length}`) }
+        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE ${sub.join(" AND ")})`
+      }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
@@ -209,7 +224,7 @@ export async function GET(req: Request) {
           SELECT fabricante AS fab,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
-          FROM ${table} d WHERE ${w}${mf}
+          FROM ${table} d WHERE ${w}${mf}${sosPageFilter}
           GROUP BY fabricante
         ),
         totals AS (
@@ -252,7 +267,7 @@ export async function GET(req: Request) {
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
           FROM eci.mv_sos_daily_marca d
-          WHERE ${w}${mf}
+          WHERE ${w}${mf}${sosPageFilter}
           GROUP BY marca, fabricante
         ),
         totals AS (
@@ -295,7 +310,7 @@ export async function GET(req: Request) {
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
           FROM eci.mv_sos_daily_titulo d
-          WHERE ${w}${mf}
+          WHERE ${w}${mf}${sosPageFilter}
           GROUP BY producto_id, fabricante
         ),
         totals AS (
@@ -340,13 +355,13 @@ export async function GET(req: Request) {
       const sql = `
         WITH daily_total AS (
           SELECT fecha AS day, SUM(count_p1) AS total_p1, SUM(count_total) AS total_all
-          FROM ${table} d WHERE ${w}${mf}
+          FROM ${table} d WHERE ${w}${mf}${sosPageFilter}
           GROUP BY fecha
         ),
         seller_daily AS (
           SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1, SUM(count_total) AS products_total
           FROM ${table} d
-          WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})
+          WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})${sosPageFilter}
           GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
@@ -380,7 +395,7 @@ export async function GET(req: Request) {
             SUM(count_total) AS total_all,
             SUM(CASE WHEN fabricante = $${p.length} THEN count_p1 ELSE 0 END) AS seller_p1,
             SUM(CASE WHEN fabricante = $${p.length} THEN count_total ELSE 0 END) AS seller_all
-          FROM ${table} d WHERE ${w}${mf}
+          FROM ${table} d WHERE ${w}${mf}${sosPageFilter}
           GROUP BY retail
         )
         SELECT retail AS channel,
@@ -411,7 +426,7 @@ export async function GET(req: Request) {
           fabricante AS seller,
           SUM(sum_ranking_p1)    AS score_p1,
           SUM(sum_ranking_total) AS score_total
-        FROM ${table} d WHERE ${w}${mf}
+        FROM ${table} d WHERE ${w}${mf}${rankPageFilter}
         GROUP BY fabricante
         ORDER BY score_p1 DESC
         LIMIT 50
@@ -438,7 +453,7 @@ export async function GET(req: Request) {
           SUM(sum_ranking_p1)    AS score_p1,
           SUM(sum_ranking_total) AS score_total
         FROM eci.mv_ranking_daily_marca d
-        WHERE ${w}${mf}
+        WHERE ${w}${mf}${rankPageFilter}
         GROUP BY marca, fabricante
         ORDER BY score_p1 DESC
         LIMIT 50
@@ -465,7 +480,7 @@ export async function GET(req: Request) {
           SUM(sum_ranking_p1)    AS score_p1,
           SUM(sum_ranking_total) AS score_total
         FROM eci.mv_ranking_daily_titulo d
-        WHERE ${w}${mf}
+        WHERE ${w}${mf}${rankPageFilter}
         GROUP BY titulo_id, fabricante
         ORDER BY score_p1 DESC
         LIMIT 30
@@ -496,7 +511,7 @@ export async function GET(req: Request) {
           SUM(sum_ranking_p1) AS score_p1,
           SUM(sum_ranking_total) AS score_total
         FROM ${table} d
-        WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})
+        WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})${rankPageFilter}
         GROUP BY fecha, fabricante
         ORDER BY fecha, fabricante
       `
@@ -521,7 +536,7 @@ export async function GET(req: Request) {
         SELECT retail AS channel,
           SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_p1    ELSE 0 END) AS seller_p1,
           SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_total  ELSE 0 END) AS seller_total
-        FROM ${table} d WHERE ${w}${mf}
+        FROM ${table} d WHERE ${w}${mf}${rankPageFilter}
         GROUP BY retail
         HAVING SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_p1 ELSE 0 END) > 0
         ORDER BY seller_p1 DESC
@@ -1144,19 +1159,17 @@ export async function GET(req: Request) {
     if (action === "marca_fabricante") {
       const p: unknown[] = []
       let w = "1=1"
-      if (country)  { p.push(country);  w += ` AND mf.pais = $${p.length}` }
       if (segmento) { p.push(segmento); w += ` AND mf.segmento = $${p.length}` }
       if (mercado)  { p.push(mercado);  w += ` AND mf.mercado = $${p.length}` }
       const sql = `
-        SELECT mf.marca, mf.pais, mf.fabricante, mf.n_apariciones,
-               mf.segmento, mf.mercado
+        SELECT mf.marca, mf.fabricante, mf.segmento, mf.mercado
         FROM eci.marca_fabricante mf
         WHERE ${w}
-        ORDER BY mf.n_apariciones DESC
+        ORDER BY mf.marca
         LIMIT 500
       `
       const rows = await prisma.$queryRawUnsafe<{
-        marca: string; pais: string; fabricante: string; n_apariciones: number
+        marca: string; fabricante: string
         segmento: string | null; mercado: string | null
       }[]>(sql, ...p)
       return NextResponse.json(rows)

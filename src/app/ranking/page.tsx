@@ -248,10 +248,11 @@ export default function RankingScorePage() {
         `&mercado=${encodeURIComponent(mercado)}` +
         `&seller=${encodeURIComponent(selectedSeller)}` +
         `&sellers=${selectedSellersRef.current.join(",")}` +
+        `&page=${page}` +
         (startDate ? `&startDate=${startDate}` : "") +
         (endDate   ? `&endDate=${endDate}`     : "")
       ).then(r => r.json()).then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, country, segmento, mercado, selectedSeller, startDate, endDate]
+    [channel, category, country, segmento, mercado, selectedSeller, page, startDate, endDate, selectedSellers]
   )
 
   useEffect(() => {

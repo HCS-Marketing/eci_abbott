@@ -1,0 +1,5744 @@
+{
+  "fabricantes": {
+    "map": {
+      "'MARCA LOCAL'": "MARCA LOCAL",
+      "ABBVIE.": "ABBVIE",
+      "ADN WOMEN’S": "ADN WOMEN'S",
+      "BABYLISSPRO": "BABYLISS PRO",
+      "BAUSCH + LOMB": "BAUSCH & LOMB",
+      "BIO OIL": "BIO-OIL",
+      "BLACKFIT": "BLACK FIT",
+      "BOB’S RED MILL NATURAL FOODS": "BOB'S RED MILL NATURAL FOODS",
+      "BOTANICAL S": "BOTANICAL'S",
+      "BOTANICALS": "BOTANICAL'S",
+      "BOTANICAL’S": "BOTANICAL'S",
+      "BRISTOL MYERS SQUIBB": "BRISTOL-MYERS SQUIBB",
+      "BSNMEDICAL": "BSN MEDICAL",
+      "COLVENFAR SAS": "COLVENFAR S.A.S",
+      "COSECHA DEL PARAISO .": "COSECHA DEL PARAISO",
+      "DESIGNS FOR HEALTH,": "DESIGNS FOR HEALTH",
+      "DR BROWNS": "DR. BROWN'S",
+      "DR. BROWNS": "DR. BROWN'S",
+      "DR. BROWN’S": "DR. BROWN'S",
+      "DR. RASHEL": "DR RASHEL",
+      "ECOTU": "ECO TU",
+      "ENFAGROW (MEAD JOHNSON NUTRITION": "ENFAGROW (MEAD JOHNSON NUTRITION)",
+      "FOOT WORKS": "FOOTWORKS",
+      "GLAXO SMITHKLINE": "GLAXOSMITHKLINE",
+      "GO TO MARKET": "GOTO MARKET",
+      "GSK (GLAXOSMITHKLINE)": "GSK (GLAXOSMITHKLINE",
+      "H-E-B": "HEB",
+      "HERBALS & HEALTH": "HERBALS HEALTH",
+      "JOHNSONS": "JOHNSON'S",
+      "KASTPE": "KAST PE",
+      "KELLOGG’S": "KELLOGG'S",
+      "KEZER LAB": "KEZER-LAB",
+      "KIMBERLY CLARK": "KIMBERLY-CLARK",
+      "KIRKMAN GROUP": "KIRKMAN GROUP,",
+      "LOREAL": "L'OREAL",
+      "L’OREAL": "L'OREAL",
+      "LOREAL PARIS": "L'OREAL PARIS",
+      "LAB QS  EXCLUSIVO": "LAB QS EXCLUSIVO",
+      "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY": "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY)",
+      "MEAD & JOHNSON": "MEAD JOHNSON",
+      "MEGA LABS": "MEGALABS",
+      "MEGALIFE": "MEGA LIFE",
+      "MERCK SHARP DOHME": "MERCK SHARP & DOHME",
+      "MERCK SHARP & DOHME (MSD)": "MERCK SHARP & DOHME (MSD",
+      "METAGENICS,": "METAGENICS",
+      "MICRO INGREDIENTS": "MICROINGREDIENTS",
+      "MORE+": "MORE",
+      "MYPROTEIN": "MY PROTEIN",
+      "NATURALSLIM": "NATURAL SLIM",
+      "NATURE S BOUNTY": "NATURE'S BOUNTY",
+      "NATURES BOUNTY": "NATURE'S BOUNTY",
+      "NATURE’S BOUNTY": "NATURE'S BOUNTY",
+      "NATURE’S TRUTH": "NATURE'S TRUTH",
+      "NATURE’S WAY PRODUCTS,": "NATURE’S WAY PRODUCTS",
+      "NESTLE (TERRAFERTIL": "NESTLE (TERRAFERTIL)",
+      "NUTRA STEVIA": "NUTRASTEVIA",
+      "OLI21": "OLI 21",
+      "OMEGA (MARCA LOCAL": "OMEGA (MARCA LOCAL)",
+      "OPTION SA": "OPTION S.A",
+      "PANTOGAR (MERZ PHARMA)": "PANTOGAR (MERZ PHARMA",
+      "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP": "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP)",
+      "PHYSICIAN’S CHOICE": "PHYSICIANS CHOICE",
+      "PRONUTRITION": "PRO NUTRITION",
+      "PROCTER&GAMBLE": "PROCTER & GAMBLE",
+      "PROTEIN WORLD LTD.": "PROTEIN WORLD LTD",
+      "PURITANS PRIDE": "PURITAN'S PRIDE",
+      "PURITAN’S PRIDE": "PURITAN'S PRIDE",
+      "S.C. JOHNSON": "SC JOHNSON",
+      "SALUS-HAUS": "SALUS HAUS",
+      "SANPELLEGRINO S.P.A.": "SANPELLEGRINO S.P.A",
+      "SMART BLENDS": "SMARTBLENDS",
+      "SUNDESA (BLENDERBOTTLE": "SUNDESA (BLENDERBOTTLE)",
+      "SUNWARRIOR": "SUNWARRIOR,",
+      "TECNOQUIMICAS (MK": "TECNOQUIMICAS (MK)",
+      "THE VITAMIN SHOPPE": "THE VITAMIN SHOPPE,",
+      "SOTTCOR": "SOTTCOR LABS",
+      "TRIFARMA OTC": "TRIFARMA",
+      "3M COLOMBIA": "3M",
+      "3M PERU": "3M",
+      "ALCON COLOMBIA": "ALCON",
+      "ASPEN PERU": "ASPEN",
+      "ASTRAZENECA COL": "ASTRAZENECA",
+      "BABARIA COLOMBIA": "BABARIA",
+      "BAGO COLOMBIA": "BAGO",
+      "BENINO PERU": "BENINO",
+      "BIOLOGISTICA PERU": "BIOLOGISTICA",
+      "COLOMBIA NATURA": "NATURA",
+      "CONTEXPORT COLOMBIA": "CONTEXPORT",
+      "EMCURE PHARMA PERU": "EMCURE PHARMA",
+      "EUROFARMA PERU": "EUROFARMA",
+      "EXELTIS PERU": "EXELTIS",
+      "GALENICUM HEALTH PERU": "GALENICUM HEALTH",
+      "GENOMMA LAB. PERU": "GENOMMA LAB",
+      "GLAXO SMITHKLINE PERU": "GLAXOSMITHKLINE",
+      "HALEON COLOMBIA": "HALEON",
+      "HEEL COLOMBIA": "HEEL",
+      "ISDIN COLOMBIA": "ISDIN",
+      "ITF FARMACEUTICA PERU": "ITF FARMACEUTICA",
+      "LOREAL COLOMBIA": "L'OREAL",
+      "LOREAL PERU": "L'OREAL",
+      "MAGELLAN TRADING PERU": "MAGELLAN TRADING",
+      "MAVER PERU": "MAVER",
+      "MEGA LABS LATAM": "MEGALABS",
+      "NAOS PERU": "NAOS",
+      "NEOLPHARMA PERU": "NEOLPHARMA",
+      "NESTLE COLOMBIA": "NESTLE",
+      "PANIJU PERU": "PANIJU",
+      "PHARMARIS PERU": "PHARMARIS",
+      "PUIG COLOMBIA": "PUIG",
+      "PUIG PERU": "PUIG",
+      "QUIMICA SUIZA COLOMBIA": "QUIMICA SUIZA",
+      "RB HEALTH PERU": "RB HEALTH",
+      "SANULAC COLOMBIA": "SANULAC",
+      "SANULAC NUTRICION PERU": "SANULAC NUTRICION",
+      "SESDERMA COLOMBIA": "SESDERMA",
+      "SEVEN PHARMA COLOMBIA": "SEVEN PHARMA",
+      "STARBRANDS PERU": "STARBRANDS",
+      "UNILEVER ANDINA": "UNILEVER",
+      "ZAMBON COLOMBIA": "ZAMBON"
+    },
+    "typo_clusters": [
+      {
+        "key": "MARCALOCAL",
+        "canonical": "MARCA LOCAL",
+        "variants": [
+          {
+            "name": "MARCA LOCAL",
+            "count": 2469187
+          },
+          {
+            "name": "'MARCA LOCAL'",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "key": "ABBVIE",
+        "canonical": "ABBVIE",
+        "variants": [
+          {
+            "name": "ABBVIE",
+            "count": 6663
+          },
+          {
+            "name": "ABBVIE.",
+            "count": 5249
+          }
+        ]
+      },
+      {
+        "key": "ADNWOMENS",
+        "canonical": "ADN WOMEN'S",
+        "variants": [
+          {
+            "name": "ADN WOMEN'S",
+            "count": 5004
+          },
+          {
+            "name": "ADN WOMEN’S",
+            "count": 16
+          }
+        ]
+      },
+      {
+        "key": "BABYLISSPRO",
+        "canonical": "BABYLISS PRO",
+        "variants": [
+          {
+            "name": "BABYLISS PRO",
+            "count": 262
+          },
+          {
+            "name": "BABYLISSPRO",
+            "count": 215
+          }
+        ]
+      },
+      {
+        "key": "BAUSCHLOMB",
+        "canonical": "BAUSCH & LOMB",
+        "variants": [
+          {
+            "name": "BAUSCH + LOMB",
+            "count": 541
+          },
+          {
+            "name": "BAUSCH & LOMB",
+            "count": 116
+          }
+        ]
+      },
+      {
+        "key": "BIOOIL",
+        "canonical": "BIO-OIL",
+        "variants": [
+          {
+            "name": "BIO-OIL",
+            "count": 18
+          },
+          {
+            "name": "BIO OIL",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "BLACKFIT",
+        "canonical": "BLACK FIT",
+        "variants": [
+          {
+            "name": "BLACK FIT",
+            "count": 870
+          },
+          {
+            "name": "BLACKFIT",
+            "count": 99
+          }
+        ]
+      },
+      {
+        "key": "BOBSREDMILLNATURALFOODS",
+        "canonical": "BOB'S RED MILL NATURAL FOODS",
+        "variants": [
+          {
+            "name": "BOB'S RED MILL NATURAL FOODS",
+            "count": 151
+          },
+          {
+            "name": "BOB’S RED MILL NATURAL FOODS",
+            "count": 43
+          }
+        ]
+      },
+      {
+        "key": "BOTANICALS",
+        "canonical": "BOTANICAL'S",
+        "variants": [
+          {
+            "name": "BOTANICAL'S",
+            "count": 3039
+          },
+          {
+            "name": "BOTANICALS",
+            "count": 1582
+          },
+          {
+            "name": "BOTANICAL’S",
+            "count": 6
+          },
+          {
+            "name": "BOTANICAL S",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "key": "BRISTOLMYERSSQUIBB",
+        "canonical": "BRISTOL-MYERS SQUIBB",
+        "variants": [
+          {
+            "name": "BRISTOL MYERS SQUIBB",
+            "count": 1120
+          },
+          {
+            "name": "BRISTOL-MYERS SQUIBB",
+            "count": 264
+          }
+        ]
+      },
+      {
+        "key": "BSNMEDICAL",
+        "canonical": "BSN MEDICAL",
+        "variants": [
+          {
+            "name": "BSN MEDICAL",
+            "count": 3006
+          },
+          {
+            "name": "BSNMEDICAL",
+            "count": 2455
+          }
+        ]
+      },
+      {
+        "key": "COLVENFARSAS",
+        "canonical": "COLVENFAR S.A.S",
+        "variants": [
+          {
+            "name": "COLVENFAR S.A.S",
+            "count": 1099
+          },
+          {
+            "name": "COLVENFAR SAS",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "COSECHADELPARAISO",
+        "canonical": "COSECHA DEL PARAISO",
+        "variants": [
+          {
+            "name": "COSECHA DEL PARAISO",
+            "count": 610
+          },
+          {
+            "name": "COSECHA DEL PARAISO .",
+            "count": 12
+          }
+        ]
+      },
+      {
+        "key": "DESIGNSFORHEALTH",
+        "canonical": "DESIGNS FOR HEALTH",
+        "variants": [
+          {
+            "name": "DESIGNS FOR HEALTH",
+            "count": 79
+          },
+          {
+            "name": "DESIGNS FOR HEALTH,",
+            "count": 7
+          }
+        ]
+      },
+      {
+        "key": "DRBROWNS",
+        "canonical": "DR. BROWN'S",
+        "variants": [
+          {
+            "name": "DR. BROWN’S",
+            "count": 6881
+          },
+          {
+            "name": "DR BROWNS",
+            "count": 5182
+          },
+          {
+            "name": "DR. BROWN'S",
+            "count": 82
+          },
+          {
+            "name": "DR. BROWNS",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "DRRASHEL",
+        "canonical": "DR RASHEL",
+        "variants": [
+          {
+            "name": "DR RASHEL",
+            "count": 1352
+          },
+          {
+            "name": "DR. RASHEL",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "ECOTU",
+        "canonical": "ECO TU",
+        "variants": [
+          {
+            "name": "ECO TU",
+            "count": 1435
+          },
+          {
+            "name": "ECOTU",
+            "count": 6
+          }
+        ]
+      },
+      {
+        "key": "ENFAGROWMEADJOHNSONNUTRITION",
+        "canonical": "ENFAGROW (MEAD JOHNSON NUTRITION)",
+        "variants": [
+          {
+            "name": "ENFAGROW (MEAD JOHNSON NUTRITION",
+            "count": 35362
+          },
+          {
+            "name": "ENFAGROW (MEAD JOHNSON NUTRITION)",
+            "count": 677
+          }
+        ]
+      },
+      {
+        "key": "FOOTWORKS",
+        "canonical": "FOOTWORKS",
+        "variants": [
+          {
+            "name": "FOOTWORKS",
+            "count": 8
+          },
+          {
+            "name": "FOOT WORKS",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "GLAXOSMITHKLINE",
+        "canonical": "GLAXOSMITHKLINE",
+        "variants": [
+          {
+            "name": "GLAXOSMITHKLINE",
+            "count": 7224
+          },
+          {
+            "name": "GLAXO SMITHKLINE",
+            "count": 172
+          }
+        ]
+      },
+      {
+        "key": "GOTOMARKET",
+        "canonical": "GOTO MARKET",
+        "variants": [
+          {
+            "name": "GOTO MARKET",
+            "count": 6070
+          },
+          {
+            "name": "GO TO MARKET",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "GSKGLAXOSMITHKLINE",
+        "canonical": "GSK (GLAXOSMITHKLINE",
+        "variants": [
+          {
+            "name": "GSK (GLAXOSMITHKLINE",
+            "count": 134
+          },
+          {
+            "name": "GSK (GLAXOSMITHKLINE)",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "key": "HEB",
+        "canonical": "HEB",
+        "variants": [
+          {
+            "name": "H-E-B",
+            "count": 28191
+          },
+          {
+            "name": "HEB",
+            "count": 258
+          }
+        ]
+      },
+      {
+        "key": "HERBALSHEALTH",
+        "canonical": "HERBALS HEALTH",
+        "variants": [
+          {
+            "name": "HERBALS HEALTH",
+            "count": 1280
+          },
+          {
+            "name": "HERBALS & HEALTH",
+            "count": 312
+          }
+        ]
+      },
+      {
+        "key": "JOHNSONS",
+        "canonical": "JOHNSON'S",
+        "variants": [
+          {
+            "name": "JOHNSON'S",
+            "count": 4260
+          },
+          {
+            "name": "JOHNSONS",
+            "count": 69
+          }
+        ]
+      },
+      {
+        "key": "KASTPE",
+        "canonical": "KAST PE",
+        "variants": [
+          {
+            "name": "KAST PE",
+            "count": 220
+          },
+          {
+            "name": "KASTPE",
+            "count": 104
+          }
+        ]
+      },
+      {
+        "key": "KELLOGGS",
+        "canonical": "KELLOGG'S",
+        "variants": [
+          {
+            "name": "KELLOGG'S",
+            "count": 4604
+          },
+          {
+            "name": "KELLOGG’S",
+            "count": 2714
+          }
+        ]
+      },
+      {
+        "key": "KEZERLAB",
+        "canonical": "KEZER-LAB",
+        "variants": [
+          {
+            "name": "KEZER LAB",
+            "count": 8093
+          },
+          {
+            "name": "KEZER-LAB",
+            "count": 4565
+          }
+        ]
+      },
+      {
+        "key": "KIMBERLYCLARK",
+        "canonical": "KIMBERLY-CLARK",
+        "variants": [
+          {
+            "name": "KIMBERLY CLARK",
+            "count": 16689
+          },
+          {
+            "name": "KIMBERLY-CLARK",
+            "count": 13039
+          }
+        ]
+      },
+      {
+        "key": "KIRKMANGROUP",
+        "canonical": "KIRKMAN GROUP,",
+        "variants": [
+          {
+            "name": "KIRKMAN GROUP,",
+            "count": 3
+          },
+          {
+            "name": "KIRKMAN GROUP",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "LOREAL",
+        "canonical": "L'OREAL",
+        "variants": [
+          {
+            "name": "L’OREAL",
+            "count": 42435
+          },
+          {
+            "name": "L'OREAL",
+            "count": 653
+          },
+          {
+            "name": "LOREAL",
+            "count": 194
+          }
+        ]
+      },
+      {
+        "key": "LOREALPARIS",
+        "canonical": "L'OREAL PARIS",
+        "variants": [
+          {
+            "name": "LOREAL PARIS",
+            "count": 1807
+          },
+          {
+            "name": "L'OREAL PARIS",
+            "count": 9
+          }
+        ]
+      },
+      {
+        "key": "LABQSEXCLUSIVO",
+        "canonical": "LAB QS EXCLUSIVO",
+        "variants": [
+          {
+            "name": "LAB QS EXCLUSIVO",
+            "count": 764
+          },
+          {
+            "name": "LAB QS  EXCLUSIVO",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "LIFESCANJOHNSONJOHNSONPLATINUMEQUITY",
+        "canonical": "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY)",
+        "variants": [
+          {
+            "name": "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY",
+            "count": 1434
+          },
+          {
+            "name": "LIFESCAN (JOHNSON & JOHNSON / PLATINUM EQUITY)",
+            "count": 91
+          }
+        ]
+      },
+      {
+        "key": "MEADJOHNSON",
+        "canonical": "MEAD JOHNSON",
+        "variants": [
+          {
+            "name": "MEAD JOHNSON",
+            "count": 84137
+          },
+          {
+            "name": "MEAD & JOHNSON",
+            "count": 37165
+          }
+        ]
+      },
+      {
+        "key": "MEGALABS",
+        "canonical": "MEGALABS",
+        "variants": [
+          {
+            "name": "MEGALABS",
+            "count": 15464
+          },
+          {
+            "name": "MEGA LABS",
+            "count": 2016
+          }
+        ]
+      },
+      {
+        "key": "MEGALIFE",
+        "canonical": "MEGA LIFE",
+        "variants": [
+          {
+            "name": "MEGA LIFE",
+            "count": 7184
+          },
+          {
+            "name": "MEGALIFE",
+            "count": 6
+          }
+        ]
+      },
+      {
+        "key": "MERCKSHARPDOHME",
+        "canonical": "MERCK SHARP & DOHME",
+        "variants": [
+          {
+            "name": "MERCK SHARP & DOHME",
+            "count": 4630
+          },
+          {
+            "name": "MERCK SHARP DOHME",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "MERCKSHARPDOHMEMSD",
+        "canonical": "MERCK SHARP & DOHME (MSD",
+        "variants": [
+          {
+            "name": "MERCK SHARP & DOHME (MSD",
+            "count": 237
+          },
+          {
+            "name": "MERCK SHARP & DOHME (MSD)",
+            "count": 11
+          }
+        ]
+      },
+      {
+        "key": "METAGENICS",
+        "canonical": "METAGENICS",
+        "variants": [
+          {
+            "name": "METAGENICS",
+            "count": 76
+          },
+          {
+            "name": "METAGENICS,",
+            "count": 72
+          }
+        ]
+      },
+      {
+        "key": "MICROINGREDIENTS",
+        "canonical": "MICROINGREDIENTS",
+        "variants": [
+          {
+            "name": "MICROINGREDIENTS",
+            "count": 376
+          },
+          {
+            "name": "MICRO INGREDIENTS",
+            "count": 81
+          }
+        ]
+      },
+      {
+        "key": "MORE",
+        "canonical": "MORE",
+        "variants": [
+          {
+            "name": "MORE",
+            "count": 1879
+          },
+          {
+            "name": "MORE+",
+            "count": 628
+          }
+        ]
+      },
+      {
+        "key": "MYPROTEIN",
+        "canonical": "MY PROTEIN",
+        "variants": [
+          {
+            "name": "MY PROTEIN",
+            "count": 330
+          },
+          {
+            "name": "MYPROTEIN",
+            "count": 203
+          }
+        ]
+      },
+      {
+        "key": "NATURALSLIM",
+        "canonical": "NATURAL SLIM",
+        "variants": [
+          {
+            "name": "NATURAL SLIM",
+            "count": 3082
+          },
+          {
+            "name": "NATURALSLIM",
+            "count": 778
+          }
+        ]
+      },
+      {
+        "key": "NATURESBOUNTY",
+        "canonical": "NATURE'S BOUNTY",
+        "variants": [
+          {
+            "name": "NATURE'S BOUNTY",
+            "count": 4204
+          },
+          {
+            "name": "NATURE’S BOUNTY",
+            "count": 3902
+          },
+          {
+            "name": "NATURES BOUNTY",
+            "count": 348
+          },
+          {
+            "name": "NATURE S BOUNTY",
+            "count": 12
+          }
+        ]
+      },
+      {
+        "key": "NATURESTRUTH",
+        "canonical": "NATURE'S TRUTH",
+        "variants": [
+          {
+            "name": "NATURE’S TRUTH",
+            "count": 372
+          },
+          {
+            "name": "NATURE'S TRUTH",
+            "count": 142
+          }
+        ]
+      },
+      {
+        "key": "NATURESWAYPRODUCTS",
+        "canonical": "NATURE’S WAY PRODUCTS",
+        "variants": [
+          {
+            "name": "NATURE’S WAY PRODUCTS",
+            "count": 314
+          },
+          {
+            "name": "NATURE’S WAY PRODUCTS,",
+            "count": 20
+          }
+        ]
+      },
+      {
+        "key": "NESTLETERRAFERTIL",
+        "canonical": "NESTLE (TERRAFERTIL)",
+        "variants": [
+          {
+            "name": "NESTLE (TERRAFERTIL",
+            "count": 673
+          },
+          {
+            "name": "NESTLE (TERRAFERTIL)",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "NUTRASTEVIA",
+        "canonical": "NUTRASTEVIA",
+        "variants": [
+          {
+            "name": "NUTRASTEVIA",
+            "count": 6798
+          },
+          {
+            "name": "NUTRA STEVIA",
+            "count": 1272
+          }
+        ]
+      },
+      {
+        "key": "OLI21",
+        "canonical": "OLI 21",
+        "variants": [
+          {
+            "name": "OLI 21",
+            "count": 7113
+          },
+          {
+            "name": "OLI21",
+            "count": 101
+          }
+        ]
+      },
+      {
+        "key": "OMEGAMARCALOCAL",
+        "canonical": "OMEGA (MARCA LOCAL)",
+        "variants": [
+          {
+            "name": "OMEGA (MARCA LOCAL",
+            "count": 725
+          },
+          {
+            "name": "OMEGA (MARCA LOCAL)",
+            "count": 32
+          }
+        ]
+      },
+      {
+        "key": "OPTIONSA",
+        "canonical": "OPTION S.A",
+        "variants": [
+          {
+            "name": "OPTION S.A",
+            "count": 599
+          },
+          {
+            "name": "OPTION SA",
+            "count": 541
+          }
+        ]
+      },
+      {
+        "key": "PANTOGARMERZPHARMA",
+        "canonical": "PANTOGAR (MERZ PHARMA",
+        "variants": [
+          {
+            "name": "PANTOGAR (MERZ PHARMA",
+            "count": 377
+          },
+          {
+            "name": "PANTOGAR (MERZ PHARMA)",
+            "count": 53
+          }
+        ]
+      },
+      {
+        "key": "PHARMAMEDICOMARINOMEDPHARMAMEDICOGROUP",
+        "canonical": "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP)",
+        "variants": [
+          {
+            "name": "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP",
+            "count": 582
+          },
+          {
+            "name": "PHARMA MEDICO (MARINOMED / PHARMA MEDICO GROUP)",
+            "count": 50
+          }
+        ]
+      },
+      {
+        "key": "PHYSICIANSCHOICE",
+        "canonical": "PHYSICIANS CHOICE",
+        "variants": [
+          {
+            "name": "PHYSICIANS CHOICE",
+            "count": 65
+          },
+          {
+            "name": "PHYSICIAN’S CHOICE",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "key": "PRONUTRITION",
+        "canonical": "PRO NUTRITION",
+        "variants": [
+          {
+            "name": "PRO NUTRITION",
+            "count": 5966
+          },
+          {
+            "name": "PRONUTRITION",
+            "count": 521
+          }
+        ]
+      },
+      {
+        "key": "PROCTERGAMBLE",
+        "canonical": "PROCTER & GAMBLE",
+        "variants": [
+          {
+            "name": "PROCTER & GAMBLE",
+            "count": 78229
+          },
+          {
+            "name": "PROCTER&GAMBLE",
+            "count": 66
+          }
+        ]
+      },
+      {
+        "key": "PROTEINWORLDLTD",
+        "canonical": "PROTEIN WORLD LTD",
+        "variants": [
+          {
+            "name": "PROTEIN WORLD LTD",
+            "count": 265
+          },
+          {
+            "name": "PROTEIN WORLD LTD.",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "key": "PURITANSPRIDE",
+        "canonical": "PURITAN'S PRIDE",
+        "variants": [
+          {
+            "name": "PURITANS PRIDE",
+            "count": 384
+          },
+          {
+            "name": "PURITAN’S PRIDE",
+            "count": 277
+          }
+        ]
+      },
+      {
+        "key": "SCJOHNSON",
+        "canonical": "SC JOHNSON",
+        "variants": [
+          {
+            "name": "SC JOHNSON",
+            "count": 11610
+          },
+          {
+            "name": "S.C. JOHNSON",
+            "count": 6039
+          }
+        ]
+      },
+      {
+        "key": "SALUSHAUS",
+        "canonical": "SALUS HAUS",
+        "variants": [
+          {
+            "name": "SALUS HAUS",
+            "count": 27
+          },
+          {
+            "name": "SALUS-HAUS",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "key": "SANPELLEGRINOSPA",
+        "canonical": "SANPELLEGRINO S.P.A",
+        "variants": [
+          {
+            "name": "SANPELLEGRINO S.P.A",
+            "count": 1228
+          },
+          {
+            "name": "SANPELLEGRINO S.P.A.",
+            "count": 14
+          }
+        ]
+      },
+      {
+        "key": "SMARTBLENDS",
+        "canonical": "SMARTBLENDS",
+        "variants": [
+          {
+            "name": "SMARTBLENDS",
+            "count": 3802
+          },
+          {
+            "name": "SMART BLENDS",
+            "count": 45
+          }
+        ]
+      },
+      {
+        "key": "SUNDESABLENDERBOTTLE",
+        "canonical": "SUNDESA (BLENDERBOTTLE)",
+        "variants": [
+          {
+            "name": "SUNDESA (BLENDERBOTTLE",
+            "count": 3323
+          },
+          {
+            "name": "SUNDESA (BLENDERBOTTLE)",
+            "count": 45
+          }
+        ]
+      },
+      {
+        "key": "SUNWARRIOR",
+        "canonical": "SUNWARRIOR,",
+        "variants": [
+          {
+            "name": "SUNWARRIOR,",
+            "count": 64
+          },
+          {
+            "name": "SUNWARRIOR",
+            "count": 33
+          }
+        ]
+      },
+      {
+        "key": "TECNOQUIMICASMK",
+        "canonical": "TECNOQUIMICAS (MK)",
+        "variants": [
+          {
+            "name": "TECNOQUIMICAS (MK",
+            "count": 4893
+          },
+          {
+            "name": "TECNOQUIMICAS (MK)",
+            "count": 79
+          }
+        ]
+      },
+      {
+        "key": "THEVITAMINSHOPPE",
+        "canonical": "THE VITAMIN SHOPPE,",
+        "variants": [
+          {
+            "name": "THE VITAMIN SHOPPE,",
+            "count": 16
+          },
+          {
+            "name": "THE VITAMIN SHOPPE",
+            "count": 3
+          }
+        ]
+      }
+    ],
+    "hard_merges": [
+      {
+        "from": "SOTTCOR",
+        "to": "SOTTCOR LABS",
+        "rows": 90213
+      },
+      {
+        "from": "TRIFARMA OTC",
+        "to": "TRIFARMA",
+        "rows": 13654
+      },
+      {
+        "from": "TECNOQUIMICAS (MK",
+        "to": "TECNOQUIMICAS (MK)",
+        "rows": 4893
+      }
+    ],
+    "country_decisions": [
+      {
+        "suffixed": "3M COLOMBIA",
+        "suffixed_rows": 7472,
+        "suffixed_pais": [
+          "CO",
+          "MX"
+        ],
+        "bare": "3M",
+        "bare_rows": 1113,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "3M",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "3M PERU",
+        "suffixed_rows": 216,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "3M",
+        "bare_rows": 1113,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "3M",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "ALCON COLOMBIA",
+        "suffixed_rows": 359,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "ALCON",
+        "bare_rows": 7163,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "ALCON",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "ASPEN PERU",
+        "suffixed_rows": 1267,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "ASPEN",
+        "bare_rows": 8410,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "ASPEN",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "ASTRAZENECA COL",
+        "suffixed_rows": 7577,
+        "suffixed_pais": [
+          "CO",
+          "MX"
+        ],
+        "bare": "ASTRAZENECA",
+        "bare_rows": 7426,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "ASTRAZENECA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "BABARIA COLOMBIA",
+        "suffixed_rows": 839,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "BABARIA",
+        "bare_rows": 14879,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "BABARIA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "BAGO COLOMBIA",
+        "suffixed_rows": 541,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "BAGO",
+        "bare_rows": 9970,
+        "bare_pais": [
+          "CO",
+          "PE"
+        ],
+        "canonical": "BAGO",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "BENINO PERU",
+        "suffixed_rows": 5611,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "BENINO",
+        "bare_rows": 23461,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "BENINO",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "BIOLOGISTICA PERU",
+        "suffixed_rows": 1455,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "BIOLOGISTICA",
+        "bare_rows": 1127,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "BIOLOGISTICA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "COLOMBIA NATURA",
+        "suffixed_rows": 80,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "NATURA",
+        "bare_rows": 44,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "NATURA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "CONTEXPORT COLOMBIA",
+        "suffixed_rows": 2849,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "CONTEXPORT",
+        "bare_rows": 484,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "CONTEXPORT",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "EMCURE PHARMA PERU",
+        "suffixed_rows": 279,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "EMCURE PHARMA",
+        "bare_rows": 6,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "EMCURE PHARMA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "EUROFARMA PERU",
+        "suffixed_rows": 2,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "EUROFARMA",
+        "bare_rows": 17101,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "EUROFARMA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "EXELTIS PERU",
+        "suffixed_rows": 2,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "EXELTIS",
+        "bare_rows": 8220,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "EXELTIS",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "GALENICUM HEALTH PERU",
+        "suffixed_rows": 2,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "GALENICUM HEALTH",
+        "bare_rows": 2,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "GALENICUM HEALTH",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "GENOMMA LAB. PERU",
+        "suffixed_rows": 1347,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "GENOMMA LAB",
+        "bare_rows": 27219,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "GENOMMA LAB",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "GLAXO SMITHKLINE PERU",
+        "suffixed_rows": 2596,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "GLAXOSMITHKLINE",
+        "bare_rows": 7396,
+        "bare_pais": [
+          "PE",
+          "CO",
+          "MX"
+        ],
+        "canonical": "GLAXOSMITHKLINE",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "HALEON COLOMBIA",
+        "suffixed_rows": 221,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "HALEON",
+        "bare_rows": 22265,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "HALEON",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "HEEL COLOMBIA",
+        "suffixed_rows": 2711,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "HEEL",
+        "bare_rows": 8486,
+        "bare_pais": [
+          "CO"
+        ],
+        "canonical": "HEEL",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "ISDIN COLOMBIA",
+        "suffixed_rows": 575,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "ISDIN",
+        "bare_rows": 30106,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "ISDIN",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "ITF FARMACEUTICA PERU",
+        "suffixed_rows": 5666,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "ITF FARMACEUTICA",
+        "bare_rows": 210,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "ITF FARMACEUTICA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "LOREAL COLOMBIA",
+        "suffixed_rows": 18720,
+        "suffixed_pais": [
+          "CO",
+          "MX"
+        ],
+        "bare": "L'OREAL",
+        "bare_rows": 43282,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "L'OREAL",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "LOREAL PERU",
+        "suffixed_rows": 76,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "L'OREAL",
+        "bare_rows": 43282,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "L'OREAL",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "MAGELLAN TRADING PERU",
+        "suffixed_rows": 2505,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "MAGELLAN TRADING",
+        "bare_rows": 744,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "MAGELLAN TRADING",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "MAVER PERU",
+        "suffixed_rows": 2,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "MAVER",
+        "bare_rows": 1,
+        "bare_pais": [
+          "MX"
+        ],
+        "canonical": "MAVER",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "MEGA LABS LATAM",
+        "suffixed_rows": 4,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "MEGALABS",
+        "bare_rows": 17480,
+        "bare_pais": [
+          "PE",
+          "CO"
+        ],
+        "canonical": "MEGALABS",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "NAOS PERU",
+        "suffixed_rows": 4,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "NAOS",
+        "bare_rows": 2028,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "NAOS",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "NEOLPHARMA PERU",
+        "suffixed_rows": 4,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "NEOLPHARMA",
+        "bare_rows": 10,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "NEOLPHARMA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "NESTLE COLOMBIA",
+        "suffixed_rows": 36664,
+        "suffixed_pais": [
+          "CO",
+          "MX"
+        ],
+        "bare": "NESTLE",
+        "bare_rows": 391028,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "NESTLE",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "PANIJU PERU",
+        "suffixed_rows": 203,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "PANIJU",
+        "bare_rows": 2016,
+        "bare_pais": [
+          "CO",
+          "PE"
+        ],
+        "canonical": "PANIJU",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "PHARMARIS PERU",
+        "suffixed_rows": 263,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "PHARMARIS",
+        "bare_rows": 21427,
+        "bare_pais": [
+          "CO",
+          "PE"
+        ],
+        "canonical": "PHARMARIS",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "PUIG COLOMBIA",
+        "suffixed_rows": 564,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "PUIG",
+        "bare_rows": 479,
+        "bare_pais": [
+          "MX",
+          "PE"
+        ],
+        "canonical": "PUIG",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "PUIG PERU",
+        "suffixed_rows": 772,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "PUIG",
+        "bare_rows": 479,
+        "bare_pais": [
+          "MX",
+          "PE"
+        ],
+        "canonical": "PUIG",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "QUIMICA SUIZA COLOMBIA",
+        "suffixed_rows": 525,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "QUIMICA SUIZA",
+        "bare_rows": 92,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "QUIMICA SUIZA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "RB HEALTH PERU",
+        "suffixed_rows": 253,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "RB HEALTH",
+        "bare_rows": 315,
+        "bare_pais": [
+          "CO"
+        ],
+        "canonical": "RB HEALTH",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "SANULAC COLOMBIA",
+        "suffixed_rows": 8671,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "SANULAC",
+        "bare_rows": 37810,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "SANULAC",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "SANULAC NUTRICION PERU",
+        "suffixed_rows": 3697,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "SANULAC NUTRICION",
+        "bare_rows": 124,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "SANULAC NUTRICION",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "SESDERMA COLOMBIA",
+        "suffixed_rows": 982,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "SESDERMA",
+        "bare_rows": 8677,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "SESDERMA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "SEVEN PHARMA COLOMBIA",
+        "suffixed_rows": 101,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "SEVEN PHARMA",
+        "bare_rows": 157,
+        "bare_pais": [
+          "PE"
+        ],
+        "canonical": "SEVEN PHARMA",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "STARBRANDS PERU",
+        "suffixed_rows": 508,
+        "suffixed_pais": [
+          "PE"
+        ],
+        "bare": "STARBRANDS",
+        "bare_rows": 1831,
+        "bare_pais": [
+          "CO",
+          "PE"
+        ],
+        "canonical": "STARBRANDS",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "UNILEVER ANDINA",
+        "suffixed_rows": 26548,
+        "suffixed_pais": [
+          "CO",
+          "MX"
+        ],
+        "bare": "UNILEVER",
+        "bare_rows": 54053,
+        "bare_pais": [
+          "CO",
+          "MX",
+          "PE"
+        ],
+        "canonical": "UNILEVER",
+        "action": "MERGE_INTO_BARE"
+      },
+      {
+        "suffixed": "ZAMBON COLOMBIA",
+        "suffixed_rows": 2040,
+        "suffixed_pais": [
+          "CO"
+        ],
+        "bare": "ZAMBON",
+        "bare_rows": 10553,
+        "bare_pais": [
+          "CO",
+          "MX"
+        ],
+        "canonical": "ZAMBON",
+        "action": "MERGE_INTO_BARE"
+      }
+    ]
+  },
+  "marcas": {
+    "map": {
+      "7UP": "7 UP",
+      "ADERMA": "A-DERMA",
+      "ACCU CHEK": "ACCU-CHEK",
+      "ACCUCHEK": "ACCU-CHEK",
+      "ADEKON-C": "ADEKON C",
+      "AGUARDIENTE ANTIOQUENO 24": "AGUARDIENTE ANTIOQUENO 24°",
+      "ALFASAFE": "ALFA SAFE",
+      "ALITRA Q": "ALITRAQ",
+      "ALLI-TRIPLE": "ALLI TRIPLE",
+      "ALLITRIPLE": "ALLI TRIPLE",
+      "ANA MARIA LAJUSTICIA": "ANA MARIA LA JUSTICIA",
+      "ARISTOCAPS-RB": "ARISTOCAPS RB",
+      "ARM&HAMMER": "ARM & HAMMER",
+      "ASTRA - ZENECA": "ASTRAZENECA",
+      "B LIFE": "B-LIFE",
+      "BLIFE": "B-LIFE",
+      "BABYLISS PRO": "BABYLISSPRO",
+      "BAM BOO": "BAMBOO",
+      "BARRI NOLAS": "BARRINOLAS",
+      "BAUSCH & LOMB": "BAUSCH + LOMB",
+      "BD ULTRA FINE": "BD ULTRA-FINE",
+      "BDM-LAB": "BDM LAB",
+      "BEIERSDORF  (B.D.F.)": "BEIERSDORF (B.D.F.)",
+      "BI PRO": "BIPRO",
+      "BIPROFENID": "BI PROFENID",
+      "BIO OIL": "BIO-OIL",
+      "BIO-ELECTRO": "BIOELECTRO",
+      "BIODER MA": "BIODERMA",
+      "BIODERMA-SENSIBIO": "BIODERMA SENSIBIO",
+      "BLACK & DECKER": "BLACK+DECKER",
+      "BLACKFIT": "BLACK FIT",
+      "BOBS RED MILL": "BOB'S RED MILL",
+      "BOTANICALS": "BOTANICAL'S",
+      "BRAS JADE": "BRASJADE",
+      "BRONCHO VAXOM": "BRONCHO-VAXOM",
+      "BURTS BEES": "BURT'S BEES",
+      "C BOOST": "C-BOOST",
+      "CBOOST": "C-BOOST",
+      "CAN AMOR": "CANAMOR",
+      "CARBIDOPA-LEVODOPA": "CARBIDOPA LEVODOPA",
+      "CENTRUM GENDER +50": "CENTRUM GENDER+50",
+      "CHOCOMILK": "CHOCO MILK",
+      "CHOCO ZERO": "CHOCOZERO",
+      "CLARA'X": "CLARAX",
+      "CLOB-X": "CLOB X",
+      "COCA COLA": "COCA-COLA",
+      "COLVENFAR SAS": "COLVENFAR S.A.S.",
+      "CRISTALUP": "CRISTAL UP",
+      "CUREBAND": "CURE BAND",
+      "D'NATTIVE": "DNATTIVE",
+      "DATA SAVE": "DATASAVE",
+      "DEPO-MEDROL": "DEPOMEDROL",
+      "DIABETRICS HEALTHCARE S A S": "DIABETRICS HEALTHCARE S.A.S",
+      "DIABETRICS HEALTHCARE SAS": "DIABETRICS HEALTHCARE S.A.S",
+      "DOLCE&GABBANA": "DOLCE & GABBANA",
+      "DOLO NEUROBION": "DOLO-NEUROBION",
+      "DON'T WORRY": "DONT WORRY",
+      "DON'TWORRY": "DONT WORRY",
+      "DR. ALTHEA": "DR ALTHEA",
+      "DR BECKMANN": "DR. BECKMANN",
+      "DR BROWN S": "DR BROWNS",
+      "DR BROWN'S": "DR BROWNS",
+      "DR. BROWN'S": "DR BROWNS",
+      "DR. BROWNS": "DR BROWNS",
+      "DR CEURACLE": "DR. CEURACLE",
+      "DRJOOHN": "DR JOOHN",
+      "DR. RASHEL": "DR RASHEL",
+      "DR SCHOLL'S": "DR. SCHOLL'S",
+      "DR SCHOLLS": "DR. SCHOLL'S",
+      "DR. SCHOLL S": "DR. SCHOLL'S",
+      "DR. SCHOLLS": "DR. SCHOLL'S",
+      "DR TEALS": "DR. TEALS",
+      "DR. TEAL'S": "DR. TEALS",
+      "DREAM BABY": "DREAMBABY",
+      "DREAMWORKS": "DREAM WORKS",
+      "DUO DECADRON": "DUO-DECADRON",
+      "EPURA": "E PURA",
+      "EMERGEN C": "EMERGEN-C",
+      "ENFAMIL A.R.": "ENFAMIL AR",
+      "EPIDERM": "EPI-DERM",
+      "FARMA DE COLOMBIA S.A.S.": "FARMA DE COLOMBIA SAS",
+      "FARMACOL CHINOIN SAS": "FARMACOL CHINOIN S.A.S",
+      "FERINSOL": "FER-IN-SOL",
+      "FISHER-PRICE": "FISHER PRICE",
+      "FISSIONLAB": "FISSION LAB",
+      "FITOKIDS": "FITO KIDS",
+      "FLOS-PRO": "FLOSPRO",
+      "FORTZINK": "FORT ZINK",
+      "FRESHSTEP": "FRESH STEP",
+      "G.U.M": "GUM",
+      "GARNIER-SKIN ACTIVE": "GARNIER SKIN ACTIVE",
+      "GASTROFULL": "GASTRO FULL",
+      "GEL HADA": "GELHADA",
+      "GLAXO SMITHKLINE": "GLAXOSMITHKLINE",
+      "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S A S": "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S.A.S",
+      "GLITACAR 1": "GLITACAR-1",
+      "GN+VIDA": "GN+ VIDA",
+      "GOOD'N NATURAL": "GOOD N NATURAL",
+      "GRIPP HEEL": "GRIPP-HEEL",
+      "H2OH!": "H2OH",
+      "HEALTHY AMERICA COLOMBIA S.A.S": "HEALTHY AMERICA COLOMBIA S.A.S.",
+      "HEALTHY AMERICA COLOMBIA SAS": "HEALTHY AMERICA COLOMBIA S.A.S.",
+      "HERSHEY'S": "HERSHEYS",
+      "HMB!": "HMB",
+      "HOME CHOICE": "HOMECHOICE",
+      "HOMETRENDS": "HOME TRENDS",
+      "HUMALOG": "HUMALOG.",
+      "I-LAB SAS": "ILAB SAS",
+      "IMMU-FLO®": "IMMU-FLO",
+      "J'ADORE": "JADORE",
+      "JACK DANIEL'S": "JACK DANIELS",
+      "JOHNSON&JOHNSON": "JOHNSON & JOHNSON",
+      "JOHNSON S": "JOHNSON'S",
+      "JOHNSONS": "JOHNSON'S",
+      "KASTPE": "KAST PE",
+      "KELLOGG'S": "KELLOGGS",
+      "KLEENBEBE": "KLEEN BEBE",
+      "KLI.HEEL": "KLIHEEL",
+      "LMAR SPA": "L'MAR SPA",
+      "L'OREAL": "LOREAL",
+      "LOREAL PARIS": "L'OREAL PARIS",
+      "L’OREAL PARIS": "L'OREAL PARIS",
+      "LACROIX": "LA CROIX",
+      "LA ROCHE POSAY": "LA ROCHE-POSAY",
+      "LABORATORIOS BAXTER SA": "LABORATORIOS BAXTER S.A.",
+      "LABORATORIOS CHALVER DE COLOMBIA S.A.": "LABORATORIOS CHALVER DE COLOMBIA SA",
+      "LERA-CO": "LERACO",
+      "LIFE180": "LIFE 180",
+      "LIFE 360": "LIFE 360+",
+      "LIFE360+": "LIFE 360+",
+      "LIFECARE": "LIFE CARE",
+      "LIPOVITASI OR": "LIPOVITASI-OR",
+      "LIQUID IV": "LIQUID I.V.",
+      "LIV NUTRITION": "LIVNUTRITION",
+      "MAH": "MAH!",
+      "MARY RUTH": "MARYRUTH",
+      "MARYRUTHS": "MARY RUTHS",
+      "MEDIVELIUS FARMACEUTICA SA": "MEDIVELIUS FARMACEUTICA S.A",
+      "MEGA LABS": "MEGALABS",
+      "MEGALIFE": "MEGA LIFE",
+      "MEMBERS MARK": "MEMBER'S MARK",
+      "MERCK SHARP  DOHME": "MERCK SHARP DOHME",
+      "MICHELSON PHARMA": "MICHELSONPHARMA",
+      "MICRO INGREDIENTS": "MICROINGREDIENTS",
+      "MINOFOAM": "MINO FOAM",
+      "MONTBLANC": "MONT BLANC",
+      "MORE+": "MORE",
+      "MULTI BLUE": "MULTIBLUE",
+      "MYMOCHI": "MY MOCHI",
+      "MY PROTEIN": "MYPROTEIN",
+      "MYO VECTOR": "MYO-VECTOR",
+      "MYOS-NOR": "MYOS NOR",
+      "NAT NACK": "NATNACK",
+      "NATURALSLIM": "NATURAL SLIM",
+      "NATURAL SMART NUTRITION": "NATURAL SMARTNUTRITION",
+      "‎NATURE BEST": "NATURE BEST",
+      "NATURE'S BEST;": "NATURE'S BEST",
+      "NATURES BOUNTY": "NATURE'S BOUNTY",
+      "NATURE'S HEART": "NATURES HEART",
+      "NATURES LIFE": "NATURE'S LIFE",
+      "NATURE'S PLUS": "NATURES PLUS",
+      "NATURESPLUS": "NATURES PLUS",
+      "NATURES WAY": "NATURE'S WAY",
+      "NENE DENT": "NENEDENT",
+      "NEPRO-HP": "NEPRO HP",
+      "NEW HEALTH": "NEWHEALTH",
+      "NOVO NORDISK COLOMBIA SAS": "NOVO NORDISK COLOMBIA S A S",
+      "NUEVID": "NUEVI D",
+      "NUTRA STEVIA": "NUTRASTEVIA",
+      "NUTRAVIT PLUS": "NUTRAVITPLUS",
+      "NUTRI BABY": "NUTRIBABY",
+      "NUTRI CO": "NUTRICO",
+      "NUTRI COST": "NUTRICOST",
+      "NUTRIBELA15": "NUTRIBELA 15",
+      "NYQUIL Z": "NYQUILZ",
+      "O' COSMETICS": "OCOSMETICS",
+      "OFF": "OFF!",
+      "OL NATURA": "OLNATURA",
+      "OLI 21": "OLI21",
+      "ONETOUCH": "ONE TOUCH",
+      "ORAL B": "ORAL-B",
+      "ORANGELART": "ORANGEL ART",
+      "OXITAL C": "OXITAL-C",
+      "P'REMIUM BABY": "PREMIUM BABY",
+      "PALMERS": "PALMER'S",
+      "PEDIASURE 10": "PEDIASURE 10+",
+      "PHYSICIAN'S CHOICE": "PHYSICIANS CHOICE",
+      "PIRE-FEN": "PIREFEN",
+      "POLY VI GOMIS": "POLY-VI-GOMIS",
+      "POLY VI SOL": "POLY-VI-SOL",
+      "POND'S": "PONDS",
+      "PRE DIAL": "PREDIAL",
+      "PREVITA-MOM": "PREVITA MOM",
+      "PRO SCIENCE": "PROSCIENCE",
+      "PRO WINNER": "PROWINNER",
+      "PROCTER & GAMBLE COLOMBIA LTDA": "PROCTER GAMBLE COLOMBIA LTDA",
+      "PROQUIDENT SA": "PROQUIDENT S.A",
+      "PROXTEN PLUS": "PROXTENPLUS",
+      "PURA+": "PURA",
+      "PURITAN'S PRIDE": "PURITANS PRIDE",
+      "REDBULL": "RED BULL",
+      "RED KITE": "REDKITE",
+      "RINOLAST": "RINO LAST",
+      "RYBELSUS®": "RYBELSUS",
+      "S NATURAL": "SNATURAL",
+      "SAF - GEL": "SAF-GEL",
+      "SCOTCH-BRITE": "SCOTCH BRITE",
+      "SESDERMA COLOMBIA SA": "SESDERMA COLOMBIA S.A",
+      "SIMILAC ARROZ-ADVANCE": "SIMILAC ARROZ ADVANCE",
+      "SIMOND'S": "SIMONDS",
+      "SK INVITA": "SK-INVITA",
+      "SLIM FAST": "SLIMFAST",
+      "SMART BLENDS": "SMARTBLENDS",
+      "SUNPRO": "SUN PRO",
+      "SUN WARRIOR": "SUNWARRIOR",
+      "SUPER MUNDO": "SUPERMUNDO",
+      "T BEST": "T'BEST",
+      "TLD": "T/L/D",
+      "TAIFELDS": "TAIFELD'S",
+      "TEARSOFT.": "TEARSOFT",
+      "TECNOQUIMICAS SA": "TECNOQUIMICAS S.A",
+      "TIBET NATURA": "TIBETNATURA",
+      "TRANSVITAL-D": "TRANSVITAL D",
+      "TRI VI SOL": "TRI-VI-SOL",
+      "TRIVISOL": "TRI-VI-SOL",
+      "TUKOL D": "TUKOL-D",
+      "TWENTYS": "TWENTY'S",
+      "ULTRA FINE": "ULTRA-FINE",
+      "UROCIT-K": "UROCIT K",
+      "VALARA-NUTRITION": "VALARA NUTRITION",
+      "VASCUL-FLOW": "VASCULFLOW",
+      "VIDANAT VITAMINAS": "VIDANAT/VITAMINAS",
+      "VITAL BOTANICS": "VITALBOTANICS",
+      "VITAMINWATER": "VITAMIN WATER",
+      "VIVO+": "VIVO",
+      "WAKE UP": "WAKEUP",
+      "WATER WIPES": "WATERWIPES",
+      "WAY TO CELEBRATE!": "WAY TO CELEBRATE",
+      "WOODYS": "WOODY'S",
+      "X RAY": "XRAY",
+      "XT-VR": "XT- VR"
+    },
+    "typo_clusters": [
+      {
+        "key": "7UP",
+        "canonical": "7 UP",
+        "variants": [
+          {
+            "name": "7 UP",
+            "count": 929
+          },
+          {
+            "name": "7UP",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "ADERMA",
+        "canonical": "A-DERMA",
+        "variants": [
+          {
+            "name": "A-DERMA",
+            "count": 2613
+          },
+          {
+            "name": "ADERMA",
+            "count": 287
+          }
+        ]
+      },
+      {
+        "key": "ACCUCHEK",
+        "canonical": "ACCU-CHEK",
+        "variants": [
+          {
+            "name": "ACCU-CHEK",
+            "count": 9103
+          },
+          {
+            "name": "ACCU CHEK",
+            "count": 293
+          },
+          {
+            "name": "ACCUCHEK",
+            "count": 197
+          }
+        ]
+      },
+      {
+        "key": "ADEKONC",
+        "canonical": "ADEKON C",
+        "variants": [
+          {
+            "name": "ADEKON C",
+            "count": 159
+          },
+          {
+            "name": "ADEKON-C",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "AGUARDIENTEANTIOQUENO24",
+        "canonical": "AGUARDIENTE ANTIOQUENO 24°",
+        "variants": [
+          {
+            "name": "AGUARDIENTE ANTIOQUENO 24°",
+            "count": 2182
+          },
+          {
+            "name": "AGUARDIENTE ANTIOQUENO 24",
+            "count": 5
+          }
+        ]
+      },
+      {
+        "key": "ALFASAFE",
+        "canonical": "ALFA SAFE",
+        "variants": [
+          {
+            "name": "ALFA SAFE",
+            "count": 11488
+          },
+          {
+            "name": "ALFASAFE",
+            "count": 2689
+          }
+        ]
+      },
+      {
+        "key": "ALITRAQ",
+        "canonical": "ALITRAQ",
+        "variants": [
+          {
+            "name": "ALITRAQ",
+            "count": 4391
+          },
+          {
+            "name": "ALITRA Q",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "ALLITRIPLE",
+        "canonical": "ALLI TRIPLE",
+        "variants": [
+          {
+            "name": "ALLI TRIPLE",
+            "count": 498
+          },
+          {
+            "name": "ALLITRIPLE",
+            "count": 397
+          },
+          {
+            "name": "ALLI-TRIPLE",
+            "count": 37
+          }
+        ]
+      },
+      {
+        "key": "ANAMARIALAJUSTICIA",
+        "canonical": "ANA MARIA LA JUSTICIA",
+        "variants": [
+          {
+            "name": "ANA MARIA LA JUSTICIA",
+            "count": 1092
+          },
+          {
+            "name": "ANA MARIA LAJUSTICIA",
+            "count": 533
+          }
+        ]
+      },
+      {
+        "key": "ARISTOCAPSRB",
+        "canonical": "ARISTOCAPS RB",
+        "variants": [
+          {
+            "name": "ARISTOCAPS RB",
+            "count": 228
+          },
+          {
+            "name": "ARISTOCAPS-RB",
+            "count": 12
+          }
+        ]
+      },
+      {
+        "key": "ARMHAMMER",
+        "canonical": "ARM & HAMMER",
+        "variants": [
+          {
+            "name": "ARM & HAMMER",
+            "count": 431
+          },
+          {
+            "name": "ARM&HAMMER",
+            "count": 100
+          }
+        ]
+      },
+      {
+        "key": "ASTRAZENECA",
+        "canonical": "ASTRAZENECA",
+        "variants": [
+          {
+            "name": "ASTRAZENECA",
+            "count": 3136
+          },
+          {
+            "name": "ASTRA - ZENECA",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "BLIFE",
+        "canonical": "B-LIFE",
+        "variants": [
+          {
+            "name": "B-LIFE",
+            "count": 18436
+          },
+          {
+            "name": "B LIFE",
+            "count": 10818
+          },
+          {
+            "name": "BLIFE",
+            "count": 9413
+          }
+        ]
+      },
+      {
+        "key": "BABYLISSPRO",
+        "canonical": "BABYLISSPRO",
+        "variants": [
+          {
+            "name": "BABYLISSPRO",
+            "count": 292
+          },
+          {
+            "name": "BABYLISS PRO",
+            "count": 262
+          }
+        ]
+      },
+      {
+        "key": "BAMBOO",
+        "canonical": "BAMBOO",
+        "variants": [
+          {
+            "name": "BAMBOO",
+            "count": 832
+          },
+          {
+            "name": "BAM BOO",
+            "count": 49
+          }
+        ]
+      },
+      {
+        "key": "BARRINOLAS",
+        "canonical": "BARRINOLAS",
+        "variants": [
+          {
+            "name": "BARRINOLAS",
+            "count": 308
+          },
+          {
+            "name": "BARRI NOLAS",
+            "count": 28
+          }
+        ]
+      },
+      {
+        "key": "BAUSCHLOMB",
+        "canonical": "BAUSCH + LOMB",
+        "variants": [
+          {
+            "name": "BAUSCH + LOMB",
+            "count": 120
+          },
+          {
+            "name": "BAUSCH & LOMB",
+            "count": 44
+          }
+        ]
+      },
+      {
+        "key": "BDULTRAFINE",
+        "canonical": "BD ULTRA-FINE",
+        "variants": [
+          {
+            "name": "BD ULTRA-FINE",
+            "count": 2539
+          },
+          {
+            "name": "BD ULTRA FINE",
+            "count": 98
+          }
+        ]
+      },
+      {
+        "key": "BDMLAB",
+        "canonical": "BDM LAB",
+        "variants": [
+          {
+            "name": "BDM LAB",
+            "count": 92
+          },
+          {
+            "name": "BDM-LAB",
+            "count": 29
+          }
+        ]
+      },
+      {
+        "key": "BEIERSDORFBDF",
+        "canonical": "BEIERSDORF (B.D.F.)",
+        "variants": [
+          {
+            "name": "BEIERSDORF (B.D.F.)",
+            "count": 9733
+          },
+          {
+            "name": "BEIERSDORF  (B.D.F.)",
+            "count": 31
+          }
+        ]
+      },
+      {
+        "key": "BIPRO",
+        "canonical": "BIPRO",
+        "variants": [
+          {
+            "name": "BIPRO",
+            "count": 2020
+          },
+          {
+            "name": "BI PRO",
+            "count": 1612
+          }
+        ]
+      },
+      {
+        "key": "BIPROFENID",
+        "canonical": "BI PROFENID",
+        "variants": [
+          {
+            "name": "BI PROFENID",
+            "count": 630
+          },
+          {
+            "name": "BIPROFENID",
+            "count": 33
+          }
+        ]
+      },
+      {
+        "key": "BIOOIL",
+        "canonical": "BIO-OIL",
+        "variants": [
+          {
+            "name": "BIO-OIL",
+            "count": 1278
+          },
+          {
+            "name": "BIO OIL",
+            "count": 18
+          }
+        ]
+      },
+      {
+        "key": "BIOELECTRO",
+        "canonical": "BIOELECTRO",
+        "variants": [
+          {
+            "name": "BIOELECTRO",
+            "count": 208
+          },
+          {
+            "name": "BIO-ELECTRO",
+            "count": 44
+          }
+        ]
+      },
+      {
+        "key": "BIODERMA",
+        "canonical": "BIODERMA",
+        "variants": [
+          {
+            "name": "BIODERMA",
+            "count": 28218
+          },
+          {
+            "name": "BIODER MA",
+            "count": 548
+          }
+        ]
+      },
+      {
+        "key": "BIODERMASENSIBIO",
+        "canonical": "BIODERMA SENSIBIO",
+        "variants": [
+          {
+            "name": "BIODERMA SENSIBIO",
+            "count": 263
+          },
+          {
+            "name": "BIODERMA-SENSIBIO",
+            "count": 101
+          }
+        ]
+      },
+      {
+        "key": "BLACKDECKER",
+        "canonical": "BLACK+DECKER",
+        "variants": [
+          {
+            "name": "BLACK+DECKER",
+            "count": 1156
+          },
+          {
+            "name": "BLACK & DECKER",
+            "count": 18
+          }
+        ]
+      },
+      {
+        "key": "BLACKFIT",
+        "canonical": "BLACK FIT",
+        "variants": [
+          {
+            "name": "BLACK FIT",
+            "count": 870
+          },
+          {
+            "name": "BLACKFIT",
+            "count": 99
+          }
+        ]
+      },
+      {
+        "key": "BOBSREDMILL",
+        "canonical": "BOB'S RED MILL",
+        "variants": [
+          {
+            "name": "BOB'S RED MILL",
+            "count": 151
+          },
+          {
+            "name": "BOBS RED MILL",
+            "count": 43
+          }
+        ]
+      },
+      {
+        "key": "BOTANICALS",
+        "canonical": "BOTANICAL'S",
+        "variants": [
+          {
+            "name": "BOTANICAL'S",
+            "count": 2307
+          },
+          {
+            "name": "BOTANICALS",
+            "count": 1593
+          }
+        ]
+      },
+      {
+        "key": "BRASJADE",
+        "canonical": "BRASJADE",
+        "variants": [
+          {
+            "name": "BRASJADE",
+            "count": 46
+          },
+          {
+            "name": "BRAS JADE",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "BRONCHOVAXOM",
+        "canonical": "BRONCHO-VAXOM",
+        "variants": [
+          {
+            "name": "BRONCHO-VAXOM",
+            "count": 3224
+          },
+          {
+            "name": "BRONCHO VAXOM",
+            "count": 233
+          }
+        ]
+      },
+      {
+        "key": "BURTSBEES",
+        "canonical": "BURT'S BEES",
+        "variants": [
+          {
+            "name": "BURT'S BEES",
+            "count": 687
+          },
+          {
+            "name": "BURTS BEES",
+            "count": 507
+          }
+        ]
+      },
+      {
+        "key": "CBOOST",
+        "canonical": "C-BOOST",
+        "variants": [
+          {
+            "name": "C-BOOST",
+            "count": 2089
+          },
+          {
+            "name": "CBOOST",
+            "count": 358
+          },
+          {
+            "name": "C BOOST",
+            "count": 22
+          }
+        ]
+      },
+      {
+        "key": "CANAMOR",
+        "canonical": "CANAMOR",
+        "variants": [
+          {
+            "name": "CANAMOR",
+            "count": 615
+          },
+          {
+            "name": "CAN AMOR",
+            "count": 610
+          }
+        ]
+      },
+      {
+        "key": "CARBIDOPALEVODOPA",
+        "canonical": "CARBIDOPA LEVODOPA",
+        "variants": [
+          {
+            "name": "CARBIDOPA LEVODOPA",
+            "count": 185
+          },
+          {
+            "name": "CARBIDOPA-LEVODOPA",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "CENTRUMGENDER50",
+        "canonical": "CENTRUM GENDER+50",
+        "variants": [
+          {
+            "name": "CENTRUM GENDER+50",
+            "count": 275
+          },
+          {
+            "name": "CENTRUM GENDER +50",
+            "count": 123
+          }
+        ]
+      },
+      {
+        "key": "CHOCOMILK",
+        "canonical": "CHOCO MILK",
+        "variants": [
+          {
+            "name": "CHOCO MILK",
+            "count": 631
+          },
+          {
+            "name": "CHOCOMILK",
+            "count": 87
+          }
+        ]
+      },
+      {
+        "key": "CHOCOZERO",
+        "canonical": "CHOCOZERO",
+        "variants": [
+          {
+            "name": "CHOCOZERO",
+            "count": 102
+          },
+          {
+            "name": "CHOCO ZERO",
+            "count": 56
+          }
+        ]
+      },
+      {
+        "key": "CLARAX",
+        "canonical": "CLARAX",
+        "variants": [
+          {
+            "name": "CLARAX",
+            "count": 274
+          },
+          {
+            "name": "CLARA'X",
+            "count": 100
+          }
+        ]
+      },
+      {
+        "key": "CLOBX",
+        "canonical": "CLOB X",
+        "variants": [
+          {
+            "name": "CLOB X",
+            "count": 313
+          },
+          {
+            "name": "CLOB-X",
+            "count": 153
+          }
+        ]
+      },
+      {
+        "key": "COCACOLA",
+        "canonical": "COCA-COLA",
+        "variants": [
+          {
+            "name": "COCA-COLA",
+            "count": 4368
+          },
+          {
+            "name": "COCA COLA",
+            "count": 43
+          }
+        ]
+      },
+      {
+        "key": "COLVENFARSAS",
+        "canonical": "COLVENFAR S.A.S.",
+        "variants": [
+          {
+            "name": "COLVENFAR S.A.S.",
+            "count": 327
+          },
+          {
+            "name": "COLVENFAR SAS",
+            "count": 15
+          }
+        ]
+      },
+      {
+        "key": "CRISTALUP",
+        "canonical": "CRISTAL UP",
+        "variants": [
+          {
+            "name": "CRISTAL UP",
+            "count": 321
+          },
+          {
+            "name": "CRISTALUP",
+            "count": 70
+          }
+        ]
+      },
+      {
+        "key": "CUREBAND",
+        "canonical": "CURE BAND",
+        "variants": [
+          {
+            "name": "CURE BAND",
+            "count": 2827
+          },
+          {
+            "name": "CUREBAND",
+            "count": 894
+          }
+        ]
+      },
+      {
+        "key": "DNATTIVE",
+        "canonical": "DNATTIVE",
+        "variants": [
+          {
+            "name": "DNATTIVE",
+            "count": 5888
+          },
+          {
+            "name": "D'NATTIVE",
+            "count": 55
+          }
+        ]
+      },
+      {
+        "key": "DATASAVE",
+        "canonical": "DATASAVE",
+        "variants": [
+          {
+            "name": "DATASAVE",
+            "count": 100
+          },
+          {
+            "name": "DATA SAVE",
+            "count": 34
+          }
+        ]
+      },
+      {
+        "key": "DEPOMEDROL",
+        "canonical": "DEPOMEDROL",
+        "variants": [
+          {
+            "name": "DEPOMEDROL",
+            "count": 169
+          },
+          {
+            "name": "DEPO-MEDROL",
+            "count": 19
+          }
+        ]
+      },
+      {
+        "key": "DIABETRICSHEALTHCARESAS",
+        "canonical": "DIABETRICS HEALTHCARE S.A.S",
+        "variants": [
+          {
+            "name": "DIABETRICS HEALTHCARE S.A.S",
+            "count": 205
+          },
+          {
+            "name": "DIABETRICS HEALTHCARE SAS",
+            "count": 135
+          },
+          {
+            "name": "DIABETRICS HEALTHCARE S A S",
+            "count": 12
+          }
+        ]
+      },
+      {
+        "key": "DOLCEGABBANA",
+        "canonical": "DOLCE & GABBANA",
+        "variants": [
+          {
+            "name": "DOLCE & GABBANA",
+            "count": 18
+          },
+          {
+            "name": "DOLCE&GABBANA",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "DOLONEUROBION",
+        "canonical": "DOLO-NEUROBION",
+        "variants": [
+          {
+            "name": "DOLO-NEUROBION",
+            "count": 1857
+          },
+          {
+            "name": "DOLO NEUROBION",
+            "count": 309
+          }
+        ]
+      },
+      {
+        "key": "DONTWORRY",
+        "canonical": "DONT WORRY",
+        "variants": [
+          {
+            "name": "DONT WORRY",
+            "count": 2533
+          },
+          {
+            "name": "DON'TWORRY",
+            "count": 83
+          },
+          {
+            "name": "DON'T WORRY",
+            "count": 9
+          }
+        ]
+      },
+      {
+        "key": "DRALTHEA",
+        "canonical": "DR ALTHEA",
+        "variants": [
+          {
+            "name": "DR ALTHEA",
+            "count": 256
+          },
+          {
+            "name": "DR. ALTHEA",
+            "count": 92
+          }
+        ]
+      },
+      {
+        "key": "DRBECKMANN",
+        "canonical": "DR. BECKMANN",
+        "variants": [
+          {
+            "name": "DR. BECKMANN",
+            "count": 285
+          },
+          {
+            "name": "DR BECKMANN",
+            "count": 36
+          }
+        ]
+      },
+      {
+        "key": "DRBROWNS",
+        "canonical": "DR BROWNS",
+        "variants": [
+          {
+            "name": "DR BROWNS",
+            "count": 19382
+          },
+          {
+            "name": "DR. BROWN'S",
+            "count": 5579
+          },
+          {
+            "name": "DR BROWN'S",
+            "count": 156
+          },
+          {
+            "name": "DR BROWN S",
+            "count": 17
+          },
+          {
+            "name": "DR. BROWNS",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "DRCEURACLE",
+        "canonical": "DR. CEURACLE",
+        "variants": [
+          {
+            "name": "DR. CEURACLE",
+            "count": 4
+          },
+          {
+            "name": "DR CEURACLE",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "DRJOOHN",
+        "canonical": "DR JOOHN",
+        "variants": [
+          {
+            "name": "DR JOOHN",
+            "count": 362
+          },
+          {
+            "name": "DRJOOHN",
+            "count": 64
+          }
+        ]
+      },
+      {
+        "key": "DRRASHEL",
+        "canonical": "DR RASHEL",
+        "variants": [
+          {
+            "name": "DR RASHEL",
+            "count": 1352
+          },
+          {
+            "name": "DR. RASHEL",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "DRSCHOLLS",
+        "canonical": "DR. SCHOLL'S",
+        "variants": [
+          {
+            "name": "DR. SCHOLL'S",
+            "count": 2085
+          },
+          {
+            "name": "DR SCHOLLS",
+            "count": 742
+          },
+          {
+            "name": "DR SCHOLL'S",
+            "count": 67
+          },
+          {
+            "name": "DR. SCHOLLS",
+            "count": 9
+          },
+          {
+            "name": "DR. SCHOLL S",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "DRTEALS",
+        "canonical": "DR. TEALS",
+        "variants": [
+          {
+            "name": "DR. TEALS",
+            "count": 480
+          },
+          {
+            "name": "DR TEALS",
+            "count": 110
+          },
+          {
+            "name": "DR. TEAL'S",
+            "count": 12
+          }
+        ]
+      },
+      {
+        "key": "DREAMBABY",
+        "canonical": "DREAMBABY",
+        "variants": [
+          {
+            "name": "DREAMBABY",
+            "count": 994
+          },
+          {
+            "name": "DREAM BABY",
+            "count": 64
+          }
+        ]
+      },
+      {
+        "key": "DREAMWORKS",
+        "canonical": "DREAM WORKS",
+        "variants": [
+          {
+            "name": "DREAM WORKS",
+            "count": 69
+          },
+          {
+            "name": "DREAMWORKS",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "DUODECADRON",
+        "canonical": "DUO-DECADRON",
+        "variants": [
+          {
+            "name": "DUO-DECADRON",
+            "count": 698
+          },
+          {
+            "name": "DUO DECADRON",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "EPURA",
+        "canonical": "E PURA",
+        "variants": [
+          {
+            "name": "E PURA",
+            "count": 267
+          },
+          {
+            "name": "EPURA",
+            "count": 254
+          }
+        ]
+      },
+      {
+        "key": "EMERGENC",
+        "canonical": "EMERGEN-C",
+        "variants": [
+          {
+            "name": "EMERGEN-C",
+            "count": 1133
+          },
+          {
+            "name": "EMERGEN C",
+            "count": 54
+          }
+        ]
+      },
+      {
+        "key": "ENFAMILAR",
+        "canonical": "ENFAMIL AR",
+        "variants": [
+          {
+            "name": "ENFAMIL AR",
+            "count": 901
+          },
+          {
+            "name": "ENFAMIL A.R.",
+            "count": 254
+          }
+        ]
+      },
+      {
+        "key": "EPIDERM",
+        "canonical": "EPI-DERM",
+        "variants": [
+          {
+            "name": "EPI-DERM",
+            "count": 8
+          },
+          {
+            "name": "EPIDERM",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "FARMADECOLOMBIASAS",
+        "canonical": "FARMA DE COLOMBIA SAS",
+        "variants": [
+          {
+            "name": "FARMA DE COLOMBIA SAS",
+            "count": 130
+          },
+          {
+            "name": "FARMA DE COLOMBIA S.A.S.",
+            "count": 9
+          }
+        ]
+      },
+      {
+        "key": "FARMACOLCHINOINSAS",
+        "canonical": "FARMACOL CHINOIN S.A.S",
+        "variants": [
+          {
+            "name": "FARMACOL CHINOIN S.A.S",
+            "count": 1346
+          },
+          {
+            "name": "FARMACOL CHINOIN SAS",
+            "count": 15
+          }
+        ]
+      },
+      {
+        "key": "FERINSOL",
+        "canonical": "FER-IN-SOL",
+        "variants": [
+          {
+            "name": "FER-IN-SOL",
+            "count": 269
+          },
+          {
+            "name": "FERINSOL",
+            "count": 15
+          }
+        ]
+      },
+      {
+        "key": "FISHERPRICE",
+        "canonical": "FISHER PRICE",
+        "variants": [
+          {
+            "name": "FISHER PRICE",
+            "count": 4886
+          },
+          {
+            "name": "FISHER-PRICE",
+            "count": 3641
+          }
+        ]
+      },
+      {
+        "key": "FISSIONLAB",
+        "canonical": "FISSION LAB",
+        "variants": [
+          {
+            "name": "FISSION LAB",
+            "count": 24
+          },
+          {
+            "name": "FISSIONLAB",
+            "count": 14
+          }
+        ]
+      },
+      {
+        "key": "FITOKIDS",
+        "canonical": "FITO KIDS",
+        "variants": [
+          {
+            "name": "FITO KIDS",
+            "count": 1677
+          },
+          {
+            "name": "FITOKIDS",
+            "count": 595
+          }
+        ]
+      },
+      {
+        "key": "FLOSPRO",
+        "canonical": "FLOSPRO",
+        "variants": [
+          {
+            "name": "FLOSPRO",
+            "count": 332
+          },
+          {
+            "name": "FLOS-PRO",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "key": "FORTZINK",
+        "canonical": "FORT ZINK",
+        "variants": [
+          {
+            "name": "FORT ZINK",
+            "count": 1083
+          },
+          {
+            "name": "FORTZINK",
+            "count": 579
+          }
+        ]
+      },
+      {
+        "key": "FRESHSTEP",
+        "canonical": "FRESH STEP",
+        "variants": [
+          {
+            "name": "FRESH STEP",
+            "count": 90
+          },
+          {
+            "name": "FRESHSTEP",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "GUM",
+        "canonical": "GUM",
+        "variants": [
+          {
+            "name": "GUM",
+            "count": 1964
+          },
+          {
+            "name": "G.U.M",
+            "count": 991
+          }
+        ]
+      },
+      {
+        "key": "GARNIERSKINACTIVE",
+        "canonical": "GARNIER SKIN ACTIVE",
+        "variants": [
+          {
+            "name": "GARNIER SKIN ACTIVE",
+            "count": 5662
+          },
+          {
+            "name": "GARNIER-SKIN ACTIVE",
+            "count": 279
+          }
+        ]
+      },
+      {
+        "key": "GASTROFULL",
+        "canonical": "GASTRO FULL",
+        "variants": [
+          {
+            "name": "GASTRO FULL",
+            "count": 1698
+          },
+          {
+            "name": "GASTROFULL",
+            "count": 362
+          }
+        ]
+      },
+      {
+        "key": "GELHADA",
+        "canonical": "GELHADA",
+        "variants": [
+          {
+            "name": "GELHADA",
+            "count": 3272
+          },
+          {
+            "name": "GEL HADA",
+            "count": 160
+          }
+        ]
+      },
+      {
+        "key": "GLAXOSMITHKLINE",
+        "canonical": "GLAXOSMITHKLINE",
+        "variants": [
+          {
+            "name": "GLAXOSMITHKLINE",
+            "count": 592
+          },
+          {
+            "name": "GLAXO SMITHKLINE",
+            "count": 172
+          }
+        ]
+      },
+      {
+        "key": "GLAXOSMITHKLINECONSUMERHEALTHCARECOLOMBIASAS",
+        "canonical": "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S.A.S",
+        "variants": [
+          {
+            "name": "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S.A.S",
+            "count": 374
+          },
+          {
+            "name": "GLAXOSMITHKLINE CONSUMER HEALTHCARE COLOMBIA S A S",
+            "count": 301
+          }
+        ]
+      },
+      {
+        "key": "GLITACAR1",
+        "canonical": "GLITACAR-1",
+        "variants": [
+          {
+            "name": "GLITACAR-1",
+            "count": 393
+          },
+          {
+            "name": "GLITACAR 1",
+            "count": 33
+          }
+        ]
+      },
+      {
+        "key": "GNVIDA",
+        "canonical": "GN+ VIDA",
+        "variants": [
+          {
+            "name": "GN+ VIDA",
+            "count": 115
+          },
+          {
+            "name": "GN+VIDA",
+            "count": 114
+          }
+        ]
+      },
+      {
+        "key": "GOODNNATURAL",
+        "canonical": "GOOD N NATURAL",
+        "variants": [
+          {
+            "name": "GOOD N NATURAL",
+            "count": 2323
+          },
+          {
+            "name": "GOOD'N NATURAL",
+            "count": 349
+          }
+        ]
+      },
+      {
+        "key": "GRIPPHEEL",
+        "canonical": "GRIPP-HEEL",
+        "variants": [
+          {
+            "name": "GRIPP-HEEL",
+            "count": 1351
+          },
+          {
+            "name": "GRIPP HEEL",
+            "count": 205
+          }
+        ]
+      },
+      {
+        "key": "H2OH",
+        "canonical": "H2OH",
+        "variants": [
+          {
+            "name": "H2OH",
+            "count": 3969
+          },
+          {
+            "name": "H2OH!",
+            "count": 2900
+          }
+        ]
+      },
+      {
+        "key": "HEALTHYAMERICACOLOMBIASAS",
+        "canonical": "HEALTHY AMERICA COLOMBIA S.A.S.",
+        "variants": [
+          {
+            "name": "HEALTHY AMERICA COLOMBIA S.A.S.",
+            "count": 1682
+          },
+          {
+            "name": "HEALTHY AMERICA COLOMBIA SAS",
+            "count": 256
+          },
+          {
+            "name": "HEALTHY AMERICA COLOMBIA S.A.S",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "HERSHEYS",
+        "canonical": "HERSHEYS",
+        "variants": [
+          {
+            "name": "HERSHEYS",
+            "count": 1771
+          },
+          {
+            "name": "HERSHEY'S",
+            "count": 178
+          }
+        ]
+      },
+      {
+        "key": "HMB",
+        "canonical": "HMB",
+        "variants": [
+          {
+            "name": "HMB",
+            "count": 672
+          },
+          {
+            "name": "HMB!",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "HOMECHOICE",
+        "canonical": "HOMECHOICE",
+        "variants": [
+          {
+            "name": "HOMECHOICE",
+            "count": 387
+          },
+          {
+            "name": "HOME CHOICE",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "HOMETRENDS",
+        "canonical": "HOME TRENDS",
+        "variants": [
+          {
+            "name": "HOME TRENDS",
+            "count": 161
+          },
+          {
+            "name": "HOMETRENDS",
+            "count": 7
+          }
+        ]
+      },
+      {
+        "key": "HUMALOG",
+        "canonical": "HUMALOG.",
+        "variants": [
+          {
+            "name": "HUMALOG.",
+            "count": 72
+          },
+          {
+            "name": "HUMALOG",
+            "count": 68
+          }
+        ]
+      },
+      {
+        "key": "ILABSAS",
+        "canonical": "ILAB SAS",
+        "variants": [
+          {
+            "name": "ILAB SAS",
+            "count": 416
+          },
+          {
+            "name": "I-LAB SAS",
+            "count": 30
+          }
+        ]
+      },
+      {
+        "key": "IMMUFLO",
+        "canonical": "IMMU-FLO",
+        "variants": [
+          {
+            "name": "IMMU-FLO",
+            "count": 136
+          },
+          {
+            "name": "IMMU-FLO®",
+            "count": 129
+          }
+        ]
+      },
+      {
+        "key": "JADORE",
+        "canonical": "JADORE",
+        "variants": [
+          {
+            "name": "JADORE",
+            "count": 167
+          },
+          {
+            "name": "J'ADORE",
+            "count": 80
+          }
+        ]
+      },
+      {
+        "key": "JACKDANIELS",
+        "canonical": "JACK DANIELS",
+        "variants": [
+          {
+            "name": "JACK DANIELS",
+            "count": 90
+          },
+          {
+            "name": "JACK DANIEL'S",
+            "count": 42
+          }
+        ]
+      },
+      {
+        "key": "JOHNSONJOHNSON",
+        "canonical": "JOHNSON & JOHNSON",
+        "variants": [
+          {
+            "name": "JOHNSON & JOHNSON",
+            "count": 765
+          },
+          {
+            "name": "JOHNSON&JOHNSON",
+            "count": 13
+          }
+        ]
+      },
+      {
+        "key": "JOHNSONS",
+        "canonical": "JOHNSON'S",
+        "variants": [
+          {
+            "name": "JOHNSON'S",
+            "count": 6354
+          },
+          {
+            "name": "JOHNSONS",
+            "count": 1207
+          },
+          {
+            "name": "JOHNSON S",
+            "count": 9
+          }
+        ]
+      },
+      {
+        "key": "KASTPE",
+        "canonical": "KAST PE",
+        "variants": [
+          {
+            "name": "KAST PE",
+            "count": 220
+          },
+          {
+            "name": "KASTPE",
+            "count": 104
+          }
+        ]
+      },
+      {
+        "key": "KELLOGGS",
+        "canonical": "KELLOGGS",
+        "variants": [
+          {
+            "name": "KELLOGGS",
+            "count": 432
+          },
+          {
+            "name": "KELLOGG'S",
+            "count": 29
+          }
+        ]
+      },
+      {
+        "key": "KLEENBEBE",
+        "canonical": "KLEEN BEBE",
+        "variants": [
+          {
+            "name": "KLEEN BEBE",
+            "count": 1437
+          },
+          {
+            "name": "KLEENBEBE",
+            "count": 1414
+          }
+        ]
+      },
+      {
+        "key": "KLIHEEL",
+        "canonical": "KLIHEEL",
+        "variants": [
+          {
+            "name": "KLIHEEL",
+            "count": 1499
+          },
+          {
+            "name": "KLI.HEEL",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "LMARSPA",
+        "canonical": "L'MAR SPA",
+        "variants": [
+          {
+            "name": "L'MAR SPA",
+            "count": 256
+          },
+          {
+            "name": "LMAR SPA",
+            "count": 58
+          }
+        ]
+      },
+      {
+        "key": "LOREAL",
+        "canonical": "LOREAL",
+        "variants": [
+          {
+            "name": "LOREAL",
+            "count": 12464
+          },
+          {
+            "name": "L'OREAL",
+            "count": 838
+          }
+        ]
+      },
+      {
+        "key": "LOREALPARIS",
+        "canonical": "L'OREAL PARIS",
+        "variants": [
+          {
+            "name": "L'OREAL PARIS",
+            "count": 8269
+          },
+          {
+            "name": "LOREAL PARIS",
+            "count": 3326
+          },
+          {
+            "name": "L’OREAL PARIS",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "LACROIX",
+        "canonical": "LA CROIX",
+        "variants": [
+          {
+            "name": "LA CROIX",
+            "count": 668
+          },
+          {
+            "name": "LACROIX",
+            "count": 181
+          }
+        ]
+      },
+      {
+        "key": "LAROCHEPOSAY",
+        "canonical": "LA ROCHE-POSAY",
+        "variants": [
+          {
+            "name": "LA ROCHE-POSAY",
+            "count": 26701
+          },
+          {
+            "name": "LA ROCHE POSAY",
+            "count": 1457
+          }
+        ]
+      },
+      {
+        "key": "LABORATORIOSBAXTERSA",
+        "canonical": "LABORATORIOS BAXTER S.A.",
+        "variants": [
+          {
+            "name": "LABORATORIOS BAXTER S.A.",
+            "count": 301
+          },
+          {
+            "name": "LABORATORIOS BAXTER SA",
+            "count": 135
+          }
+        ]
+      },
+      {
+        "key": "LABORATORIOSCHALVERDECOLOMBIASA",
+        "canonical": "LABORATORIOS CHALVER DE COLOMBIA SA",
+        "variants": [
+          {
+            "name": "LABORATORIOS CHALVER DE COLOMBIA SA",
+            "count": 173
+          },
+          {
+            "name": "LABORATORIOS CHALVER DE COLOMBIA S.A.",
+            "count": 98
+          }
+        ]
+      },
+      {
+        "key": "LERACO",
+        "canonical": "LERACO",
+        "variants": [
+          {
+            "name": "LERACO",
+            "count": 409
+          },
+          {
+            "name": "LERA-CO",
+            "count": 71
+          }
+        ]
+      },
+      {
+        "key": "LIFE180",
+        "canonical": "LIFE 180",
+        "variants": [
+          {
+            "name": "LIFE 180",
+            "count": 230
+          },
+          {
+            "name": "LIFE180",
+            "count": 74
+          }
+        ]
+      },
+      {
+        "key": "LIFE360",
+        "canonical": "LIFE 360+",
+        "variants": [
+          {
+            "name": "LIFE 360+",
+            "count": 8662
+          },
+          {
+            "name": "LIFE 360",
+            "count": 1451
+          },
+          {
+            "name": "LIFE360+",
+            "count": 58
+          }
+        ]
+      },
+      {
+        "key": "LIFECARE",
+        "canonical": "LIFE CARE",
+        "variants": [
+          {
+            "name": "LIFE CARE",
+            "count": 198
+          },
+          {
+            "name": "LIFECARE",
+            "count": 36
+          }
+        ]
+      },
+      {
+        "key": "LIPOVITASIOR",
+        "canonical": "LIPOVITASI-OR",
+        "variants": [
+          {
+            "name": "LIPOVITASI-OR",
+            "count": 320
+          },
+          {
+            "name": "LIPOVITASI OR",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "key": "LIQUIDIV",
+        "canonical": "LIQUID I.V.",
+        "variants": [
+          {
+            "name": "LIQUID I.V.",
+            "count": 24
+          },
+          {
+            "name": "LIQUID IV",
+            "count": 18
+          }
+        ]
+      },
+      {
+        "key": "LIVNUTRITION",
+        "canonical": "LIVNUTRITION",
+        "variants": [
+          {
+            "name": "LIVNUTRITION",
+            "count": 2349
+          },
+          {
+            "name": "LIV NUTRITION",
+            "count": 60
+          }
+        ]
+      },
+      {
+        "key": "MAH",
+        "canonical": "MAH!",
+        "variants": [
+          {
+            "name": "MAH!",
+            "count": 4726
+          },
+          {
+            "name": "MAH",
+            "count": 4213
+          }
+        ]
+      },
+      {
+        "key": "MARYRUTH",
+        "canonical": "MARYRUTH",
+        "variants": [
+          {
+            "name": "MARYRUTH",
+            "count": 416
+          },
+          {
+            "name": "MARY RUTH",
+            "count": 98
+          }
+        ]
+      },
+      {
+        "key": "MARYRUTHS",
+        "canonical": "MARY RUTHS",
+        "variants": [
+          {
+            "name": "MARY RUTHS",
+            "count": 399
+          },
+          {
+            "name": "MARYRUTHS",
+            "count": 92
+          }
+        ]
+      },
+      {
+        "key": "MEDIVELIUSFARMACEUTICASA",
+        "canonical": "MEDIVELIUS FARMACEUTICA S.A",
+        "variants": [
+          {
+            "name": "MEDIVELIUS FARMACEUTICA S.A",
+            "count": 686
+          },
+          {
+            "name": "MEDIVELIUS FARMACEUTICA SA",
+            "count": 213
+          }
+        ]
+      },
+      {
+        "key": "MEGALABS",
+        "canonical": "MEGALABS",
+        "variants": [
+          {
+            "name": "MEGALABS",
+            "count": 6345
+          },
+          {
+            "name": "MEGA LABS",
+            "count": 520
+          }
+        ]
+      },
+      {
+        "key": "MEGALIFE",
+        "canonical": "MEGA LIFE",
+        "variants": [
+          {
+            "name": "MEGA LIFE",
+            "count": 3011
+          },
+          {
+            "name": "MEGALIFE",
+            "count": 396
+          }
+        ]
+      },
+      {
+        "key": "MEMBERSMARK",
+        "canonical": "MEMBER'S MARK",
+        "variants": [
+          {
+            "name": "MEMBER'S MARK",
+            "count": 13340
+          },
+          {
+            "name": "MEMBERS MARK",
+            "count": 61
+          }
+        ]
+      },
+      {
+        "key": "MERCKSHARPDOHME",
+        "canonical": "MERCK SHARP DOHME",
+        "variants": [
+          {
+            "name": "MERCK SHARP DOHME",
+            "count": 4585
+          },
+          {
+            "name": "MERCK SHARP  DOHME",
+            "count": 13
+          }
+        ]
+      },
+      {
+        "key": "MICHELSONPHARMA",
+        "canonical": "MICHELSONPHARMA",
+        "variants": [
+          {
+            "name": "MICHELSONPHARMA",
+            "count": 974
+          },
+          {
+            "name": "MICHELSON PHARMA",
+            "count": 361
+          }
+        ]
+      },
+      {
+        "key": "MICROINGREDIENTS",
+        "canonical": "MICROINGREDIENTS",
+        "variants": [
+          {
+            "name": "MICROINGREDIENTS",
+            "count": 376
+          },
+          {
+            "name": "MICRO INGREDIENTS",
+            "count": 103
+          }
+        ]
+      },
+      {
+        "key": "MINOFOAM",
+        "canonical": "MINO FOAM",
+        "variants": [
+          {
+            "name": "MINO FOAM",
+            "count": 485
+          },
+          {
+            "name": "MINOFOAM",
+            "count": 327
+          }
+        ]
+      },
+      {
+        "key": "MONTBLANC",
+        "canonical": "MONT BLANC",
+        "variants": [
+          {
+            "name": "MONT BLANC",
+            "count": 3138
+          },
+          {
+            "name": "MONTBLANC",
+            "count": 788
+          }
+        ]
+      },
+      {
+        "key": "MORE",
+        "canonical": "MORE",
+        "variants": [
+          {
+            "name": "MORE",
+            "count": 4981
+          },
+          {
+            "name": "MORE+",
+            "count": 628
+          }
+        ]
+      },
+      {
+        "key": "MULTIBLUE",
+        "canonical": "MULTIBLUE",
+        "variants": [
+          {
+            "name": "MULTIBLUE",
+            "count": 7072
+          },
+          {
+            "name": "MULTI BLUE",
+            "count": 41
+          }
+        ]
+      },
+      {
+        "key": "MYMOCHI",
+        "canonical": "MY MOCHI",
+        "variants": [
+          {
+            "name": "MY MOCHI",
+            "count": 21
+          },
+          {
+            "name": "MYMOCHI",
+            "count": 21
+          }
+        ]
+      },
+      {
+        "key": "MYPROTEIN",
+        "canonical": "MYPROTEIN",
+        "variants": [
+          {
+            "name": "MYPROTEIN",
+            "count": 9694
+          },
+          {
+            "name": "MY PROTEIN",
+            "count": 338
+          }
+        ]
+      },
+      {
+        "key": "MYOVECTOR",
+        "canonical": "MYO-VECTOR",
+        "variants": [
+          {
+            "name": "MYO-VECTOR",
+            "count": 25
+          },
+          {
+            "name": "MYO VECTOR",
+            "count": 18
+          }
+        ]
+      },
+      {
+        "key": "MYOSNOR",
+        "canonical": "MYOS NOR",
+        "variants": [
+          {
+            "name": "MYOS NOR",
+            "count": 154
+          },
+          {
+            "name": "MYOS-NOR",
+            "count": 115
+          }
+        ]
+      },
+      {
+        "key": "NATNACK",
+        "canonical": "NATNACK",
+        "variants": [
+          {
+            "name": "NATNACK",
+            "count": 2802
+          },
+          {
+            "name": "NAT NACK",
+            "count": 23
+          }
+        ]
+      },
+      {
+        "key": "NATURALSLIM",
+        "canonical": "NATURAL SLIM",
+        "variants": [
+          {
+            "name": "NATURAL SLIM",
+            "count": 3082
+          },
+          {
+            "name": "NATURALSLIM",
+            "count": 1268
+          }
+        ]
+      },
+      {
+        "key": "NATURALSMARTNUTRITION",
+        "canonical": "NATURAL SMARTNUTRITION",
+        "variants": [
+          {
+            "name": "NATURAL SMARTNUTRITION",
+            "count": 384
+          },
+          {
+            "name": "NATURAL SMART NUTRITION",
+            "count": 55
+          }
+        ]
+      },
+      {
+        "key": "NATUREBEST",
+        "canonical": "NATURE BEST",
+        "variants": [
+          {
+            "name": "NATURE BEST",
+            "count": 47
+          },
+          {
+            "name": "‎NATURE BEST",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "key": "NATURESBEST",
+        "canonical": "NATURE'S BEST",
+        "variants": [
+          {
+            "name": "NATURE'S BEST",
+            "count": 4
+          },
+          {
+            "name": "NATURE'S BEST;",
+            "count": 3
+          }
+        ]
+      },
+      {
+        "key": "NATURESBOUNTY",
+        "canonical": "NATURE'S BOUNTY",
+        "variants": [
+          {
+            "name": "NATURE'S BOUNTY",
+            "count": 7020
+          },
+          {
+            "name": "NATURES BOUNTY",
+            "count": 407
+          }
+        ]
+      },
+      {
+        "key": "NATURESHEART",
+        "canonical": "NATURES HEART",
+        "variants": [
+          {
+            "name": "NATURES HEART",
+            "count": 5557
+          },
+          {
+            "name": "NATURE'S HEART",
+            "count": 684
+          }
+        ]
+      },
+      {
+        "key": "NATURESLIFE",
+        "canonical": "NATURE'S LIFE",
+        "variants": [
+          {
+            "name": "NATURE'S LIFE",
+            "count": 958
+          },
+          {
+            "name": "NATURES LIFE",
+            "count": 52
+          }
+        ]
+      },
+      {
+        "key": "NATURESPLUS",
+        "canonical": "NATURES PLUS",
+        "variants": [
+          {
+            "name": "NATURES PLUS",
+            "count": 9
+          },
+          {
+            "name": "NATURESPLUS",
+            "count": 4
+          },
+          {
+            "name": "NATURE'S PLUS",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "NATURESWAY",
+        "canonical": "NATURE'S WAY",
+        "variants": [
+          {
+            "name": "NATURE'S WAY",
+            "count": 314
+          },
+          {
+            "name": "NATURES WAY",
+            "count": 20
+          }
+        ]
+      },
+      {
+        "key": "NENEDENT",
+        "canonical": "NENEDENT",
+        "variants": [
+          {
+            "name": "NENEDENT",
+            "count": 1536
+          },
+          {
+            "name": "NENE DENT",
+            "count": 94
+          }
+        ]
+      },
+      {
+        "key": "NEPROHP",
+        "canonical": "NEPRO HP",
+        "variants": [
+          {
+            "name": "NEPRO HP",
+            "count": 534
+          },
+          {
+            "name": "NEPRO-HP",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "NEWHEALTH",
+        "canonical": "NEWHEALTH",
+        "variants": [
+          {
+            "name": "NEWHEALTH",
+            "count": 19120
+          },
+          {
+            "name": "NEW HEALTH",
+            "count": 524
+          }
+        ]
+      },
+      {
+        "key": "NOVONORDISKCOLOMBIASAS",
+        "canonical": "NOVO NORDISK COLOMBIA S A S",
+        "variants": [
+          {
+            "name": "NOVO NORDISK COLOMBIA S A S",
+            "count": 963
+          },
+          {
+            "name": "NOVO NORDISK COLOMBIA SAS",
+            "count": 120
+          }
+        ]
+      },
+      {
+        "key": "NUEVID",
+        "canonical": "NUEVI D",
+        "variants": [
+          {
+            "name": "NUEVI D",
+            "count": 512
+          },
+          {
+            "name": "NUEVID",
+            "count": 298
+          }
+        ]
+      },
+      {
+        "key": "NUTRASTEVIA",
+        "canonical": "NUTRASTEVIA",
+        "variants": [
+          {
+            "name": "NUTRASTEVIA",
+            "count": 6798
+          },
+          {
+            "name": "NUTRA STEVIA",
+            "count": 1272
+          }
+        ]
+      },
+      {
+        "key": "NUTRAVITPLUS",
+        "canonical": "NUTRAVITPLUS",
+        "variants": [
+          {
+            "name": "NUTRAVITPLUS",
+            "count": 103
+          },
+          {
+            "name": "NUTRAVIT PLUS",
+            "count": 92
+          }
+        ]
+      },
+      {
+        "key": "NUTRIBABY",
+        "canonical": "NUTRIBABY",
+        "variants": [
+          {
+            "name": "NUTRIBABY",
+            "count": 9315
+          },
+          {
+            "name": "NUTRI BABY",
+            "count": 391
+          }
+        ]
+      },
+      {
+        "key": "NUTRICO",
+        "canonical": "NUTRICO",
+        "variants": [
+          {
+            "name": "NUTRICO",
+            "count": 1030
+          },
+          {
+            "name": "NUTRI CO",
+            "count": 692
+          }
+        ]
+      },
+      {
+        "key": "NUTRICOST",
+        "canonical": "NUTRICOST",
+        "variants": [
+          {
+            "name": "NUTRICOST",
+            "count": 4210
+          },
+          {
+            "name": "NUTRI COST",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "NUTRIBELA15",
+        "canonical": "NUTRIBELA 15",
+        "variants": [
+          {
+            "name": "NUTRIBELA 15",
+            "count": 363
+          },
+          {
+            "name": "NUTRIBELA15",
+            "count": 330
+          }
+        ]
+      },
+      {
+        "key": "NYQUILZ",
+        "canonical": "NYQUILZ",
+        "variants": [
+          {
+            "name": "NYQUILZ",
+            "count": 306
+          },
+          {
+            "name": "NYQUIL Z",
+            "count": 130
+          }
+        ]
+      },
+      {
+        "key": "OCOSMETICS",
+        "canonical": "OCOSMETICS",
+        "variants": [
+          {
+            "name": "OCOSMETICS",
+            "count": 78
+          },
+          {
+            "name": "O' COSMETICS",
+            "count": 29
+          }
+        ]
+      },
+      {
+        "key": "OFF",
+        "canonical": "OFF!",
+        "variants": [
+          {
+            "name": "OFF!",
+            "count": 663
+          },
+          {
+            "name": "OFF",
+            "count": 169
+          }
+        ]
+      },
+      {
+        "key": "OLNATURA",
+        "canonical": "OLNATURA",
+        "variants": [
+          {
+            "name": "OLNATURA",
+            "count": 1339
+          },
+          {
+            "name": "OL NATURA",
+            "count": 99
+          }
+        ]
+      },
+      {
+        "key": "OLI21",
+        "canonical": "OLI21",
+        "variants": [
+          {
+            "name": "OLI21",
+            "count": 9161
+          },
+          {
+            "name": "OLI 21",
+            "count": 2539
+          }
+        ]
+      },
+      {
+        "key": "ONETOUCH",
+        "canonical": "ONE TOUCH",
+        "variants": [
+          {
+            "name": "ONE TOUCH",
+            "count": 1295
+          },
+          {
+            "name": "ONETOUCH",
+            "count": 256
+          }
+        ]
+      },
+      {
+        "key": "ORALB",
+        "canonical": "ORAL-B",
+        "variants": [
+          {
+            "name": "ORAL-B",
+            "count": 8818
+          },
+          {
+            "name": "ORAL B",
+            "count": 195
+          }
+        ]
+      },
+      {
+        "key": "ORANGELART",
+        "canonical": "ORANGEL ART",
+        "variants": [
+          {
+            "name": "ORANGEL ART",
+            "count": 218
+          },
+          {
+            "name": "ORANGELART",
+            "count": 61
+          }
+        ]
+      },
+      {
+        "key": "OXITALC",
+        "canonical": "OXITAL-C",
+        "variants": [
+          {
+            "name": "OXITAL-C",
+            "count": 24
+          },
+          {
+            "name": "OXITAL C",
+            "count": 10
+          }
+        ]
+      },
+      {
+        "key": "PREMIUMBABY",
+        "canonical": "PREMIUM BABY",
+        "variants": [
+          {
+            "name": "PREMIUM BABY",
+            "count": 151
+          },
+          {
+            "name": "P'REMIUM BABY",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "key": "PALMERS",
+        "canonical": "PALMER'S",
+        "variants": [
+          {
+            "name": "PALMER'S",
+            "count": 1525
+          },
+          {
+            "name": "PALMERS",
+            "count": 1015
+          }
+        ]
+      },
+      {
+        "key": "PEDIASURE10",
+        "canonical": "PEDIASURE 10+",
+        "variants": [
+          {
+            "name": "PEDIASURE 10+",
+            "count": 1986
+          },
+          {
+            "name": "PEDIASURE 10",
+            "count": 35
+          }
+        ]
+      },
+      {
+        "key": "PHYSICIANSCHOICE",
+        "canonical": "PHYSICIANS CHOICE",
+        "variants": [
+          {
+            "name": "PHYSICIANS CHOICE",
+            "count": 65
+          },
+          {
+            "name": "PHYSICIAN'S CHOICE",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "key": "PIREFEN",
+        "canonical": "PIREFEN",
+        "variants": [
+          {
+            "name": "PIREFEN",
+            "count": 2564
+          },
+          {
+            "name": "PIRE-FEN",
+            "count": 242
+          }
+        ]
+      },
+      {
+        "key": "POLYVIGOMIS",
+        "canonical": "POLY-VI-GOMIS",
+        "variants": [
+          {
+            "name": "POLY-VI-GOMIS",
+            "count": 619
+          },
+          {
+            "name": "POLY VI GOMIS",
+            "count": 199
+          }
+        ]
+      },
+      {
+        "key": "POLYVISOL",
+        "canonical": "POLY-VI-SOL",
+        "variants": [
+          {
+            "name": "POLY-VI-SOL",
+            "count": 323
+          },
+          {
+            "name": "POLY VI SOL",
+            "count": 22
+          }
+        ]
+      },
+      {
+        "key": "PONDS",
+        "canonical": "PONDS",
+        "variants": [
+          {
+            "name": "PONDS",
+            "count": 10064
+          },
+          {
+            "name": "POND'S",
+            "count": 2901
+          }
+        ]
+      },
+      {
+        "key": "PREDIAL",
+        "canonical": "PREDIAL",
+        "variants": [
+          {
+            "name": "PREDIAL",
+            "count": 1039
+          },
+          {
+            "name": "PRE DIAL",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "key": "PREVITAMOM",
+        "canonical": "PREVITA MOM",
+        "variants": [
+          {
+            "name": "PREVITA MOM",
+            "count": 914
+          },
+          {
+            "name": "PREVITA-MOM",
+            "count": 304
+          }
+        ]
+      },
+      {
+        "key": "PROSCIENCE",
+        "canonical": "PROSCIENCE",
+        "variants": [
+          {
+            "name": "PROSCIENCE",
+            "count": 464
+          },
+          {
+            "name": "PRO SCIENCE",
+            "count": 61
+          }
+        ]
+      },
+      {
+        "key": "PROWINNER",
+        "canonical": "PROWINNER",
+        "variants": [
+          {
+            "name": "PROWINNER",
+            "count": 330
+          },
+          {
+            "name": "PRO WINNER",
+            "count": 102
+          }
+        ]
+      },
+      {
+        "key": "PROCTERGAMBLECOLOMBIALTDA",
+        "canonical": "PROCTER GAMBLE COLOMBIA LTDA",
+        "variants": [
+          {
+            "name": "PROCTER GAMBLE COLOMBIA LTDA",
+            "count": 4286
+          },
+          {
+            "name": "PROCTER & GAMBLE COLOMBIA LTDA",
+            "count": 9
+          }
+        ]
+      },
+      {
+        "key": "PROQUIDENTSA",
+        "canonical": "PROQUIDENT S.A",
+        "variants": [
+          {
+            "name": "PROQUIDENT S.A",
+            "count": 259
+          },
+          {
+            "name": "PROQUIDENT SA",
+            "count": 15
+          }
+        ]
+      },
+      {
+        "key": "PROXTENPLUS",
+        "canonical": "PROXTENPLUS",
+        "variants": [
+          {
+            "name": "PROXTENPLUS",
+            "count": 1429
+          },
+          {
+            "name": "PROXTEN PLUS",
+            "count": 178
+          }
+        ]
+      },
+      {
+        "key": "PURA",
+        "canonical": "PURA",
+        "variants": [
+          {
+            "name": "PURA",
+            "count": 147
+          },
+          {
+            "name": "PURA+",
+            "count": 122
+          }
+        ]
+      },
+      {
+        "key": "PURITANSPRIDE",
+        "canonical": "PURITANS PRIDE",
+        "variants": [
+          {
+            "name": "PURITANS PRIDE",
+            "count": 399
+          },
+          {
+            "name": "PURITAN'S PRIDE",
+            "count": 147
+          }
+        ]
+      },
+      {
+        "key": "REDBULL",
+        "canonical": "RED BULL",
+        "variants": [
+          {
+            "name": "RED BULL",
+            "count": 7998
+          },
+          {
+            "name": "REDBULL",
+            "count": 19
+          }
+        ]
+      },
+      {
+        "key": "REDKITE",
+        "canonical": "REDKITE",
+        "variants": [
+          {
+            "name": "REDKITE",
+            "count": 82
+          },
+          {
+            "name": "RED KITE",
+            "count": 6
+          }
+        ]
+      },
+      {
+        "key": "RINOLAST",
+        "canonical": "RINO LAST",
+        "variants": [
+          {
+            "name": "RINO LAST",
+            "count": 648
+          },
+          {
+            "name": "RINOLAST",
+            "count": 171
+          }
+        ]
+      },
+      {
+        "key": "RYBELSUS",
+        "canonical": "RYBELSUS",
+        "variants": [
+          {
+            "name": "RYBELSUS",
+            "count": 1391
+          },
+          {
+            "name": "RYBELSUS®",
+            "count": 375
+          }
+        ]
+      },
+      {
+        "key": "SNATURAL",
+        "canonical": "SNATURAL",
+        "variants": [
+          {
+            "name": "SNATURAL",
+            "count": 331
+          },
+          {
+            "name": "S NATURAL",
+            "count": 14
+          }
+        ]
+      },
+      {
+        "key": "SAFGEL",
+        "canonical": "SAF-GEL",
+        "variants": [
+          {
+            "name": "SAF-GEL",
+            "count": 1084
+          },
+          {
+            "name": "SAF - GEL",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "key": "SCOTCHBRITE",
+        "canonical": "SCOTCH BRITE",
+        "variants": [
+          {
+            "name": "SCOTCH BRITE",
+            "count": 320
+          },
+          {
+            "name": "SCOTCH-BRITE",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "SESDERMACOLOMBIASA",
+        "canonical": "SESDERMA COLOMBIA S.A",
+        "variants": [
+          {
+            "name": "SESDERMA COLOMBIA S.A",
+            "count": 1169
+          },
+          {
+            "name": "SESDERMA COLOMBIA SA",
+            "count": 255
+          }
+        ]
+      },
+      {
+        "key": "SIMILACARROZADVANCE",
+        "canonical": "SIMILAC ARROZ ADVANCE",
+        "variants": [
+          {
+            "name": "SIMILAC ARROZ ADVANCE",
+            "count": 776
+          },
+          {
+            "name": "SIMILAC ARROZ-ADVANCE",
+            "count": 143
+          }
+        ]
+      },
+      {
+        "key": "SIMONDS",
+        "canonical": "SIMONDS",
+        "variants": [
+          {
+            "name": "SIMONDS",
+            "count": 198
+          },
+          {
+            "name": "SIMOND'S",
+            "count": 18
+          }
+        ]
+      },
+      {
+        "key": "SKINVITA",
+        "canonical": "SK-INVITA",
+        "variants": [
+          {
+            "name": "SK-INVITA",
+            "count": 918
+          },
+          {
+            "name": "SK INVITA",
+            "count": 6
+          }
+        ]
+      },
+      {
+        "key": "SLIMFAST",
+        "canonical": "SLIMFAST",
+        "variants": [
+          {
+            "name": "SLIMFAST",
+            "count": 3197
+          },
+          {
+            "name": "SLIM FAST",
+            "count": 200
+          }
+        ]
+      },
+      {
+        "key": "SMARTBLENDS",
+        "canonical": "SMARTBLENDS",
+        "variants": [
+          {
+            "name": "SMARTBLENDS",
+            "count": 3805
+          },
+          {
+            "name": "SMART BLENDS",
+            "count": 45
+          }
+        ]
+      },
+      {
+        "key": "SUNPRO",
+        "canonical": "SUN PRO",
+        "variants": [
+          {
+            "name": "SUN PRO",
+            "count": 1990
+          },
+          {
+            "name": "SUNPRO",
+            "count": 236
+          }
+        ]
+      },
+      {
+        "key": "SUNWARRIOR",
+        "canonical": "SUNWARRIOR",
+        "variants": [
+          {
+            "name": "SUNWARRIOR",
+            "count": 64
+          },
+          {
+            "name": "SUN WARRIOR",
+            "count": 33
+          }
+        ]
+      },
+      {
+        "key": "SUPERMUNDO",
+        "canonical": "SUPERMUNDO",
+        "variants": [
+          {
+            "name": "SUPERMUNDO",
+            "count": 1625
+          },
+          {
+            "name": "SUPER MUNDO",
+            "count": 71
+          }
+        ]
+      },
+      {
+        "key": "TBEST",
+        "canonical": "T'BEST",
+        "variants": [
+          {
+            "name": "T'BEST",
+            "count": 1550
+          },
+          {
+            "name": "T BEST",
+            "count": 864
+          }
+        ]
+      },
+      {
+        "key": "TLD",
+        "canonical": "T/L/D",
+        "variants": [
+          {
+            "name": "T/L/D",
+            "count": 379
+          },
+          {
+            "name": "TLD",
+            "count": 84
+          }
+        ]
+      },
+      {
+        "key": "TAIFELDS",
+        "canonical": "TAIFELD'S",
+        "variants": [
+          {
+            "name": "TAIFELD'S",
+            "count": 372
+          },
+          {
+            "name": "TAIFELDS",
+            "count": 7
+          }
+        ]
+      },
+      {
+        "key": "TEARSOFT",
+        "canonical": "TEARSOFT",
+        "variants": [
+          {
+            "name": "TEARSOFT",
+            "count": 1138
+          },
+          {
+            "name": "TEARSOFT.",
+            "count": 112
+          }
+        ]
+      },
+      {
+        "key": "TECNOQUIMICASSA",
+        "canonical": "TECNOQUIMICAS S.A",
+        "variants": [
+          {
+            "name": "TECNOQUIMICAS S.A",
+            "count": 4365
+          },
+          {
+            "name": "TECNOQUIMICAS SA",
+            "count": 1194
+          }
+        ]
+      },
+      {
+        "key": "TIBETNATURA",
+        "canonical": "TIBETNATURA",
+        "variants": [
+          {
+            "name": "TIBETNATURA",
+            "count": 1109
+          },
+          {
+            "name": "TIBET NATURA",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "key": "TRANSVITALD",
+        "canonical": "TRANSVITAL D",
+        "variants": [
+          {
+            "name": "TRANSVITAL D",
+            "count": 601
+          },
+          {
+            "name": "TRANSVITAL-D",
+            "count": 28
+          }
+        ]
+      },
+      {
+        "key": "TRIVISOL",
+        "canonical": "TRI-VI-SOL",
+        "variants": [
+          {
+            "name": "TRI-VI-SOL",
+            "count": 312
+          },
+          {
+            "name": "TRIVISOL",
+            "count": 283
+          },
+          {
+            "name": "TRI VI SOL",
+            "count": 50
+          }
+        ]
+      },
+      {
+        "key": "TUKOLD",
+        "canonical": "TUKOL-D",
+        "variants": [
+          {
+            "name": "TUKOL-D",
+            "count": 1107
+          },
+          {
+            "name": "TUKOL D",
+            "count": 100
+          }
+        ]
+      },
+      {
+        "key": "TWENTYS",
+        "canonical": "TWENTY'S",
+        "variants": [
+          {
+            "name": "TWENTY'S",
+            "count": 882
+          },
+          {
+            "name": "TWENTYS",
+            "count": 470
+          }
+        ]
+      },
+      {
+        "key": "ULTRAFINE",
+        "canonical": "ULTRA-FINE",
+        "variants": [
+          {
+            "name": "ULTRA-FINE",
+            "count": 1336
+          },
+          {
+            "name": "ULTRA FINE",
+            "count": 91
+          }
+        ]
+      },
+      {
+        "key": "UROCITK",
+        "canonical": "UROCIT K",
+        "variants": [
+          {
+            "name": "UROCIT K",
+            "count": 102
+          },
+          {
+            "name": "UROCIT-K",
+            "count": 40
+          }
+        ]
+      },
+      {
+        "key": "VALARANUTRITION",
+        "canonical": "VALARA NUTRITION",
+        "variants": [
+          {
+            "name": "VALARA NUTRITION",
+            "count": 1369
+          },
+          {
+            "name": "VALARA-NUTRITION",
+            "count": 11
+          }
+        ]
+      },
+      {
+        "key": "VASCULFLOW",
+        "canonical": "VASCULFLOW",
+        "variants": [
+          {
+            "name": "VASCULFLOW",
+            "count": 300
+          },
+          {
+            "name": "VASCUL-FLOW",
+            "count": 59
+          }
+        ]
+      },
+      {
+        "key": "VIDANATVITAMINAS",
+        "canonical": "VIDANAT/VITAMINAS",
+        "variants": [
+          {
+            "name": "VIDANAT/VITAMINAS",
+            "count": 118
+          },
+          {
+            "name": "VIDANAT VITAMINAS",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "key": "VITALBOTANICS",
+        "canonical": "VITALBOTANICS",
+        "variants": [
+          {
+            "name": "VITALBOTANICS",
+            "count": 331
+          },
+          {
+            "name": "VITAL BOTANICS",
+            "count": 264
+          }
+        ]
+      },
+      {
+        "key": "VITAMINWATER",
+        "canonical": "VITAMIN WATER",
+        "variants": [
+          {
+            "name": "VITAMIN WATER",
+            "count": 277
+          },
+          {
+            "name": "VITAMINWATER",
+            "count": 8
+          }
+        ]
+      },
+      {
+        "key": "VIVO",
+        "canonical": "VIVO",
+        "variants": [
+          {
+            "name": "VIVO",
+            "count": 916
+          },
+          {
+            "name": "VIVO+",
+            "count": 698
+          }
+        ]
+      },
+      {
+        "key": "WAKEUP",
+        "canonical": "WAKEUP",
+        "variants": [
+          {
+            "name": "WAKEUP",
+            "count": 10865
+          },
+          {
+            "name": "WAKE UP",
+            "count": 49
+          }
+        ]
+      },
+      {
+        "key": "WATERWIPES",
+        "canonical": "WATERWIPES",
+        "variants": [
+          {
+            "name": "WATERWIPES",
+            "count": 1311
+          },
+          {
+            "name": "WATER WIPES",
+            "count": 392
+          }
+        ]
+      },
+      {
+        "key": "WAYTOCELEBRATE",
+        "canonical": "WAY TO CELEBRATE",
+        "variants": [
+          {
+            "name": "WAY TO CELEBRATE",
+            "count": 148
+          },
+          {
+            "name": "WAY TO CELEBRATE!",
+            "count": 11
+          }
+        ]
+      },
+      {
+        "key": "WOODYS",
+        "canonical": "WOODY'S",
+        "variants": [
+          {
+            "name": "WOODY'S",
+            "count": 13
+          },
+          {
+            "name": "WOODYS",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "key": "XRAY",
+        "canonical": "XRAY",
+        "variants": [
+          {
+            "name": "XRAY",
+            "count": 466
+          },
+          {
+            "name": "X RAY",
+            "count": 172
+          }
+        ]
+      },
+      {
+        "key": "XTVR",
+        "canonical": "XT- VR",
+        "variants": [
+          {
+            "name": "XT- VR",
+            "count": 253
+          },
+          {
+            "name": "XT-VR",
+            "count": 234
+          }
+        ]
+      }
+    ]
+  },
+  "categories": {
+    "per_retail": [
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "ALIMENTOINFANTIL",
+        "canonical": "Alimento Infantil",
+        "variants": [
+          {
+            "cat": "Alimento Infantil",
+            "count": 22665
+          },
+          {
+            "cat": "ALIMENTO INFANTIL",
+            "count": 118
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "DIABETES",
+        "canonical": "Diabetes",
+        "variants": [
+          {
+            "cat": "Diabetes",
+            "count": 6748
+          },
+          {
+            "cat": "DIABETES",
+            "count": 47
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "FORMULASINFANTILES",
+        "canonical": "Formulas Infantiles",
+        "variants": [
+          {
+            "cat": "Formulas Infantiles",
+            "count": 26396
+          },
+          {
+            "cat": "FORMULAS INFANTILES",
+            "count": 122
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "HIDRATACION",
+        "canonical": "Hidratación",
+        "variants": [
+          {
+            "cat": "Hidratación",
+            "count": 162374
+          },
+          {
+            "cat": "HIDRATACION",
+            "count": 586
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "NUTRICION",
+        "canonical": "Nutricion",
+        "variants": [
+          {
+            "cat": "Nutricion",
+            "count": 36222
+          },
+          {
+            "cat": "NUTRICION",
+            "count": 14
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "NUTRICIONADULTOS",
+        "canonical": "Nutricion Adultos",
+        "variants": [
+          {
+            "cat": "Nutricion Adultos",
+            "count": 149520
+          },
+          {
+            "cat": "NUTRICION ADULTOS",
+            "count": 762
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "NUTRICIONNINOS",
+        "canonical": "Nutricion Niños",
+        "variants": [
+          {
+            "cat": "Nutricion Niños",
+            "count": 174750
+          },
+          {
+            "cat": "NUTRICION NINOS",
+            "count": 503
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "CRUZ VERDE",
+        "key": "REHIDRATANTES",
+        "canonical": "Rehidratantes",
+        "variants": [
+          {
+            "cat": "Rehidratantes",
+            "count": 29078
+          },
+          {
+            "cat": "REHIDRATANTES",
+            "count": 251
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "FARMATODO",
+        "key": "ANTIDIARREICOSYSUEROS",
+        "canonical": "Antidiarréicos y Sueros",
+        "variants": [
+          {
+            "cat": "Antidiarréicos y Sueros",
+            "count": 18729
+          },
+          {
+            "cat": "ANTIDIARREICOS Y SUEROS",
+            "count": 61
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "FARMATODO",
+        "key": "FORMULASINFANTILES",
+        "canonical": "Formulas Infantiles",
+        "variants": [
+          {
+            "cat": "Formulas Infantiles",
+            "count": 289515
+          },
+          {
+            "cat": "FORMULAS INFANTILES",
+            "count": 295
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "FARMATODO",
+        "key": "HIDRATACION",
+        "canonical": "Hidratación",
+        "variants": [
+          {
+            "cat": "Hidratación",
+            "count": 124310
+          },
+          {
+            "cat": "HIDRATACION",
+            "count": 320
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "FARMATODO",
+        "key": "NUTRICIONADULTOS",
+        "canonical": "Nutricion Adultos",
+        "variants": [
+          {
+            "cat": "Nutricion Adultos",
+            "count": 164005
+          },
+          {
+            "cat": "Nutricion / Adultos",
+            "count": 32847
+          },
+          {
+            "cat": "NUTRICION ADULTOS",
+            "count": 590
+          },
+          {
+            "cat": "NUTRICION / ADULTOS",
+            "count": 120
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "FARMATODO",
+        "key": "NUTRICIONNINOS",
+        "canonical": "Nutricion Niños",
+        "variants": [
+          {
+            "cat": "Nutricion Niños",
+            "count": 314391
+          },
+          {
+            "cat": "Nutricion / Niños",
+            "count": 4864
+          },
+          {
+            "cat": "NUTRICION NINOS",
+            "count": 322
+          },
+          {
+            "cat": "NUTRICION / NINOS",
+            "count": 17
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "FARMATODO",
+        "key": "REHIDRATANTES",
+        "canonical": "Rehidratantes",
+        "variants": [
+          {
+            "cat": "Rehidratantes",
+            "count": 40473
+          },
+          {
+            "cat": "REHIDRATANTES",
+            "count": 150
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "RAPPI",
+        "key": "FORMULA",
+        "canonical": "Fórmula",
+        "variants": [
+          {
+            "cat": "Fórmula",
+            "count": 1558
+          },
+          {
+            "cat": "FORMULA",
+            "count": 395
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "RAPPI",
+        "key": "NINOS",
+        "canonical": "Niños",
+        "variants": [
+          {
+            "cat": "Niños",
+            "count": 1582
+          },
+          {
+            "cat": "NINOS",
+            "count": 586
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "RAPPI",
+        "key": "PROTEINA",
+        "canonical": "Proteína",
+        "variants": [
+          {
+            "cat": "Proteína",
+            "count": 1642
+          },
+          {
+            "cat": "PROTEINA",
+            "count": 673
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "RAPPI",
+        "key": "SALUDNUTRICIONAL",
+        "canonical": "Salud Nutricional",
+        "variants": [
+          {
+            "cat": "Salud Nutricional",
+            "count": 21009
+          },
+          {
+            "cat": "SALUD NUTRICIONAL",
+            "count": 111
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "REBAJA VIRTUAL",
+        "key": "CRECIMIENTO",
+        "canonical": "Crecimiento",
+        "variants": [
+          {
+            "cat": "Crecimiento",
+            "count": 5722
+          },
+          {
+            "cat": "CRECIMIENTO",
+            "count": 39
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "REBAJA VIRTUAL",
+        "key": "HIDRATACION",
+        "canonical": "Hidratación",
+        "variants": [
+          {
+            "cat": "Hidratación",
+            "count": 24444
+          },
+          {
+            "cat": "Hidratacion",
+            "count": 10271
+          }
+        ]
+      },
+      {
+        "pais": "CO",
+        "retail": "REBAJA VIRTUAL",
+        "key": "NUTRICIONNINOS",
+        "canonical": "Nutricion Niños",
+        "variants": [
+          {
+            "cat": "Nutricion Niños",
+            "count": 100768
+          },
+          {
+            "cat": "Nutricion / Niños",
+            "count": 6321
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "AMAZON",
+        "key": "FORMULALACTEA",
+        "canonical": "Fórmula Láctea",
+        "variants": [
+          {
+            "cat": "Fórmula Láctea",
+            "count": 6340
+          },
+          {
+            "cat": "Formula Lactea",
+            "count": 1355
+          },
+          {
+            "cat": "FORMULA LACTEA",
+            "count": 96
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "AMAZON",
+        "key": "PROTEINA",
+        "canonical": "Proteina",
+        "variants": [
+          {
+            "cat": "Proteina",
+            "count": 25493
+          },
+          {
+            "cat": "PROTEINA",
+            "count": 95
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "AMAZON",
+        "key": "VITAMINAS",
+        "canonical": "Vitaminas",
+        "variants": [
+          {
+            "cat": "Vitaminas",
+            "count": 14012
+          },
+          {
+            "cat": "VITAMINAS",
+            "count": 96
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "FARMACIA SAN PABLO",
+        "key": "FORMULALACTEA",
+        "canonical": "Fórmula Láctea",
+        "variants": [
+          {
+            "cat": "Fórmula Láctea",
+            "count": 50948
+          },
+          {
+            "cat": "FORMULA LACTEA",
+            "count": 28
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "HEB",
+        "key": "PROTEINA",
+        "canonical": "Proteina",
+        "variants": [
+          {
+            "cat": "Proteina",
+            "count": 8781
+          },
+          {
+            "cat": "PROTEINA",
+            "count": 400
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "HEB",
+        "key": "VITAMINAS",
+        "canonical": "Vitaminas",
+        "variants": [
+          {
+            "cat": "Vitaminas",
+            "count": 4316
+          },
+          {
+            "cat": "VITAMINAS",
+            "count": 271
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "WALMART",
+        "key": "FORMULALACTEA",
+        "canonical": "Fórmula Láctea",
+        "variants": [
+          {
+            "cat": "Fórmula Láctea",
+            "count": 25583
+          },
+          {
+            "cat": "Formula Lactea",
+            "count": 96
+          }
+        ]
+      },
+      {
+        "pais": "MX",
+        "retail": "WALMART",
+        "key": "PROTEINASYSUPLEMENTOS",
+        "canonical": "Proteínas y Suplementos",
+        "variants": [
+          {
+            "cat": "Proteínas y Suplementos",
+            "count": 50584
+          },
+          {
+            "cat": "Proteinas y Suplementos",
+            "count": 352
+          }
+        ]
+      },
+      {
+        "pais": "PE",
+        "retail": "INKAFARMA",
+        "key": "PEDIASURE",
+        "canonical": "Pediasure",
+        "variants": [
+          {
+            "cat": "Pediasure",
+            "count": 456
+          },
+          {
+            "cat": "PEDIASURE",
+            "count": 42
+          }
+        ]
+      },
+      {
+        "pais": "PE",
+        "retail": "INKAFARMA",
+        "key": "VITAMINAS",
+        "canonical": "Vitaminas",
+        "variants": [
+          {
+            "cat": "Vitaminas",
+            "count": 18447
+          },
+          {
+            "cat": "VITAMINAS",
+            "count": 995
+          }
+        ]
+      },
+      {
+        "pais": "PE",
+        "retail": "MIFARMA",
+        "key": "DERMOCOSMETICA",
+        "canonical": "Dermocosmética",
+        "variants": [
+          {
+            "cat": "Dermocosmética",
+            "count": 491
+          },
+          {
+            "cat": "Dermocosmetica",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "pais": "PE",
+        "retail": "MIFARMA",
+        "key": "PEDIASURE",
+        "canonical": "Pediasure",
+        "variants": [
+          {
+            "cat": "Pediasure",
+            "count": 403
+          },
+          {
+            "cat": "PEDIASURE",
+            "count": 24
+          }
+        ]
+      },
+      {
+        "pais": "PE",
+        "retail": "MIFARMA",
+        "key": "VITAMINAS",
+        "canonical": "Vitaminas",
+        "variants": [
+          {
+            "cat": "Vitaminas",
+            "count": 7119
+          },
+          {
+            "cat": "VITAMINAS",
+            "count": 988
+          }
+        ]
+      }
+    ]
+  }
+}

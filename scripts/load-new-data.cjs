@@ -34,7 +34,7 @@ function stripAccentsSimple(s) {
 
 async function loadMarcaLookup(client) {
   const res = await client.query(
-    `SELECT DISTINCT marca FROM eci.marca_fabricante WHERE marca IS NOT NULL AND marca != '' ORDER BY marca`
+    `SELECT marca FROM eci.marca_fabricante WHERE marca IS NOT NULL AND marca != '' GROUP BY marca ORDER BY 1`
   );
   // Sort by length descending so longest match wins
   const sorted = res.rows.map(r => r.marca).sort((a, b) => b.length - a.length);
