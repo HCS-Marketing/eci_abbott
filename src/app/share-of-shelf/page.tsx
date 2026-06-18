@@ -676,9 +676,9 @@ export default function ShareOfShelfPage() {
         {[
           {
             label: `SOS ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSellerLabel}`,
-            value: sellerData.length === 0
+            value: sellerData.length === 0 || !selectedSeller
               ? "—"
-              : `${selectedSeller ? ((page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0) : 100}%`,
+              : `${(page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0}%`,
             change: Number(page === "p1" ? ownEntry?.sos_p1_change : ownEntry?.sos_total_change),
           },
           {
@@ -805,7 +805,7 @@ export default function ShareOfShelfPage() {
         </div>
         <TrendChart data={trendData} sellers={selectedSellers} colors={COLORS} />
         <div className="flex flex-wrap gap-4 mt-3">
-          {selectedSellers.map(s => {
+          {trendData.length > 0 && selectedSellers.map(s => {
             const last    = trendData[trendData.length - 1]
             const prev    = trendData[trendData.length - 2]
             const val     = last ? Number(last[s] || 0) : 0
