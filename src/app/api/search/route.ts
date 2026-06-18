@@ -274,7 +274,9 @@ export async function GET(req: Request) {
           SELECT * FROM eci.search WHERE ${w}${mf} AND pagina <= 3
         ),
         agg AS (
-          SELECT COALESCE(ean, skuid) AS titulo_id, MAX(titulo) AS titulo,
+          SELECT COALESCE(ean, skuid) AS titulo_id,
+            MAX(ean) AS ean,
+            MAX(titulo) AS titulo,
             ${FABRICANTE_UNIFIED} AS fab,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total,
@@ -288,13 +290,19 @@ export async function GET(req: Request) {
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
-          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
-        FROM agg a, totals t
+          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total,
+          COALESCE(a.ean, pm.ean) AS ean_out,
+          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+        FROM agg a
+        CROSS JOIN totals t
+        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(a.ean, a.titulo_id)
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
         titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
+        ean_out: string | null; local_sku: string | null; asin: string | null
+        meli_id: string | null; sap_sku: string | null
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
@@ -306,6 +314,10 @@ export async function GET(req: Request) {
         sos_total_change: 0,
         ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
         products_p1:      Number(r.products_p1),
+        ean:              r.ean_out,
+        sku:              r.local_sku || r.sap_sku,
+        meli_id:          r.meli_id,
+        asin:             r.asin,
       })))
     }
 

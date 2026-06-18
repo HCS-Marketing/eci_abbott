@@ -315,18 +315,31 @@ export async function GET(req: Request) {
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
+        ),
+        ean_map AS (
+          SELECT id::text AS pid, MAX(ean) AS ean
+          FROM eci.sos
+          WHERE id::text IN (SELECT producto_id::text FROM agg) AND ean IS NOT NULL
+          GROUP BY id
         )
         SELECT a.producto_id AS titulo_id, a.titulo, a.seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
-          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
-        FROM agg a, totals t
+          ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total,
+          COALESCE(em.ean, pm.ean) AS ean,
+          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+        FROM agg a
+        CROSS JOIN totals t
+        LEFT JOIN ean_map em ON em.pid = a.producto_id::text
+        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.producto_id::text)
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
         titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
+        ean: string | null; local_sku: string | null; asin: string | null
+        meli_id: string | null; sap_sku: string | null
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
@@ -338,6 +351,10 @@ export async function GET(req: Request) {
         sos_total_change: 0,
         ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
         products_p1:      Number(r.products_p1),
+        ean:              r.ean,
+        sku:              r.local_sku || r.sap_sku,
+        meli_id:          r.meli_id,
+        asin:             r.asin,
       })))
     }
 
@@ -473,25 +490,47 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       const mf = fabricanteFilterSQL(p, "d")
       const sql = `
-        SELECT
-          titulo_id,
-          MAX(titulo)            AS titulo,
-          fabricante             AS seller,
-          SUM(sum_ranking_p1)    AS score_p1,
-          SUM(sum_ranking_total) AS score_total
-        FROM eci.mv_ranking_daily_titulo d
-        WHERE ${w}${mf}${rankPageFilter}
-        GROUP BY titulo_id, fabricante
+        WITH agg AS (
+          SELECT
+            titulo_id,
+            MAX(titulo)            AS titulo,
+            fabricante             AS seller,
+            SUM(sum_ranking_p1)    AS score_p1,
+            SUM(sum_ranking_total) AS score_total
+          FROM eci.mv_ranking_daily_titulo d
+          WHERE ${w}${mf}${rankPageFilter}
+          GROUP BY titulo_id, fabricante
+        ),
+        ean_map AS (
+          SELECT id::text AS pid, MAX(ean) AS ean
+          FROM eci.sos
+          WHERE id::text IN (SELECT titulo_id::text FROM agg) AND ean IS NOT NULL
+          GROUP BY id
+        )
+        SELECT a.titulo_id, a.titulo, a.seller, a.score_p1, a.score_total,
+          COALESCE(em.ean, pm.ean) AS ean,
+          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+        FROM agg a
+        LEFT JOIN ean_map em ON em.pid = a.titulo_id::text
+        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.titulo_id::text)
         ORDER BY score_p1 DESC
         LIMIT 30
       `
-      const rows = await prisma.$queryRawUnsafe<{ titulo_id: string; titulo: string; seller: string; score_p1: number; score_total: number }[]>(sql, ...p)
+      const rows = await prisma.$queryRawUnsafe<{
+        titulo_id: string; titulo: string; seller: string; score_p1: number; score_total: number
+        ean: string | null; local_sku: string | null; asin: string | null
+        meli_id: string | null; sap_sku: string | null
+      }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         titulo_id:   r.titulo_id,
         titulo:      r.titulo,
         seller:      r.seller,
         score_p1:    Math.round(Number(r.score_p1)),
         score_total: Math.round(Number(r.score_total)),
+        ean:         r.ean,
+        sku:         r.local_sku || r.sap_sku,
+        meli_id:     r.meli_id,
+        asin:        r.asin,
       })))
     }
 
@@ -666,25 +705,24 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── inventory ────────────────────────────────────────
+    // ── inventory (Abbott products only) ─────────────────
     if (action === "inventory") {
       const limit      = Math.min(1000, parseInt(searchParams.get("limit") || "200", 10))
       const dateParam  = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const show       = searchParams.get("show") || "all"
       const lookback   = Math.min(30, parseInt(searchParams.get("lookback") || "7", 10))
-      const onlyAbbott = searchParams.get("onlyNewsan") === "1"
       const p: unknown[] = [dateParam]
-      let wCond = `titulo IS NOT NULL AND precio_venta IS NOT NULL`
+      let wCond = `titulo IS NOT NULL AND precio_venta IS NOT NULL AND ${ABBOTT_LIKE}`
       if (channel)    { p.push(channel);  wCond += ` AND retail = $${p.length}` }
       if (category)   { p.push(category); wCond += ` AND categoria = $${p.length}` }
       if (country)    { p.push(country);  wCond += ` AND pais = $${p.length}` }
-      if (onlyAbbott) { wCond += ` AND ${ABBOTT_LIKE}` }
       wCond += marcaFilter(p).replace(' AND ', ' AND ')  // add segmento/mercado filter
 
       const todaySub = `
         SELECT id, marca, retail,
           MAX(titulo) AS titulo, MAX(fabricante) AS fabricante,
           MAX(categoria) AS categoria,
+          MAX(ean) AS ean,
           ROUND(MAX(precio_venta::numeric), 0) AS precio_venta
         FROM eci.sos
         WHERE DATE(fecha) = $1::date AND ${wCond}
@@ -694,6 +732,7 @@ export async function GET(req: Request) {
         SELECT id, marca, retail,
           MAX(titulo) AS titulo, MAX(fabricante) AS fabricante,
           MAX(categoria) AS categoria,
+          MAX(ean) AS ean,
           MAX(DATE(fecha))::text AS last_seen,
           COUNT(DISTINCT DATE(fecha))::int AS days_seen
         FROM eci.sos
@@ -708,7 +747,8 @@ export async function GET(req: Request) {
           t.precio_venta, lb.last_seen,
           COALESCE(lb.days_seen, 0) AS days_seen,
           'in_stock'::text AS stock_status,
-          (${ABBOTT_LIKE.replace('fabricante', 't.fabricante')}) AS is_newsan
+          (${ABBOTT_LIKE.replace('fabricante', 't.fabricante')}) AS is_newsan,
+          COALESCE(t.ean, lb.ean) AS ean
         FROM (${todaySub}) t
         LEFT JOIN (${lbSub}) lb ON lb.id = t.id AND lb.marca = t.marca AND lb.retail = t.retail
       `
@@ -717,7 +757,8 @@ export async function GET(req: Request) {
           lb.retail AS plataforma, lb.marca AS norm_seller,
           NULL::numeric AS precio_venta, lb.last_seen, lb.days_seen,
           'break'::text AS stock_status,
-          (${ABBOTT_LIKE.replace('fabricante', 'lb.fabricante')}) AS is_newsan
+          (${ABBOTT_LIKE.replace('fabricante', 'lb.fabricante')}) AS is_newsan,
+          lb.ean
         FROM (${lbSub}) lb
         LEFT JOIN (${todaySub}) tod ON tod.id = lb.id AND tod.marca = lb.marca AND tod.retail = lb.retail
         WHERE tod.id IS NULL
@@ -726,18 +767,25 @@ export async function GET(req: Request) {
                      : show === "break"    ? breakSQL
                      : `${inStockSQL} UNION ALL ${breakSQL}`
       const sql = `
-        SELECT * FROM (${unionSQL}) combined
+        WITH combined AS (${unionSQL})
+        SELECT c.*,
+          COALESCE(c.ean, pm.ean) AS ean_resolved,
+          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+        FROM combined c
+        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(c.ean, c.id::text)
         ORDER BY
-          CASE stock_status WHEN 'break' THEN 0 ELSE 1 END,
-          is_newsan DESC,
-          last_seen DESC NULLS LAST,
-          subcategoria, marca, producto
+          CASE c.stock_status WHEN 'break' THEN 0 ELSE 1 END,
+          c.is_newsan DESC,
+          c.last_seen DESC NULLS LAST,
+          c.subcategoria, c.marca, c.producto
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
         id: string; producto: string; marca: string; subcategoria: string; plataforma: string
         norm_seller: string; precio_venta: number | null; last_seen: string | null
         days_seen: number; stock_status: string; is_newsan: boolean
+        ean_resolved: string | null; local_sku: string | null; asin: string | null
+        meli_id: string | null; sap_sku: string | null
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         id:           r.id,
@@ -751,6 +799,10 @@ export async function GET(req: Request) {
         days_seen:    Number(r.days_seen),
         stock_status: r.stock_status,
         is_newsan:    Boolean(r.is_newsan),
+        ean:          r.ean_resolved,
+        sku:          r.local_sku || r.sap_sku,
+        meli_id:      r.meli_id,
+        asin:         r.asin,
       })))
     }
 
@@ -956,11 +1008,11 @@ export async function GET(req: Request) {
             AND s.fecha < latest_date.max_date + INTERVAL '1 day'
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
             AND ${ABBOTT_LIKE.replace('fabricante', 's.fabricante')}
-            ${channelSql} ${categorySql} ${countrySql}
+            ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         raw_latest AS (
           SELECT
-            s.id, s.titulo, s.marca, s.categoria, s.retail, s.fabricante,
+            s.id, s.titulo, s.marca, s.categoria, s.retail, s.fabricante, s.ean,
             s.precio_venta::numeric AS precio_venta,
             s.ranking::numeric AS ranking,
             s.url_producto,
@@ -971,12 +1023,12 @@ export async function GET(req: Request) {
           FROM eci.sos s, latest_date
           WHERE DATE(s.fecha) = latest_date.max_date
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql} ${countrySql}
+            ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         latest_winners AS (
           SELECT id, titulo AS producto, marca, categoria AS subcategoria,
                  retail AS plataforma, marca AS winner_seller,
-                 precio_venta AS winner_price, url_producto AS winner_url
+                 precio_venta AS winner_price, url_producto AS winner_url, ean
           FROM raw_latest WHERE rn = 1
         ),
         abbott_latest AS (
@@ -992,10 +1044,13 @@ export async function GET(req: Request) {
           lw.winner_url,
           al.newsan_price,
           FALSE AS newsan_wins,
-          (SELECT max_date::text FROM latest_date) AS latest_date
+          (SELECT max_date::text FROM latest_date) AS latest_date,
+          COALESCE(lw.ean, pm.ean) AS ean,
+          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
         FROM abbott_present_7d ap
         JOIN latest_winners lw ON lw.id = ap.id
         LEFT JOIN abbott_latest al ON al.id = ap.id
+        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(lw.ean, lw.id::text)
         ORDER BY ROUND(lw.winner_price, 0) DESC NULLS LAST
         LIMIT $1
       `
@@ -1003,6 +1058,8 @@ export async function GET(req: Request) {
         id: string; producto: string; marca: string; subcategoria: string; plataforma: string
         winner_seller: string; winner_price: number; winner_url: string | null
         newsan_price: number | null; newsan_wins: boolean; latest_date: string
+        ean: string | null; local_sku: string | null; asin: string | null
+        meli_id: string | null; sap_sku: string | null
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         id:            r.id,
@@ -1017,6 +1074,10 @@ export async function GET(req: Request) {
         newsan_price:  r.newsan_price != null ? Number(r.newsan_price) : null,
         newsan_wins:   Boolean(r.newsan_wins),
         latest_date:   r.latest_date,
+        ean:           r.ean,
+        sku:           r.local_sku || r.sap_sku,
+        meli_id:       r.meli_id,
+        asin:          r.asin,
       })))
     }
 

@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback } from "react"
 import { useMarket } from "@/lib/use-market"
+import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
@@ -21,21 +22,21 @@ interface BuyboxLostRow {
   id: string; producto: string; marca: string; subcategoria: string; plataforma: string
   winner_seller: string; winner_price: number; winner_envio: string | null
   winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
+  ean: string | null; sku: string | null; meli_id: string | null; asin: string | null
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function BuyboxPage() {
   useMarket()
+  const { country } = useGlobalFilters()
 
   const [channel,  setChannel]  = useState("")
   const [category, setCategory] = useState("")
-  const [country,  setCountry]  = useState("")
   const [segmento, setSegmento] = useState("")
   const [mercado,  setMercado]  = useState("")
   const [topN,     setTopN]     = useState(100)
   const [search,   setSearch]   = useState("")
 
-  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -43,12 +44,7 @@ export default function BuyboxPage() {
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
 
-  // Countries
-  useEffect(() => {
-    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
-      if (Array.isArray(d)) setAvailableCountries(d)
-    })
-  }, [])
+  // Countries handled by global filter context
 
   // Segmentos
   useEffect(() => {
@@ -138,16 +134,6 @@ export default function BuyboxPage() {
 
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
-        {/* País */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">País</span>
-          <select value={country} onChange={e => setCountry(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
-          </select>
-        </div>
-
         {/* Mercado */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
@@ -168,12 +154,12 @@ export default function BuyboxPage() {
           </select>
         </div>
 
-        {/* Canal */}
+        {/* Retail */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Canal</span>
+          <span className="text-xs text-gray-400">Retail</span>
           <select value={channel} onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos los canales</option>
+            <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
@@ -252,7 +238,7 @@ export default function BuyboxPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {category || "Todas las categorías"} · {channel || "Todos los canales"}
+              {category || "Todas las categorías"} · {channel || "Todos los retails"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
               {lostFiltered.length} productos
@@ -278,7 +264,10 @@ export default function BuyboxPage() {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
                     <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Retail</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">SKU</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">MLA</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Estado hoy</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Winner</th>
@@ -307,6 +296,9 @@ export default function BuyboxPage() {
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                         </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.ean || "—"}</td>
+                        <td className="px-3 py-3 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.sku || "—"}</td>
+                        <td className="px-3 py-3 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.meli_id || "—"}</td>
                         <td className="px-3 py-3 text-center whitespace-nowrap">
                           {e.newsan_wins ? (
                             <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">✓ Ganó BuyBox</span>

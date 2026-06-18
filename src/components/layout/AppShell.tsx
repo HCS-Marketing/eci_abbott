@@ -1,12 +1,13 @@
 "use client"
-import { useState } from "react"
+import { usePathname } from "next/navigation"
 import { ClientProvider } from "@/lib/client-context"
 import { FilterProvider } from "@/lib/filter-context"
 import Sidebar from "@/components/layout/Sidebar"
 import TopBar from "@/components/layout/Topbar"
 import AIAdvisor from "@/components/ui/AIAdvisor"
 
-function isAuthPath(path: string) {
+function isAuthPath(path: string | null) {
+  if (!path) return false
   return (
     path === "/login" ||
     path.startsWith("/sign-in") ||
@@ -15,12 +16,8 @@ function isAuthPath(path: string) {
 }
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const [isAuth] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return isAuthPath(window.location.pathname)
-    }
-    return false
-  })
+  const pathname = usePathname()
+  const isAuth = isAuthPath(pathname)
 
   if (isAuth) return <>{children}</>
 

@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useMarket } from "@/lib/use-market"
+import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { fmtPrice } from "@/lib/format"
@@ -8,11 +9,12 @@ import clsx from "clsx"
 import { Search, AlertTriangle, CheckCircle2, Clock, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
-// ─── TYPES ────────────────────────────────────────────────────
+// ─── TYPES ──────────────────────────────────────────────────────────
 interface InventoryRow {
   id: string; producto: string; marca: string; subcategoria: string; plataforma: string
   seller: string; precio_venta: number | null; last_seen: string | null
   days_seen: number; stock_status: "in_stock" | "break"; is_newsan: boolean
+  ean: string | null; sku: string | null; meli_id: string | null; asin: string | null
 }
 
 function relDate(dateStr: string | null, baseDate: string): string {
@@ -30,10 +32,10 @@ type ShowMode = "all" | "in_stock" | "break"
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function InventoryPage() {
   useMarket()
+  const { country } = useGlobalFilters()
 
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
-  const [country,    setCountry]    = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
   const [startDate, setStartDate] = useState("")
@@ -42,11 +44,9 @@ export default function InventoryPage() {
   const [maxDate,    setMaxDate]    = useState("")
   const [show,       setShow]       = useState<ShowMode>("all")
   const [lookback,   setLookback]   = useState(7)
-  const [onlyNewsan, setOnlyNewsan] = useState(false)
   const [limit,      setLimit]      = useState(200)
   const [search,     setSearch]     = useState("")
 
-  const [availableCountries,  setAvailableCountries]  = useState<string[]>([])
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -54,12 +54,7 @@ export default function InventoryPage() {
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Countries
-  useEffect(() => {
-    fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
-      if (Array.isArray(d)) setAvailableCountries(d)
-    })
-  }, [])
+  // Countries handled by global filter context
 
   // Segmentos
   useEffect(() => {
@@ -136,14 +131,13 @@ export default function InventoryPage() {
     if (channel)    p.set("channel",    channel)
     if (category)   p.set("category",   category)
     if (country)    p.set("country",    country)
-    if (onlyNewsan) p.set("onlyNewsan", "1")
     if (segmento)   p.set("segmento",   segmento)
     if (mercado)    p.set("mercado",    mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, endDate, show, lookback, onlyNewsan, limit, segmento, mercado])
+  }, [channel, category, country, endDate, show, lookback, limit, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -196,16 +190,6 @@ export default function InventoryPage() {
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
-        {/* País */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">País</span>
-          <select value={country} onChange={e => setCountry(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
-          </select>
-        </div>
-
         {/* Mercado */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Mercado</span>
@@ -226,12 +210,12 @@ export default function InventoryPage() {
           </select>
         </div>
 
-        {/* Canal */}
+        {/* Retail */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Canal</span>
+          <span className="text-xs text-gray-400">Retail</span>
           <select value={channel} onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos los canales</option>
+            <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
@@ -277,15 +261,6 @@ export default function InventoryPage() {
           ))}
         </div>
 
-        {/* Solo Abbott */}
-        <button onClick={() => setOnlyNewsan(v => !v)}
-          className={clsx("px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
-            onlyNewsan
-              ? "bg-green-600 text-white border-green-600"
-              : "bg-white text-gray-600 border-gray-200 hover:border-green-400 hover:text-green-600")}>
-          Solo Abbott
-        </button>
-
         {/* Límite */}
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
           {[100, 200, 500].map(n => (
@@ -330,7 +305,7 @@ export default function InventoryPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {category || "Todas las categorías"} · {channel || "Todos los canales"}
+              {category || "Todas las categorías"} · {channel || "Todos los retails"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">{filtered.length} registros · ventana {lookback} días</div>
           </div>
@@ -355,7 +330,10 @@ export default function InventoryPage() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Retail</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">SKU</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">MLA</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Fabricante</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Precio</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Último visto</th>
@@ -396,10 +374,15 @@ export default function InventoryPage() {
                       </div>
                     </td>
 
-                    {/* Canal */}
+                    {/* Retail */}
                     <td className="px-3 py-2.5 whitespace-nowrap">
                       <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                     </td>
+
+                    {/* EAN / SKU / MLA */}
+                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.ean || "—"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.sku || "—"}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.meli_id || "—"}</td>
 
                     {/* Seller */}
                     <td className="px-3 py-2.5 whitespace-nowrap">

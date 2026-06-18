@@ -625,10 +625,10 @@ export default function RankingScorePage() {
 
           {drill === "titulo" && (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[500px]">
+              <table className="w-full min-w-[760px]">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    {["Titulo", "Fabricante", "Score Pag 1", "Score Total"].map(h => (
+                    {["Titulo", "Fabricante", "EAN", "SKU", "MLA", "Score Pag 1", "Score Total"].map(h => (
                       <th key={h} className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium">{h}</th>
                     ))}
                   </tr>
@@ -638,6 +638,9 @@ export default function RankingScorePage() {
                     <tr key={String(t.titulo_id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[240px] truncate">{String(t.titulo)}</td>
                       <td className="px-2 py-2.5 text-xs text-gray-500">{String(t.seller)}</td>
+                      <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.ean ? String(t.ean) : "—"}</td>
+                      <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.sku ? String(t.sku) : "—"}</td>
+                      <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.meli_id ? String(t.meli_id) : "—"}</td>
                       <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(t.score_p1).toLocaleString()}</td>
                       <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(t.score_total).toLocaleString()}</td>
                     </tr>
