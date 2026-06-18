@@ -31,5 +31,33 @@ yarn-error.log*
 next-env.d.ts
 scripts/eci-export.sql
 scripts/export-sql.cjs
+scripts/_*.cjs
+scripts/backfill-*.cjs
+scripts/load-*.cjs
+scripts/audit-*.cjs
+scripts/check-*.cjs
+scripts/diagnose-*.cjs
+scripts/diag-*.cjs
+scripts/fix-*.cjs
+scripts/debug-*.cjs
+scripts/dedup*.cjs
+scripts/explore-*.cjs
+scripts/inspect-*.cjs
+scripts/verify-*.cjs
+scripts/show-*.cjs
+scripts/list-*.cjs
+scripts/null-*.cjs
+scripts/count-*.cjs
+scripts/cleanup-*.cjs
+scripts/apply-*.cjs
+scripts/final-*.cjs
+scripts/peek-*.cjs
+scripts/kill-*.cjs
+scripts/unify-*.cjs
+scripts/add-*.cjs
+scripts/migrate-*.cjs
+scripts/populate-*.cjs
+scripts/read-*.cjs
+scripts/create-*.cjs
 marca y fabricante.xlsx
 Catalogo Final*.xlsx
