@@ -289,6 +289,7 @@ export default function ShareOfShelfPage() {
   const [channelData, setChannelData] = useState<Record<string, unknown>[]>([])
   const [loading,     setLoading]     = useState(false)
   const fetchIdRef = useRef(0)
+  const trendFetchIdRef = useRef(0)
   const selectedSellersRef = useRef<string[]>([])
   selectedSellersRef.current = selectedSellers
 
@@ -409,19 +410,41 @@ export default function ShareOfShelfPage() {
       api("sellers"),
       api("brands"),
       api("titulos"),
-      api("trend"),
       api("by_channel"),
-    ]).then(([sellers, brands, titulos, trend, channels]) => {
+    ]).then(([sellers, brands, titulos, channels]) => {
       if (id !== fetchIdRef.current) return
       setSellerData(sellers)
       setBrandData(brands)
       setTituloData(titulos)
-      setTrendData(trend)
       setChannelData(channels)
     }).finally(() => {
       if (id === fetchIdRef.current) setLoading(false)
     })
   }, [api])
+
+  // ── Trend fetch — separate, driven by selectedSellers ──────────────
+  useEffect(() => {
+    if (!startDate || !endDate || selectedSellers.length === 0) return
+    const id = ++trendFetchIdRef.current
+    setTrendData([])
+    const sellersParam = selectedSellers.map(s => encodeURIComponent(s)).join(",")
+    fetch(
+      `/api/search?action=trend` +
+      `&sellers=${sellersParam}` +
+      `&country=${encodeURIComponent(country)}` +
+      `&startDate=${startDate}` +
+      `&endDate=${endDate}` +
+      (channel   ? `&channel=${encodeURIComponent(channel)}`   : "") +
+      (category  ? `&search=${encodeURIComponent(category)}`   : "") +
+      (segmento  ? `&segmento=${encodeURIComponent(segmento)}` : "") +
+      (mercado   ? `&mercado=${encodeURIComponent(mercado)}`   : "") +
+      `&page=${page}`
+    )
+      .then(r => r.json())
+      .then(d => { if (id === trendFetchIdRef.current && Array.isArray(d)) setTrendData(d) })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSellers.join(","), startDate, endDate, country, channel, category, segmento, mercado, page])
 
   function downloadCSV() {
     const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"
