@@ -107,7 +107,7 @@ export default function InventoryPage() {
       setAvailableChannels(d)
       if (channel && !d.includes(channel)) setChannel("")
     })
-  }, [category, country, endDate])
+  }, [category, country, startDate, endDate])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
@@ -119,7 +119,7 @@ export default function InventoryPage() {
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, country, endDate])
+  }, [channel, country, startDate, endDate])
 
   const fetchData = useCallback(() => {
     if (!endDate) return

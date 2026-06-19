@@ -246,8 +246,6 @@ export async function GET(req: Request) {
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
         products_p1:      Number(r.products_p1),
         products_total:   Number(r.products_total),
         color:            retailColor(r.seller, i),
@@ -268,6 +266,8 @@ export async function GET(req: Request) {
             SUM(count_total) AS products_total
           FROM eci.mv_sos_daily_marca d
           WHERE ${w}${mf}${sosPageFilter}
+            AND marca IS NOT NULL AND TRIM(marca) <> ''
+            AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
           GROUP BY marca, fabricante
         ),
         totals AS (
@@ -291,8 +291,6 @@ export async function GET(req: Request) {
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
         products_p1:      Number(r.products_p1),
       })))
     }
@@ -304,14 +302,15 @@ export async function GET(req: Request) {
       const mf = fabricanteFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
-          SELECT producto_id, MAX(titulo) AS titulo,
+          SELECT COALESCE(producto_id::text, titulo) AS titulo_id,
+            MAX(titulo) AS titulo,
             fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
           FROM eci.mv_sos_daily_titulo d
           WHERE ${w}${mf}${sosPageFilter}
-          GROUP BY producto_id, fabricante
+          GROUP BY COALESCE(producto_id::text, titulo), fabricante
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
@@ -319,10 +318,10 @@ export async function GET(req: Request) {
         ean_map AS (
           SELECT id::text AS pid, MAX(ean) AS ean
           FROM eci.sos
-          WHERE id::text IN (SELECT producto_id::text FROM agg) AND ean IS NOT NULL
+          WHERE id::text IN (SELECT titulo_id FROM agg) AND ean IS NOT NULL
           GROUP BY id
         )
-        SELECT a.producto_id AS titulo_id, a.titulo, a.seller,
+        SELECT a.titulo_id, a.titulo, a.seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
@@ -331,8 +330,8 @@ export async function GET(req: Request) {
           pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
         FROM agg a
         CROSS JOIN totals t
-        LEFT JOIN ean_map em ON em.pid = a.producto_id::text
-        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.producto_id::text)
+        LEFT JOIN ean_map em ON em.pid = a.titulo_id
+        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.titulo_id)
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
@@ -347,8 +346,6 @@ export async function GET(req: Request) {
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
         ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
         products_p1:      Number(r.products_p1),
         ean:              r.ean,
@@ -427,8 +424,6 @@ export async function GET(req: Request) {
         channel:          r.channel,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
       })))
     }
 
@@ -471,6 +466,8 @@ export async function GET(req: Request) {
           SUM(sum_ranking_total) AS score_total
         FROM eci.mv_ranking_daily_marca d
         WHERE ${w}${mf}${rankPageFilter}
+          AND marca IS NOT NULL AND TRIM(marca) <> ''
+          AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
         GROUP BY marca, fabricante
         ORDER BY score_p1 DESC
         LIMIT 50

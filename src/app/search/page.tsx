@@ -5,31 +5,11 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
+import { Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
 import { getRetailColor, fmtDateDMY } from "@/lib/format"
 
 // ── helpers ──────────────────────────────────────────────────
-
-function Change({ val }: { val: number }) {
-  if (val > 0)
-    return (
-      <span className="text-green-600 text-xs flex items-center gap-0.5">
-        <TrendingUp size={10} />+{val}pp
-      </span>
-    )
-  if (val < 0)
-    return (
-      <span className="text-red-600 text-xs flex items-center gap-0.5">
-        <TrendingDown size={10} />{val}pp
-      </span>
-    )
-  return (
-    <span className="text-gray-400 text-xs flex items-center gap-0.5">
-      <Minus size={10} />0
-    </span>
-  )
-}
 
 function SOSBar({ pct, color, max = 35 }: { pct: number; color: string; max?: number }) {
   return (
@@ -455,33 +435,29 @@ export default function ShareOfShelfPage() {
     let rows: string[][]
 
     if (drill === "seller") {
-      headers = ["#", "Fabricante", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Δ Pos. Total (pp)", "Prods Pág 1"]
+      headers = ["#", "Fabricante", "Pos. Pág 1 (%)", "Pos. Total (%)", "Prods Pág 1"]
       rows = sellerData.map((e, i) => [
         String(i + 1),
         String(e.seller),
         String(e.sos_p1),
-        String(e.sos_p1_change),
         String(e.sos_total),
-        String(e.sos_total_change),
         String(e.products_p1),
       ])
     } else if (drill === "brand") {
-      headers = ["Marca", "Fabricante", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Prods Pág 1"]
+      headers = ["Marca", "Fabricante", "Pos. Pág 1 (%)", "Pos. Total (%)", "Prods Pág 1"]
       rows = brandData.map(b => [
         String(b.brand),
         String(b.seller),
         String(b.sos_p1),
-        String(b.sos_p1_change),
         String(b.sos_total),
         String(b.products_p1),
       ])
     } else {
-      headers = ["Título", "Fabricante", "Pos. Pág 1 (%)", "Δ Pos. Pág 1 (pp)", "Pos. Total (%)", "Pos. típica"]
+      headers = ["Título", "Fabricante", "Pos. Pág 1 (%)", "Pos. Total (%)", "Pos. típica"]
       rows = tituloData.map(t => [
         String(t.titulo),
         String(t.seller),
         String(t.sos_p1),
-        String(t.sos_p1_change),
         String(t.sos_total),
         String(t.ranking_pos),
       ])
@@ -669,7 +645,6 @@ export default function ShareOfShelfPage() {
           {
             label: `Pos. ${page === "p1" ? "Pág 1" : "Total"} · ${selectedSeller}`,
             value: `${(page === "p1" ? ownEntry?.sos_p1 : ownEntry?.sos_total) ?? 0}%`,
-            change: Number(page === "p1" ? ownEntry?.sos_p1_change : ownEntry?.sos_total_change),
           },
           {
             label: "Posición en retail",
@@ -687,11 +662,6 @@ export default function ShareOfShelfPage() {
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4 flex flex-col items-center justify-center min-h-[110px] text-center">
             <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-2">{k.label}</div>
             <div className="text-2xl font-bold text-gray-900">{k.value}</div>
-            {k.change != null && !isNaN(k.change) && (
-              <div className="mt-1">
-                <Change val={k.change} />
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -791,15 +761,12 @@ export default function ShareOfShelfPage() {
         <div className="flex flex-wrap gap-4 mt-3">
           {selectedSellers.map(s => {
             const last    = trendData[trendData.length - 1]
-            const prev    = trendData[trendData.length - 2]
             const val     = last ? Number(last[s] || 0) : 0
-            const prevVal = prev ? Number(prev[s] || 0) : 0
             return (
               <div key={s} className="flex items-center gap-2">
                 <span className="w-3 h-0.5 rounded" style={{ backgroundColor: COLORS[s] || "#a427ff" }} />
                 <span className="text-xs text-gray-600">{s}</span>
                 <span className="text-xs font-semibold text-gray-900 font-mono">{val}%</span>
-                <Change val={Math.round((val - prevVal) * 10) / 10} />
               </div>
             )
           })}
@@ -850,7 +817,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["#", "Fabricante", "Pos. Pág 1", "Δ", "Pos. Total", "Δ", "Prods Pág 1", "Share"].map((h, i) => (
+                  {["#", "Fabricante", "Pos. Pág 1", "Pos. Total", "Prods Pág 1", "Share"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -887,13 +854,7 @@ export default function ShareOfShelfPage() {
                         </div>
                       </td>
                       <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(e.sos_p1)}%</td>
-                      <td className="px-2 py-2.5">
-                        <Change val={Number(e.sos_p1_change)} />
-                      </td>
                       <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(e.sos_total)}%</td>
-                      <td className="px-2 py-2.5">
-                        <Change val={Number(e.sos_total_change)} />
-                      </td>
                       <td className="px-2 py-2.5 text-xs text-gray-500">{Number(e.products_p1)}</td>
                       <td className="px-2 py-2.5 w-32">
                         <SOSBar pct={Number(e.sos_p1)} color={String(e.color)} max={maxSOS * 1.1} />
@@ -920,7 +881,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[500px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Marca", "Fabricante", "Pos. Pág 1", "Δ", "Pos. Total", "Prods Pág 1"].map(h => (
+                  {["Marca", "Fabricante", "Pos. Pág 1", "Pos. Total", "Prods Pág 1"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -936,9 +897,6 @@ export default function ShareOfShelfPage() {
                     <td className="px-2 py-2.5 text-sm font-medium text-gray-800">{String(b.brand)}</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{String(b.seller)}</td>
                     <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(b.sos_p1)}%</td>
-                    <td className="px-2 py-2.5">
-                      <Change val={Number(b.sos_p1_change)} />
-                    </td>
                     <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(b.sos_total)}%</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{Number(b.products_p1)}</td>
                   </tr>
@@ -962,7 +920,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[760px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Título", "Fabricante", "EAN", "SKU", "MLA", "Pos. Pág 1", "Δ", "Pos. Total", "Pos. típica"].map(h => (
+                  {["Título", "Fabricante", "EAN", "SKU", "MLA", "Pos. Pág 1", "Pos. Total", "Pos. típica"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -973,17 +931,14 @@ export default function ShareOfShelfPage() {
                 </tr>
               </thead>
               <tbody>
-                {tituloData.slice(0, visibleCount).map(t => (
-                  <tr key={String(t.titulo_id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                {tituloData.slice(0, visibleCount).map((t, i) => (
+                  <tr key={`${i}-${String(t.titulo_id ?? '')}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[220px] truncate">{String(t.titulo)}</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{String(t.seller)}</td>
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.ean ? String(t.ean) : "—"}</td>
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.sku ? String(t.sku) : "—"}</td>
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.meli_id ? String(t.meli_id) : "—"}</td>
                     <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(t.sos_p1)}%</td>
-                    <td className="px-2 py-2.5">
-                      <Change val={Number(t.sos_p1_change)} />
-                    </td>
                     <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(t.sos_total)}%</td>
                     <td
                       className="px-2 py-2.5 text-xs font-semibold"

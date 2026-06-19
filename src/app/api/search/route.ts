@@ -214,8 +214,6 @@ export async function GET(req: Request) {
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
         products_p1:      Number(r.products_p1),
         products_total:   Number(r.products_total),
         color:            retailColor(r.seller, i),
@@ -236,6 +234,8 @@ export async function GET(req: Request) {
             SUM(count_total) AS products_total
           FROM eci.mv_search_daily_marca
           WHERE ${w}${mf}${sosPageFilter}
+            AND marca IS NOT NULL AND TRIM(marca) <> ''
+            AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
           GROUP BY marca, fabricante
         ),
         totals AS (
@@ -258,8 +258,6 @@ export async function GET(req: Request) {
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
         products_p1:      Number(r.products_p1),
       })))
     }
@@ -274,14 +272,14 @@ export async function GET(req: Request) {
           SELECT * FROM eci.search WHERE ${w}${mf} AND pagina <= 3
         ),
         agg AS (
-          SELECT COALESCE(ean, skuid) AS titulo_id,
+          SELECT COALESCE(NULLIF(ean, ''), NULLIF(skuid, ''), titulo) AS titulo_id,
             MAX(ean) AS ean,
             MAX(titulo) AS titulo,
             ${FABRICANTE_UNIFIED} AS fab,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total,
             MIN(ranking) AS best_ranking
-          FROM base GROUP BY COALESCE(ean, skuid), ${FABRICANTE_UNIFIED}
+          FROM base GROUP BY COALESCE(NULLIF(ean, ''), NULLIF(skuid, ''), titulo), ${FABRICANTE_UNIFIED}
         ),
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
@@ -310,8 +308,6 @@ export async function GET(req: Request) {
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
         ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
         products_p1:      Number(r.products_p1),
         ean:              r.ean_out,
@@ -326,8 +322,7 @@ export async function GET(req: Request) {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
       const page = searchParams.get("page") || "p1"
-      const trendStart = new Date(endD.getTime() - 30 * 24 * 60 * 60 * 1000)
-      const p: unknown[] = [trendStart, endD]
+      const p: unknown[] = [startD, endD]
       let w = `fecha >= $1 AND fecha <= $2`
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
@@ -408,8 +403,6 @@ export async function GET(req: Request) {
         channel:          r.channel,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
-        sos_p1_change:    0,
-        sos_total_change: 0,
       })))
     }
 

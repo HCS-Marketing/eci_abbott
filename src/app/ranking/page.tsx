@@ -4,16 +4,10 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { useState, useEffect, useCallback, useRef } from "react"
 import clsx from "clsx"
-import { TrendingUp, TrendingDown, Minus, Download, FileText } from "lucide-react"
+import { Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
 import { getRetailColor, fmtDateDMY } from "@/lib/format"
 import { useGlobalFilters } from "@/lib/filter-context"
-
-function Change({ val }: { val: number }) {
-  if (val > 0) return <span className="text-green-600 text-xs flex items-center gap-0.5"><TrendingUp size={10} />+{val}</span>
-  if (val < 0) return <span className="text-red-600 text-xs flex items-center gap-0.5"><TrendingDown size={10} />{val}</span>
-  return <span className="text-gray-400 text-xs flex items-center gap-0.5"><Minus size={10} />0</span>
-}
 
 function ScoreBar({ val, color, max = 1 }: { val: number; color: string; max?: number }) {
   return (
@@ -506,15 +500,12 @@ export default function RankingScorePage() {
           <div className="flex flex-wrap gap-4 mt-3">
             {selectedSellers.map(s => {
               const last    = trendData[trendData.length - 1]
-              const prev    = trendData[trendData.length - 2]
               const val     = last ? Number(last[s] || 0) : 0
-              const prevVal = prev ? Number(prev[s] || 0) : 0
               return (
                 <div key={s} className="flex items-center gap-2">
                   <span className="w-3 h-0.5 rounded" style={{ backgroundColor: COLORS[s] || "#a427ff" }} />
                   <span className="text-xs text-gray-600">{s}</span>
                   <span className="text-xs font-semibold text-gray-900 font-mono">{val.toLocaleString()}</span>
-                  <Change val={val - prevVal} />
                 </div>
               )
             })}
@@ -634,8 +625,8 @@ export default function RankingScorePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {tituloData.slice(0, visibleCount).map(t => (
-                    <tr key={String(t.titulo_id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                  {tituloData.slice(0, visibleCount).map((t, i) => (
+                    <tr key={`${i}-${String(t.titulo_id ?? '')}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[240px] truncate">{String(t.titulo)}</td>
                       <td className="px-2 py-2.5 text-xs text-gray-500">{String(t.seller)}</td>
                       <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.ean ? String(t.ean) : "—"}</td>
