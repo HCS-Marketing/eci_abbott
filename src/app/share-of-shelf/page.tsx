@@ -298,6 +298,14 @@ export default function ShareOfShelfPage() {
   // Reset visible count when drill level or data changes
   useEffect(() => { setVisibleCount(10) }, [drill, sellerData, brandData, tituloData])
 
+  // ── Mercado / Segmento solo aplican a MX: limpiar al cambiar de país ──
+  useEffect(() => {
+    if (country !== "MX") {
+      setMercado("")
+      setSegmento("")
+    }
+  }, [country])
+
   // ── Cargar rango de fechas disponible ─────────────────────
   useEffect(() => {
     fetch("/api/sos?action=dates")
@@ -311,63 +319,75 @@ export default function ShareOfShelfPage() {
 
   // ── Cascading: retails filtrados por país + fechas ───
   useEffect(() => {
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "channels" })
     if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
         setAvailableChannels(data)
         if (channel && !data.includes(channel)) setChannel("")
       })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [country, startDate, endDate])
 
   // ── Cascading: categorías filtradas por retail + país + fechas ────
   useEffect(() => {
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "categories" })
     if (channel)   p.set("channel",   channel)
     if (country)   p.set("country",   country)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
         setAvailableCategories(data)
         if (category && !data.includes(category)) setCategory("")
       })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [channel, country, startDate, endDate])
 
   // ── Cascading: segmentos filtrados por retail + país + mercado ───────────────
   useEffect(() => {
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "segmentos" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (mercado) p.set("mercado", mercado)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
         setAvailableSegmentos(data)
         if (segmento && !data.includes(segmento)) setSegmento("")
       })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [channel, country, mercado])
 
   // ── Cascading: mercados filtrados por retail + país + segmento ─────
   useEffect(() => {
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "mercados" })
     if (channel)  p.set("channel", channel)
     if (country)  p.set("country", country)
     if (segmento) p.set("segmento", segmento)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
         setAvailableMercados(data)
         if (mercado && !data.includes(mercado)) setMercado("")
       })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [channel, country, segmento])
 
   const api = useCallback(
@@ -520,35 +540,37 @@ export default function ShareOfShelfPage() {
           </select>
         </div>
 
-        {/* Mercado */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Mercado</span>
-          <select
-            value={mercado}
-            onChange={e => {
-              const next = e.target.value
-              setMercado(next)
-              setSegmento("")
-            }}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[110px]"
-          >
-            <option value="">Todos</option>
-            {availableMercados.map(m => <option key={m}>{m}</option>)}
-          </select>
-        </div>
-
-        {/* Segmento */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Segmento</span>
-          <select
-            value={segmento}
-            onChange={e => setSegmento(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]"
-          >
-            <option value="">Todos</option>
-            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
+        {/* Mercado / Segmento — only Mexico has these dimensions */}
+        {country === "MX" && (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Mercado</span>
+              <select
+                value={mercado}
+                onChange={e => {
+                  const next = e.target.value
+                  setMercado(next)
+                  setSegmento("")
+                }}
+                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[110px]"
+              >
+                <option value="">Todos</option>
+                {availableMercados.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Segmento</span>
+              <select
+                value={segmento}
+                onChange={e => setSegmento(e.target.value)}
+                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]"
+              >
+                <option value="">Todos</option>
+                {availableSegmentos.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+          </>
+        )}
 
         {/* Fabricante con buscador */}
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />

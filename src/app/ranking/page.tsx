@@ -157,8 +157,7 @@ export default function RankingScorePage() {
       if (sellerDropdownRef.current && !sellerDropdownRef.current.contains(e.target as Node)) { setSellerDropdownOpen(false); setSellerSearch("") }
     }
     document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
+    return () => document.removeEventListener("mousedown", handleClick)  }, [])
 
   const [sellerData,  setSellerData]  = useState<Record<string, unknown>[]>([])
   const [brandData,   setBrandData]   = useState<Record<string, unknown>[]>([])
@@ -186,6 +185,14 @@ export default function RankingScorePage() {
   }, [sellerData])
 
   useEffect(() => { setVisibleCount(10) }, [drill, sellerData, brandData, tituloData])
+
+  // Mercado / Segmento solo aplican a MX
+  useEffect(() => {
+    if (country !== "MX") {
+      setMercado("")
+      setSegmento("")
+    }
+  }, [country])
 
   useEffect(() => {
     fetch("/api/sos?action=dates").then(r => r.json()).then((d: { min: string; max: string }) => {
@@ -319,20 +326,24 @@ export default function RankingScorePage() {
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[110px]">
-            <option value="">Todos</option>
-            {availableMercados.map(m => <option key={m}>{m}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Segmento</span>
-          <select value={segmento} onChange={e => setSegmento(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]">
-            <option value="">Todos</option>
-            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
+        {country === "MX" && (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Mercado</span>
+              <select value={mercado} onChange={e => { setMercado(e.target.value); setSegmento("") }} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[110px]">
+                <option value="">Todos</option>
+                {availableMercados.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Segmento</span>
+              <select value={segmento} onChange={e => setSegmento(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[130px]">
+                <option value="">Todos</option>
+                {availableSegmentos.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+          </>
+        )}
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fabricante</span>
