@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Search, ScanSearch, ListOrdered, Zap, Package } from "lucide-react"
+import { Search, ScanSearch, ListOrdered, Zap, Package, Tag } from "lucide-react"
 
 const MODULES = [
   {
@@ -36,6 +36,13 @@ const MODULES = [
     description: "Estado del stock por SKU — productos activos y roturas detectadas",
     icon: Package,
     color: "#14b8a6",
+  },
+  {
+    href: "/pricing",
+    label: "Pricing Live",
+    description: "Precios actuales por producto, fabricante y canal — con descuentos y promociones",
+    icon: Tag,
+    color: "#ea580c",
   },
 ]
 
