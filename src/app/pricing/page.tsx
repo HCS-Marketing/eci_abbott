@@ -11,7 +11,7 @@ import { useGlobalFilters } from "@/lib/filter-context"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface PriceRow {
-  id: string; producto: string; marca: string; seller: string
+  id: string; producto: string; marca: string; seller: string; fabricante: string
   country?: string
   plataforma: string; subcategoria: string
   precio_venta: number; precio: number; descuento: number
