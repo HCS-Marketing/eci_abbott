@@ -1151,7 +1151,7 @@ export async function GET(req: Request) {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const p: unknown[] = [dateParam]
-      let w = `fecha = $1::date AND precio_venta IS NOT NULL`
+      let w = `fecha = $1::date AND precio_venta > 0`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
