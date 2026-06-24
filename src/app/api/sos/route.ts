@@ -1151,8 +1151,8 @@ export async function GET(req: Request) {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const p: unknown[] = [dateParam]
-      // Allow rows where at least one of precio_venta or precio_neto has a real value
-      let w = `fecha = $1::date AND (precio_venta > 0 OR precio_neto > 0)`
+      // No price filter in WHERE — let products through even if price is 0; COALESCE handles display
+      let w = `fecha = $1::date`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
@@ -1171,15 +1171,15 @@ export async function GET(req: Request) {
           retail AS plataforma,
           categoria AS subcategoria,
           fabricante,
-          ROUND(COALESCE(NULLIF(precio_venta, 0), precio_neto)::numeric, 0) AS precio_venta,
-          ROUND(GREATEST(precio_venta, precio_neto)::numeric, 0) AS precio,
-          ROUND(descuento::numeric, 1) AS descuento,
+          ROUND(COALESCE(NULLIF(precio_venta, 0), precio_neto, 0)::numeric, 0) AS precio_venta,
+          ROUND(GREATEST(COALESCE(precio_venta, 0), COALESCE(precio_neto, 0))::numeric, 0) AS precio,
+          ROUND(COALESCE(descuento, 0)::numeric, 1) AS descuento,
           promocion,
           presentacion,
           url_producto
         FROM eci.mv_sos_product_latest
         WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}${mfCond}
-        ORDER BY COALESCE(NULLIF(precio_venta, 0), precio_neto) ASC
+        ORDER BY COALESCE(NULLIF(precio_venta, 0), precio_neto, 0) DESC
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
