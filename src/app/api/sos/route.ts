@@ -1147,71 +1147,167 @@ export async function GET(req: Request) {
     }
 
     // ── pricing live ──────────────────────────────────────
+    // ── debug: inspect pricing DB state ─────────────────
+    if (action === "debug_pricing") {
+      const dateParam = searchParams.get("date") || new Date().toISOString().split("T")[0]
+      const info: Record<string, unknown> = { date_queried: dateParam }
+
+      // Does the MV exist?
+      const mvExistsRow = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
+        `SELECT EXISTS (
+           SELECT 1 FROM information_schema.tables
+           WHERE table_schema='eci' AND table_name='mv_sos_product_latest'
+         ) AS exists`
+      )
+      info.mv_exists = mvExistsRow[0]?.exists
+      if (info.mv_exists) {
+        const mvStats = await prisma.$queryRawUnsafe<{ total: number; date_match: number; with_price: number }[]>(
+          `SELECT COUNT(*)::int AS total,
+             COUNT(*) FILTER (WHERE fecha = $1::date)::int AS date_match,
+             COUNT(*) FILTER (WHERE fecha = $1::date
+               AND (COALESCE(precio_venta,0)>0 OR COALESCE(precio_neto,0)>0))::int AS with_price
+           FROM eci.mv_sos_product_latest`,
+          dateParam
+        )
+        info.mv_stats = mvStats[0]
+        const mvDates = await prisma.$queryRawUnsafe<{ min_f: string; max_f: string }[]>(
+          `SELECT MIN(fecha)::text AS min_f, MAX(fecha)::text AS max_f FROM eci.mv_sos_product_latest`
+        )
+        info.mv_date_range = mvDates[0]
+      }
+
+      // Real eci.sos columns and stats
+      const sosCols = await prisma.$queryRawUnsafe<{ column_name: string }[]>(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_schema='eci' AND table_name='sos' ORDER BY ordinal_position`
+      )
+      info.sos_columns = sosCols.map(c => c.column_name)
+      const sosStats = await prisma.$queryRawUnsafe<{ total: number; date_match: number; with_price: number }[]>(
+        `SELECT COUNT(*)::int AS total,
+           COUNT(*) FILTER (WHERE fecha::date = $1::date)::int AS date_match,
+           COUNT(*) FILTER (WHERE fecha::date = $1::date
+             AND COALESCE(precio_venta::numeric,0) > 0)::int AS with_price
+         FROM eci.sos`,
+        dateParam
+      )
+      info.sos_stats = sosStats[0]
+      const sosDates = await prisma.$queryRawUnsafe<{ min_f: string; max_f: string }[]>(
+        `SELECT MIN(fecha)::text AS min_f, MAX(fecha)::text AS max_f FROM eci.sos`
+      )
+      info.sos_date_range = sosDates[0]
+      const sample = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(
+        `SELECT * FROM eci.sos WHERE fecha::date = $1::date LIMIT 1`, dateParam
+      )
+      info.sos_sample = sample[0] ?? null
+      return NextResponse.json(info)
+    }
+
     if (action === "pricing") {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
-      const p: unknown[] = [dateParam]
-      // No price filter in WHERE — let products through even if price is 0; COALESCE handles display
-      let w = `fecha = $1::date`
-      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
-      if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
-      const mfCond = marcaFilter(p)
-      let sellerCond = ""
-      if (seller) {
-        p.push(seller); sellerCond = ` AND fabricante = $${p.length}`
+
+      // Shared row mapper — handles both MV and direct eci.sos shapes
+      function mapRow(r: Record<string, unknown>) {
+        const pv = Number(r.precio_venta ?? 0)
+        const pn = Number(r.precio_neto ?? r.precio ?? 0)
+        return {
+          id:                       r.id,
+          producto:                 r.producto ?? r.titulo,
+          marca:                    r.marca,
+          country:                  r.pais,
+          seller:                   r.seller ?? r.retail,
+          plataforma:               r.plataforma ?? r.retail,
+          subcategoria:             r.subcategoria ?? r.categoria,
+          fabricante:               r.fabricante,
+          precio_venta:             pv > 0 ? pv : pn,
+          precio:                   Math.max(pv, pn) || null,
+          descuento:                Number(r.descuento ?? 0),
+          cuotas_sin_interes:       null,
+          tiene_cuotas_sin_interes: null,
+          detalle_cuotas:           null,
+          oferta_relampago:         null,
+          cupon:                    null,
+          full_ml:                  null,
+          envio:                    null,
+          tienda_oficial:           null,
+          url_producto:             r.url_producto,
+          promocion:                r.promocion,
+          presentacion:             r.presentacion,
+        }
       }
-      const sql = `
+
+      // ── 1. Try materialized view first ───────────────────
+      try {
+        const p: unknown[] = [dateParam]
+        let w = `fecha = $1::date`
+        if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+        if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+        if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
+        const mfCond = marcaFilter(p)
+        let sellerCond = ""
+        if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
+        const sqlMV = `
+          SELECT
+            producto_id AS id, titulo AS producto, marca, pais,
+            retail AS seller, retail AS plataforma, categoria AS subcategoria, fabricante,
+            COALESCE(precio_venta,0)::numeric AS precio_venta,
+            COALESCE(precio_neto, 0)::numeric AS precio_neto,
+            COALESCE(descuento,   0)::numeric AS descuento,
+            promocion, presentacion, url_producto
+          FROM eci.mv_sos_product_latest
+          WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}${mfCond}
+          ORDER BY GREATEST(COALESCE(precio_venta,0), COALESCE(precio_neto,0)) DESC
+          LIMIT ${limit}
+        `
+        const rowsMV = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(sqlMV, ...p)
+        if (rowsMV.length > 0) return NextResponse.json(rowsMV.map(mapRow))
+        // MV returned 0 rows — fall through to direct query
+      } catch {
+        // MV doesn't exist or errored — fall through to direct query
+      }
+
+      // ── 2. Fallback: query eci.sos directly ──────────────
+      const p2: unknown[] = [dateParam]
+      let w2 = `fecha::date = $1::date AND id IS NOT NULL`
+      if (channel)  { p2.push(channel);  w2 += ` AND retail = $${p2.length}` }
+      if (category) { p2.push(category); w2 += ` AND categoria = $${p2.length}` }
+      if (country)  { p2.push(country);  w2 += ` AND pais = $${p2.length}` }
+      let sellerCond2 = ""
+      if (seller) {
+        p2.push(seller)
+        sellerCond2 = ` AND (CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante,'DESCONOCIDO') END) = $${p2.length}`
+      }
+      const mfCond2 = marcaFilter(p2)
+      const sqlDirect = `
         SELECT
-          producto_id AS id,
-          titulo AS producto,
-          marca,
-          pais,
+          id,
+          MAX(titulo) AS producto,
+          MAX(marca) AS marca,
+          MAX(pais) AS pais,
           retail AS seller,
           retail AS plataforma,
-          categoria AS subcategoria,
-          fabricante,
-          ROUND(COALESCE(NULLIF(precio_venta, 0), precio_neto, 0)::numeric, 0) AS precio_venta,
-          ROUND(GREATEST(COALESCE(precio_venta, 0), COALESCE(precio_neto, 0))::numeric, 0) AS precio,
-          ROUND(COALESCE(descuento, 0)::numeric, 1) AS descuento,
-          promocion,
-          presentacion,
-          url_producto
-        FROM eci.mv_sos_product_latest
-        WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}${mfCond}
-        ORDER BY COALESCE(NULLIF(precio_venta, 0), precio_neto, 0) DESC
+          MAX(categoria) AS subcategoria,
+          CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
+               ELSE COALESCE(fabricante,'DESCONOCIDO') END AS fabricante,
+          ROUND(AVG(COALESCE(precio_venta::numeric,0)), 0) AS precio_venta,
+          ROUND(AVG(COALESCE(precio_neto::numeric, 0)), 0) AS precio_neto,
+          ROUND(AVG(COALESCE(descuento::numeric,   0)), 1) AS descuento,
+          MAX(url_producto) AS url_producto,
+          MAX(presentacion) AS presentacion,
+          MAX(promocion) AS promocion
+        FROM eci.sos
+        WHERE ${w2} ${sellerCond2}${mfCond2}
+        GROUP BY id, retail,
+          CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
+               ELSE COALESCE(fabricante,'DESCONOCIDO') END
+        ORDER BY GREATEST(
+          AVG(COALESCE(precio_venta::numeric,0)),
+          AVG(COALESCE(precio_neto::numeric, 0))
+        ) DESC
         LIMIT ${limit}
       `
-      const rows = await prisma.$queryRawUnsafe<{
-        id: string; producto: string; marca: string; seller: string
-        pais: string; plataforma: string; subcategoria: string; fabricante: string
-        precio_venta: number; precio: number; descuento: number
-        promocion: string | null; presentacion: string | null; url_producto: string
-      }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => ({
-        id:                      r.id,
-        producto:                r.producto,
-        marca:                   r.marca,
-        country:                 r.pais,
-        seller:                  r.seller,
-        plataforma:              r.plataforma,
-        subcategoria:            r.subcategoria,
-        fabricante:              r.fabricante,
-        precio_venta:            Number(r.precio_venta),
-        precio:                  r.precio != null ? Number(r.precio) : null,
-        descuento:               Number(r.descuento),
-        cuotas_sin_interes:      null,
-        tiene_cuotas_sin_interes: null,
-        detalle_cuotas:          null,
-        oferta_relampago:        null,
-        cupon:                   null,
-        full_ml:                 null,
-        envio:                   null,
-        tienda_oficial:          null,
-        url_producto:            r.url_producto,
-        promocion:               r.promocion,
-        presentacion:            r.presentacion,
-      })))
+      const rowsDirect = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(sqlDirect, ...p2)
+      return NextResponse.json(rowsDirect.map(mapRow))
     }
 
     // ── marca_fabricante ──────────────────────────────────
