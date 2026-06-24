@@ -11,12 +11,13 @@ import { useClient } from "@/lib/client-context"
 import { useGlobalFilters } from "@/lib/filter-context"
 
 const NAV = [
-  { href: "/main",           label: "Inicio",     icon: LayoutGrid  },
-  { href: "/share-of-shelf", label: "SOS",        icon: Search      },
-  { href: "/search",          label: "Search",     icon: ScanSearch  },
-  { href: "/ranking",         label: "Ranking",    icon: ListOrdered },
-  { href: "/buybox",          label: "BuyBox",     icon: Zap         },
-  { href: "/inventory",       label: "Inventario", icon: Package     },
+  { href: "/main",           label: "Inicio",        icon: LayoutGrid  },
+  { href: "/share-of-shelf", label: "SOS",           icon: Search      },
+  { href: "/search",          label: "Search",        icon: ScanSearch  },
+  { href: "/ranking",         label: "Ranking",       icon: ListOrdered },
+  { href: "/buybox",          label: "BuyBox",        icon: Zap         },
+  { href: "/inventory",       label: "Inventario",    icon: Package     },
+  { href: "/pricing",         label: "Pricing Live",  icon: Tag         },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
