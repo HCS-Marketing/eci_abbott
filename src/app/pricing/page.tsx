@@ -165,14 +165,14 @@ export default function PricingPage() {
     .filter(e =>
       !search ||
       e.producto?.toLowerCase().includes(search.toLowerCase()) ||
-      e.seller?.toLowerCase().includes(search.toLowerCase()) ||
+      e.fabricante?.toLowerCase().includes(search.toLowerCase()) ||
       e.marca?.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
       let v = 0
       if      (sortBy === "precio_venta") v = (a.precio_venta || 0) - (b.precio_venta || 0)
       else if (sortBy === "descuento")    v = (a.descuento    || 0) - (b.descuento    || 0)
-      else if (sortBy === "seller")       v = (a.seller || "").localeCompare(b.seller || "")
+      else if (sortBy === "seller")       v = (a.fabricante || "").localeCompare(b.fabricante || "")
       return sortDir === "asc" ? v : -v
     })
 
@@ -182,7 +182,7 @@ export default function PricingPage() {
   const maxPrice      = prices.length ? Math.max(...prices) : 0
   const avgPrice      = prices.length ? Number((prices.reduce((s, p) => s + p, 0) / prices.length).toFixed(1)) : 0
   const avgDiscount   = filtered.length ? Number((filtered.reduce((s, e) => s + (e.descuento || 0), 0) / filtered.length).toFixed(1)) : 0
-  const uniqueSellers = new Set(filtered.map(e => e.seller)).size
+  const uniqueSellers = new Set(filtered.map(e => e.fabricante)).size
 
   function toggleSort(col: SortCol) {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc")
@@ -386,7 +386,7 @@ export default function PricingPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((e, i) => {
-                  const color    = COLORS[e.seller] || getRetailColor(e.seller)
+                  const color    = COLORS[e.fabricante] || getRetailColor(e.fabricante)
                   const hasDiscount       = e.descuento && e.descuento > 0
                   const hasPrecioOriginal = e.precio && e.precio > e.precio_venta
                   const envioVal        = e.envio?.toLowerCase()
@@ -431,7 +431,7 @@ export default function PricingPage() {
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                          <span className="font-medium" style={{ color }}>{e.seller}</span>
+                          <span className="font-medium" style={{ color }}>{e.fabricante}</span>
                         </span>
                       </td>
 
