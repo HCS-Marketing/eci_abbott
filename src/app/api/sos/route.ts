@@ -118,7 +118,7 @@ export async function GET(req: Request) {
     // ── fabricantes list for inventory filter — from eci.sos ─
     if (action === "fabricantes_inv") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.sos WHERE fabricante IS NOT NULL`
+      let sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE fabricante IS NOT NULL`
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       if (channel)  { p.push(channel);  sql += ` AND retail = $${p.length}` }
       if (category) { p.push(category); sql += ` AND categoria = $${p.length}` }
@@ -746,7 +746,7 @@ export async function GET(req: Request) {
           MAX(categoria) AS categoria,
           MAX(ean) AS ean,
           ROUND(MAX(precio_venta::numeric), 0) AS precio_venta
-        FROM eci.sos
+        FROM eci.search
         WHERE DATE(fecha) = $1::date AND ${wCond}
         GROUP BY id, marca, retail
       `
@@ -757,7 +757,7 @@ export async function GET(req: Request) {
           MAX(ean) AS ean,
           MAX(DATE(fecha))::text AS last_seen,
           COUNT(DISTINCT DATE(fecha))::int AS days_seen
-        FROM eci.sos
+        FROM eci.search
         WHERE DATE(fecha) >= ($1::date - INTERVAL '${lookback} days')
           AND DATE(fecha) < $1::date
           AND ${wCond}
