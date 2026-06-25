@@ -730,7 +730,12 @@ export async function GET(req: Request) {
         p.push(fabricante)
         wCond += ` AND (${FABRICANTE_UNIFIED}) = $${p.length}`
       }
-      if (channel)    { p.push(channel);  wCond += ` AND retail = $${p.length}` }
+      // Restrict to Amazon and Mercado Libre only
+      if (channel) {
+        p.push(channel); wCond += ` AND retail = $${p.length}`
+      } else {
+        wCond += ` AND (UPPER(retail) LIKE '%AMAZON%' OR UPPER(retail) LIKE '%MERCADO LIBRE%' OR UPPER(retail) LIKE '%MERCADOLIBRE%')`
+      }
       if (category)   { p.push(category); wCond += ` AND categoria = $${p.length}` }
       if (country)    { p.push(country);  wCond += ` AND pais = $${p.length}` }
       wCond += marcaFilter(p).replace(' AND ', ' AND ')  // add segmento/mercado filter

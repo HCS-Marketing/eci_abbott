@@ -117,8 +117,9 @@ export default function InventoryPage() {
     if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
-      setAvailableChannels(d)
-      if (channel && !d.includes(channel)) setChannel("")
+      const allowed = d.filter(c => /amazon|mercado.?libre/i.test(c))
+      setAvailableChannels(allowed)
+      if (channel && !allowed.includes(channel)) setChannel("")
     })
   }, [category, country, startDate, endDate])
 
