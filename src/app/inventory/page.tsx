@@ -36,6 +36,7 @@ export default function InventoryPage() {
 
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
+  const [fabricante, setFabricante] = useState("ABBOTT")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
   const [startDate, setStartDate] = useState("")
@@ -51,12 +52,24 @@ export default function InventoryPage() {
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [availableFabricantes, setAvailableFabricantes] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
 
   // Countries handled by global filter context
 
-  // Segmentos
+  // Fabricantes
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "fabricantes_inv" })
+    if (country)  p.set("country",  country)
+    if (channel)  p.set("channel",  channel)
+    if (category) p.set("category", category)
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+      if (!Array.isArray(d)) return
+      setAvailableFabricantes(d)
+      if (fabricante && !d.includes(fabricante)) setFabricante("")
+    })
+  }, [country, channel, category])
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
     if (channel) p.set("channel", channel)
@@ -128,6 +141,7 @@ export default function InventoryPage() {
       action: "inventory", date: endDate, show,
       lookback: String(lookback), limit: String(limit),
     })
+    if (fabricante) p.set("fabricante", fabricante)
     if (channel)    p.set("channel",    channel)
     if (category)   p.set("category",   category)
     if (country)    p.set("country",    country)
@@ -137,7 +151,7 @@ export default function InventoryPage() {
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, endDate, show, lookback, limit, segmento, mercado])
+  }, [channel, category, country, endDate, show, lookback, limit, segmento, mercado, fabricante])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -207,6 +221,16 @@ export default function InventoryPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
             {availableSegmentos.map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+
+        {/* Fabricante */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Fabricante</span>
+          <select value={fabricante} onChange={e => setFabricante(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white font-medium">
+            <option value="">Todos</option>
+            {availableFabricantes.map(f => <option key={f}>{f}</option>)}
           </select>
         </div>
 

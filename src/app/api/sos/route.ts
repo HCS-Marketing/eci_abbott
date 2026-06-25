@@ -115,6 +115,18 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
+    // ── fabricantes list for inventory filter — from eci.sos ─
+    if (action === "fabricantes_inv") {
+      const p: unknown[] = []
+      let sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.sos WHERE fabricante IS NOT NULL`
+      if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
+      if (channel)  { p.push(channel);  sql += ` AND retail = $${p.length}` }
+      if (category) { p.push(category); sql += ` AND categoria = $${p.length}` }
+      sql += " ORDER BY 1"
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      return NextResponse.json(rows.map(r => r.n))
+    }
+
     // ── categories list — from mv_sos_dimensions ──────────
     if (action === "categories") {
       const p: unknown[] = []
@@ -708,8 +720,16 @@ export async function GET(req: Request) {
       const dateParam  = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const show       = searchParams.get("show") || "all"
       const lookback   = Math.min(30, parseInt(searchParams.get("lookback") || "7", 10))
+      const fabricante = searchParams.get("fabricante") || ""
       const p: unknown[] = [dateParam]
-      let wCond = `titulo IS NOT NULL AND precio_venta IS NOT NULL AND ${ABBOTT_LIKE}`
+      let wCond = `titulo IS NOT NULL AND precio_venta IS NOT NULL`
+      // Fabricante filter: ABBOTT uses LIKE match; others use unified CASE expression
+      if (fabricante === "ABBOTT") {
+        wCond += ` AND ${ABBOTT_LIKE}`
+      } else if (fabricante) {
+        p.push(fabricante)
+        wCond += ` AND (${FABRICANTE_UNIFIED}) = $${p.length}`
+      }
       if (channel)    { p.push(channel);  wCond += ` AND retail = $${p.length}` }
       if (category)   { p.push(category); wCond += ` AND categoria = $${p.length}` }
       if (country)    { p.push(country);  wCond += ` AND pais = $${p.length}` }
