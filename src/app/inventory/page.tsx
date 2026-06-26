@@ -17,16 +17,6 @@ interface InventoryRow {
   ean: string | null; sku: string | null; meli_id: string | null; asin: string | null
 }
 
-function relDate(dateStr: string | null, baseDate: string): string {
-  if (!dateStr) return "—"
-  const a = new Date(baseDate.split("T")[0]    + "T12:00:00")
-  const b = new Date(dateStr.split("T")[0]     + "T12:00:00")
-  const diff = Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24))
-  if (diff <= 0) return "Hoy"
-  if (diff === 1) return "Ayer"
-  return `Hace ${diff} días`
-}
-
 type ShowMode = "all" | "in_stock" | "break"
 
 // ─── PAGE ─────────────────────────────────────────────────────
@@ -38,8 +28,7 @@ export default function InventoryPage() {
   const [category,   setCategory]   = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
-  const [startDate, setStartDate] = useState("")
-  const [endDate,   setEndDate]   = useState("")
+  const [date,      setDate]      = useState("")
   const [minDate,    setMinDate]    = useState("")
   const [maxDate,    setMaxDate]    = useState("")
   const [show,       setShow]       = useState<ShowMode>("all")
@@ -89,8 +78,7 @@ export default function InventoryPage() {
       .then((d: { min: string; max: string }) => {
         if (!d.max) return
         setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(prev => (!prev || prev < d.min) ? d.min : prev)
-        setEndDate(prev => (!prev || prev > d.max) ? d.max : prev)
+        setDate(prev => (!prev || prev > d.max || prev < d.min) ? d.max : prev)
       })
   }, [channel, country])
 
@@ -98,32 +86,32 @@ export default function InventoryPage() {
     const p = new URLSearchParams({ action: "channels" })
     if (category) p.set("category", category)
     if (country)  p.set("country",  country)
-    if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
+    if (date) p.set("endDate", date)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       const allowed = d.filter(c => /amazon|mercado.?libre/i.test(c))
       setAvailableChannels(allowed)
       if (channel && !allowed.includes(channel)) setChannel("")
     })
-  }, [category, country, startDate, endDate])
+  }, [category, country, date])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    if (endDate) { p.set("startDate", startDate || endDate); p.set("endDate", endDate) }
+    if (date) p.set("endDate", date)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableCategories(d)
       if (category && !d.includes(category)) setCategory("")
     })
-  }, [channel, country, startDate, endDate])
+  }, [channel, country, date])
 
   const fetchData = useCallback(() => {
-    if (!endDate) return
+    if (!date) return
     setLoading(true)
     const p = new URLSearchParams({
-      action: "inventory", date: endDate, show,
+      action: "inventory", date, show,
       limit: String(limit),
     })
     if (channel)    p.set("channel",    channel)
@@ -135,7 +123,7 @@ export default function InventoryPage() {
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, endDate, show, limit, segmento, mercado])
+  }, [channel, category, country, date, show, limit, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -171,13 +159,11 @@ export default function InventoryPage() {
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
         {/* Fecha */}
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Desde</span>
-          <DateInput value={startDate} min={minDate} max={endDate || maxDate} onChange={setStartDate} />
-          <span className="text-xs text-gray-400">Hasta</span>
-          <DateInput value={endDate} min={startDate || minDate} max={maxDate} onChange={setEndDate} />
+          <span className="text-xs text-gray-400">Fecha</span>
+          <DateInput value={date} min={minDate} max={maxDate} onChange={setDate} />
         </div>
-        {endDate === maxDate && maxDate && (
-          <span className="text-[10px] text-green-600 font-semibold">✓ Última fecha</span>
+        {maxDate && (
+          <span className="text-[10px] text-green-600 font-semibold">Última actualización BD: {maxDate}</span>
         )}
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
