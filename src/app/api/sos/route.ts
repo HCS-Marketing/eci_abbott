@@ -714,92 +714,80 @@ export async function GET(req: Request) {
       })))
     }
 
-    // ── inventory (Abbott products only) ─────────────────
+    // ── inventory (products_master matched in sos by day) ─
     if (action === "inventory") {
       const limit      = Math.min(1000, parseInt(searchParams.get("limit") || "200", 10))
       const dateParam  = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
       const show       = searchParams.get("show") || "all"
-      const lookback   = Math.min(30, parseInt(searchParams.get("lookback") || "7", 10))
-      const fabricante = searchParams.get("fabricante") || ""
       const p: unknown[] = [dateParam]
-      let wCond = `titulo IS NOT NULL AND precio_venta IS NOT NULL`
-      // Fabricante filter: ABBOTT uses LIKE match; others use unified CASE expression
-      if (fabricante === "ABBOTT") {
-        wCond += ` AND ${ABBOTT_LIKE}`
-      } else if (fabricante) {
-        p.push(fabricante)
-        wCond += ` AND (${FABRICANTE_UNIFIED}) = $${p.length}`
-      }
-      // Restrict to Amazon and Mercado Libre only
-      if (channel) {
-        p.push(channel); wCond += ` AND retail = $${p.length}`
-      } else {
-        wCond += ` AND (UPPER(retail) LIKE '%AMAZON%' OR UPPER(retail) LIKE '%MERCADO LIBRE%' OR UPPER(retail) LIKE '%MERCADOLIBRE%')`
-      }
-      if (category)   { p.push(category); wCond += ` AND categoria = $${p.length}` }
-      if (country)    { p.push(country);  wCond += ` AND pais = $${p.length}` }
-      wCond += marcaFilter(p).replace(' AND ', ' AND ')  // add segmento/mercado filter
+      let wSos = `DATE(s.fecha) = $1::date`
+      if (country)  { p.push(country);  wSos += ` AND s.pais = $${p.length}` }
+      if (category) { p.push(category); wSos += ` AND s.categoria = $${p.length}` }
+      wSos += marcaFilter(p).replace(/\bretail\b/g, "s.retail").replace(/\bpais\b/g, "s.pais")
 
-      const todaySub = `
-        SELECT id, marca, retail,
-          MAX(titulo) AS titulo, MAX(fabricante) AS fabricante,
-          MAX(categoria) AS categoria,
-          MAX(ean) AS ean,
-          ROUND(MAX(precio_venta::numeric), 0) AS precio_venta
-        FROM eci.search
-        WHERE DATE(fecha) = $1::date AND ${wCond}
-        GROUP BY id, marca, retail
-      `
-      const lbSub = `
-        SELECT id, marca, retail,
-          MAX(titulo) AS titulo, MAX(fabricante) AS fabricante,
-          MAX(categoria) AS categoria,
-          MAX(ean) AS ean,
-          MAX(DATE(fecha))::text AS last_seen,
-          COUNT(DISTINCT DATE(fecha))::int AS days_seen
-        FROM eci.search
-        WHERE DATE(fecha) >= ($1::date - INTERVAL '${lookback} days')
-          AND DATE(fecha) < $1::date
-          AND ${wCond}
-        GROUP BY id, marca, retail
-      `
-      const inStockSQL = `
-        SELECT t.id, t.titulo AS producto, t.marca, t.categoria AS subcategoria,
-          t.retail AS plataforma, t.marca AS norm_seller,
-          t.precio_venta, lb.last_seen,
-          COALESCE(lb.days_seen, 0) AS days_seen,
-          'in_stock'::text AS stock_status,
-          (${ABBOTT_LIKE.replace('fabricante', 't.fabricante')}) AS is_newsan,
-          COALESCE(t.ean, lb.ean) AS ean
-        FROM (${todaySub}) t
-        LEFT JOIN (${lbSub}) lb ON lb.id = t.id AND lb.marca = t.marca AND lb.retail = t.retail
-      `
-      const breakSQL = `
-        SELECT lb.id, lb.titulo AS producto, lb.marca, lb.categoria AS subcategoria,
-          lb.retail AS plataforma, lb.marca AS norm_seller,
-          NULL::numeric AS precio_venta, lb.last_seen, lb.days_seen,
-          'break'::text AS stock_status,
-          (${ABBOTT_LIKE.replace('fabricante', 'lb.fabricante')}) AS is_newsan,
-          lb.ean
-        FROM (${lbSub}) lb
-        LEFT JOIN (${todaySub}) tod ON tod.id = lb.id AND tod.marca = lb.marca AND tod.retail = lb.retail
-        WHERE tod.id IS NULL
-      `
-      const unionSQL = show === "in_stock" ? inStockSQL
-                     : show === "break"    ? breakSQL
-                     : `${inStockSQL} UNION ALL ${breakSQL}`
+      const channelValue = channel ? channel.toUpperCase() : ""
+      const channelsSQL = channelValue.includes("AMAZON")
+        ? "('AMAZON')"
+        : channelValue.includes("MERCADO")
+          ? "('MERCADO LIBRE')"
+          : "('AMAZON'),('MERCADO LIBRE')"
+
+      const showFilter = show === "in_stock"
+        ? `WHERE stock_status = 'in_stock'`
+        : show === "break"
+          ? `WHERE stock_status = 'break'`
+          : ""
+
       const sql = `
-        WITH combined AS (${unionSQL})
-        SELECT c.*,
-          COALESCE(c.ean, pm.ean) AS ean_resolved,
-          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
-        FROM combined c
-        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(c.ean, c.id::text)
+        WITH pm AS (
+          SELECT
+            COALESCE(NULLIF(local_sku, ''), NULLIF(sap_sku, ''), NULLIF(meli_id, ''), NULLIF(asin, ''), ean::text) AS pm_id,
+            local_sku, sap_sku, asin, meli_id, ean
+          FROM eci.products_master
+          WHERE COALESCE(NULLIF(meli_id, ''), NULLIF(asin, '')) IS NOT NULL
+        ),
+        channels(plataforma) AS (
+          VALUES ${channelsSQL}
+        ),
+        combined AS (
+          SELECT
+            pm.pm_id AS id,
+            COALESCE(s.titulo, pm.local_sku, pm.sap_sku, pm.meli_id, pm.asin, 'Producto products_master') AS producto,
+            COALESCE(s.marca, '') AS marca,
+            COALESCE(s.categoria, '') AS subcategoria,
+            ch.plataforma,
+            COALESCE(s.marca, '') AS norm_seller,
+            ROUND(s.precio_venta::numeric, 0) AS precio_venta,
+            CASE WHEN s.id IS NOT NULL THEN $1::text ELSE NULL END AS last_seen,
+            0::int AS days_seen,
+            CASE WHEN s.id IS NOT NULL THEN 'in_stock'::text ELSE 'break'::text END AS stock_status,
+            TRUE AS is_newsan,
+            COALESCE(s.ean, pm.ean::text) AS ean_resolved,
+            pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+          FROM pm
+          CROSS JOIN channels ch
+          LEFT JOIN LATERAL (
+            SELECT s.*
+            FROM eci.sos s
+            WHERE ${wSos}
+              AND (
+                (pm.meli_id IS NOT NULL AND s.skuid = pm.meli_id)
+                OR (pm.asin IS NOT NULL AND s.skuid = pm.asin)
+              )
+              AND (
+                (ch.plataforma = 'AMAZON' AND UPPER(s.retail) LIKE '%AMAZON%')
+                OR (ch.plataforma = 'MERCADO LIBRE' AND (UPPER(s.retail) LIKE '%MERCADO LIBRE%' OR UPPER(s.retail) LIKE '%MERCADOLIBRE%'))
+              )
+            ORDER BY s.ranking::numeric ASC NULLS LAST, s.orden::numeric ASC NULLS LAST
+            LIMIT 1
+          ) s ON TRUE
+        )
+        SELECT *
+        FROM combined
+        ${showFilter}
         ORDER BY
-          CASE c.stock_status WHEN 'break' THEN 0 ELSE 1 END,
-          c.is_newsan DESC,
-          c.last_seen DESC NULLS LAST,
-          c.subcategoria, c.marca, c.producto
+          CASE stock_status WHEN 'break' THEN 0 ELSE 1 END,
+          subcategoria, marca, producto
         LIMIT ${limit}
       `
       const rows = await prisma.$queryRawUnsafe<{
