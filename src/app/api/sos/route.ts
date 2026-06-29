@@ -772,15 +772,16 @@ export async function GET(req: Request) {
             WHERE ${wSos}
               AND (
                 (
-                  pm.meli_id IS NOT NULL
-                  AND UPPER(s.skuid) = UPPER(
-                    CASE
-                      WHEN UPPER(pm.meli_id) LIKE 'MLM%' THEN pm.meli_id
-                      ELSE 'MLM' || REGEXP_REPLACE(pm.meli_id, '^[A-Za-z]{3}', '')
-                    END
-                  )
+                  ch.plataforma = 'MERCADO LIBRE'
+                  AND pm.meli_id IS NOT NULL
+                  AND NULLIF(TRIM(s.meli_id), '') IS NOT NULL
+                  AND UPPER(TRIM(s.meli_id)) = UPPER(TRIM(pm.meli_id))
                 )
-                OR (pm.asin IS NOT NULL AND UPPER(s.skuid) = UPPER(pm.asin))
+                OR (
+                  ch.plataforma = 'AMAZON'
+                  AND pm.asin IS NOT NULL
+                  AND UPPER(s.skuid) = UPPER(pm.asin)
+                )
               )
               AND (
                 (ch.plataforma = 'AMAZON' AND UPPER(s.retail) LIKE '%AMAZON%')
