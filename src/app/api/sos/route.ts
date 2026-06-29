@@ -721,9 +721,7 @@ export async function GET(req: Request) {
       const show       = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let wSos = `DATE(s.fecha) = $1::date`
-      if (country)  { p.push(country);  wSos += ` AND s.pais = $${p.length}` }
       if (category) { p.push(category); wSos += ` AND s.categoria = $${p.length}` }
-      wSos += marcaFilter(p).replace(/\bretail\b/g, "s.retail").replace(/\bpais\b/g, "s.pais")
 
       const channelValue = channel ? channel.toUpperCase() : ""
       const channelsSQL = channelValue.includes("AMAZON")
@@ -741,10 +739,14 @@ export async function GET(req: Request) {
       const sql = `
         WITH pm AS (
           SELECT
-            COALESCE(NULLIF(local_sku, ''), NULLIF(sap_sku, ''), NULLIF(meli_id, ''), NULLIF(asin, ''), ean::text) AS pm_id,
-            local_sku, sap_sku, asin, meli_id, ean
+            id::text AS pm_id,
+            sku AS local_sku,
+            NULL::text AS sap_sku,
+            NULL::text AS asin,
+            id::text AS meli_id,
+            ean
           FROM eci.products_master
-          WHERE COALESCE(NULLIF(meli_id, ''), NULLIF(asin, '')) IS NOT NULL
+          WHERE id IS NOT NULL AND TRIM(id::text) <> ''
         ),
         channels(plataforma) AS (
           VALUES ${channelsSQL}
@@ -752,11 +754,11 @@ export async function GET(req: Request) {
         combined AS (
           SELECT
             pm.pm_id AS id,
-            COALESCE(s.titulo, pm.local_sku, pm.sap_sku, pm.meli_id, pm.asin, 'Producto products_master') AS producto,
+            COALESCE(s.producto, pm.local_sku, pm.meli_id, 'Producto products_master') AS producto,
             COALESCE(s.marca, '') AS marca,
             COALESCE(s.categoria, '') AS subcategoria,
             ch.plataforma,
-            COALESCE(s.marca, '') AS norm_seller,
+            COALESCE(s.seller, '') AS norm_seller,
             ROUND(s.precio_venta::numeric, 0) AS precio_venta,
             CASE WHEN s.id IS NOT NULL THEN $1::text ELSE NULL END AS last_seen,
             0::int AS days_seen,
@@ -773,19 +775,20 @@ export async function GET(req: Request) {
               AND (
                 (
                   ch.plataforma = 'MERCADO LIBRE'
-                  AND pm.meli_id IS NOT NULL
-                  AND NULLIF(TRIM(s.meli_id), '') IS NOT NULL
-                  AND UPPER(TRIM(s.meli_id)) = UPPER(TRIM(pm.meli_id))
+                  AND (
+                    (NULLIF(TRIM(s.id), '') IS NOT NULL AND UPPER(TRIM(s.id)) = UPPER(TRIM(pm.pm_id)))
+                    OR (NULLIF(TRIM(s.ml), '') IS NOT NULL AND UPPER(TRIM(s.ml)) = UPPER(TRIM(pm.pm_id)))
+                  )
                 )
                 OR (
                   ch.plataforma = 'AMAZON'
-                  AND pm.asin IS NOT NULL
-                  AND UPPER(s.skuid) = UPPER(pm.asin)
+                  AND NULLIF(TRIM(s.id), '') IS NOT NULL
+                  AND UPPER(TRIM(s.id)) = UPPER(TRIM(pm.pm_id))
                 )
               )
               AND (
-                (ch.plataforma = 'AMAZON' AND UPPER(s.retail) LIKE '%AMAZON%')
-                OR (ch.plataforma = 'MERCADO LIBRE' AND (UPPER(s.retail) LIKE '%MERCADO LIBRE%' OR UPPER(s.retail) LIKE '%MERCADOLIBRE%'))
+                (ch.plataforma = 'AMAZON' AND UPPER(s.plataforma) LIKE '%AMAZON%')
+                OR (ch.plataforma = 'MERCADO LIBRE' AND (UPPER(s.plataforma) LIKE '%MERCADO LIBRE%' OR UPPER(s.plataforma) LIKE '%MERCADOLIBRE%' OR UPPER(s.plataforma) LIKE '%ML%'))
               )
             ORDER BY s.ranking::numeric ASC NULLS LAST, s.orden::numeric ASC NULLS LAST
             LIMIT 1
