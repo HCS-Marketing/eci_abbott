@@ -47,6 +47,14 @@ export default function BuyboxPage() {
 
   // Countries handled by global filter context
 
+  // Mercado / Segmento solo aplican a MX
+  useEffect(() => {
+    if (country !== "MX") {
+      setMercado("")
+      setSegmento("")
+    }
+  }, [country])
+
   // Segmentos
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
@@ -158,25 +166,29 @@ export default function BuyboxPage() {
 
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
-        {/* Mercado */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableMercados.map(m => <option key={m}>{m}</option>)}
-          </select>
-        </div>
+        {country === "MX" && (
+          <>
+            {/* Mercado */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Mercado</span>
+              <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
+                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+                <option value="">Todos</option>
+                {availableMercados.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
 
-        {/* Segmento */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Segmento</span>
-          <select value={segmento} onChange={e => setSegmento(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
+            {/* Segmento */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Segmento</span>
+              <select value={segmento} onChange={e => setSegmento(e.target.value)}
+                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+                <option value="">Todos</option>
+                {availableSegmentos.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+          </>
+        )}
 
         {/* Retail */}
         <div className="flex items-center gap-2">
