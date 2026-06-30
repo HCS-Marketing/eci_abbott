@@ -721,6 +721,7 @@ export async function GET(req: Request) {
       const show       = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let wSos = `DATE(s.fecha) = $1::date`
+      if (country)  { p.push(country);  wSos += ` AND s.pais = $${p.length}` }
       if (category) { p.push(category); wSos += ` AND s.categoria = $${p.length}` }
 
       const channelValue = channel ? channel.toUpperCase() : ""
@@ -728,7 +729,7 @@ export async function GET(req: Request) {
         ? "('AMAZON')"
         : channelValue.includes("MERCADO")
           ? "('MERCADO LIBRE')"
-          : "('AMAZON'),('MERCADO LIBRE')"
+          : "('AMAZON'), ('MERCADO LIBRE')"
 
       const showFilter = show === "in_stock"
         ? `WHERE stock_status = 'in_stock'`
@@ -739,14 +740,14 @@ export async function GET(req: Request) {
       const sql = `
         WITH pm AS (
           SELECT
-            id::text AS pm_id,
-            sku AS local_sku,
-            NULL::text AS sap_sku,
-            NULL::text AS asin,
-            id::text AS meli_id,
+            ean::text AS pm_id,
+            local_sku,
+            asin,
+            meli_id,
+            sap_sku,
             ean
           FROM eci.products_master
-          WHERE id IS NOT NULL AND TRIM(id::text) <> ''
+          WHERE ean IS NOT NULL AND TRIM(ean::text) <> ''
         ),
         channels(plataforma) AS (
           VALUES ${channelsSQL}
@@ -754,41 +755,45 @@ export async function GET(req: Request) {
         combined AS (
           SELECT
             pm.pm_id AS id,
-            COALESCE(s.producto, pm.local_sku, pm.meli_id, 'Producto products_master') AS producto,
+            COALESCE(s.titulo, pm.local_sku, pm.asin, pm.meli_id, pm.pm_id, 'Producto products_master') AS producto,
             COALESCE(s.marca, '') AS marca,
             COALESCE(s.categoria, '') AS subcategoria,
             ch.plataforma,
-            COALESCE(s.seller, '') AS norm_seller,
+            COALESCE(NULLIF(TRIM(to_jsonb(s)->>'seller'), ''), NULLIF(TRIM(s.marca), ''), '') AS norm_seller,
             ROUND(s.precio_venta::numeric, 0) AS precio_venta,
-            CASE WHEN s.id IS NOT NULL THEN $1::text ELSE NULL END AS last_seen,
+            CASE WHEN s.match_found = 1 THEN $1::text ELSE NULL END AS last_seen,
             0::int AS days_seen,
-            CASE WHEN s.id IS NOT NULL THEN 'in_stock'::text ELSE 'break'::text END AS stock_status,
+            CASE WHEN s.match_found = 1 THEN 'in_stock'::text ELSE 'break'::text END AS stock_status,
             TRUE AS is_newsan,
             COALESCE(s.ean, pm.ean::text) AS ean_resolved,
             pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
           FROM pm
           CROSS JOIN channels ch
           LEFT JOIN LATERAL (
-            SELECT s.*
+            SELECT s.*, 1 AS match_found
             FROM eci.sos s
             WHERE ${wSos}
               AND (
                 (
                   ch.plataforma = 'MERCADO LIBRE'
-                  AND (
-                    (NULLIF(TRIM(s.id), '') IS NOT NULL AND UPPER(TRIM(s.id)) = UPPER(TRIM(pm.pm_id)))
-                    OR (NULLIF(TRIM(s.ml), '') IS NOT NULL AND UPPER(TRIM(s.ml)) = UPPER(TRIM(pm.pm_id)))
-                  )
+                  AND NULLIF(TRIM(pm.meli_id), '') IS NOT NULL
+                  AND NULLIF(TRIM(to_jsonb(s)->>'meli_id'), '') IS NOT NULL
+                  AND UPPER(TRIM(to_jsonb(s)->>'meli_id')) = UPPER(TRIM(pm.meli_id))
                 )
                 OR (
                   ch.plataforma = 'AMAZON'
-                  AND NULLIF(TRIM(s.id), '') IS NOT NULL
-                  AND UPPER(TRIM(s.id)) = UPPER(TRIM(pm.pm_id))
+                  AND NULLIF(TRIM(pm.asin), '') IS NOT NULL
+                  AND NULLIF(TRIM(to_jsonb(s)->>'skuid'), '') IS NOT NULL
+                  AND UPPER(TRIM(to_jsonb(s)->>'skuid')) = UPPER(TRIM(pm.asin))
                 )
               )
               AND (
-                (ch.plataforma = 'AMAZON' AND UPPER(s.plataforma) LIKE '%AMAZON%')
-                OR (ch.plataforma = 'MERCADO LIBRE' AND (UPPER(s.plataforma) LIKE '%MERCADO LIBRE%' OR UPPER(s.plataforma) LIKE '%MERCADOLIBRE%' OR UPPER(s.plataforma) LIKE '%ML%'))
+                (ch.plataforma = 'AMAZON' AND UPPER(COALESCE(s.retail, '')) LIKE '%AMAZON%')
+                OR (ch.plataforma = 'MERCADO LIBRE' AND (
+                  UPPER(COALESCE(s.retail, '')) LIKE '%MERCADO LIBRE%'
+                  OR UPPER(COALESCE(s.retail, '')) LIKE '%MERCADOLIBRE%'
+                  OR UPPER(COALESCE(s.retail, '')) = 'ML'
+                ))
               )
             ORDER BY s.ranking::numeric ASC NULLS LAST, s.orden::numeric ASC NULLS LAST
             LIMIT 1

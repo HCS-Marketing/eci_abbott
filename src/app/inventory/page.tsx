@@ -175,7 +175,7 @@ export default function InventoryPage() {
 
       {/* ── Nota lógica ──────────────────────────────── */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
-        <span className="font-semibold">Lógica de stock diario:</span> se toma cada producto de <span className="font-semibold">products_master</span> y se busca en <span className="font-semibold">eci.sos</span> del día por <span className="font-semibold">skuid = meli_id/asin</span>. Si aparece es <span className="font-semibold">En stock</span>; si no aparece es <span className="font-semibold text-red-600">Rotura</span>.
+        <span className="font-semibold">Lógica de stock diario:</span> se toma cada producto de <span className="font-semibold">products_master</span> y se busca en <span className="font-semibold">eci.sos</span> del día. Cruce por canal: <span className="font-semibold">Amazon: skuid = asin</span> y <span className="font-semibold">Mercado Libre: meli_id = meli_id</span>. Si aparece es <span className="font-semibold">En stock</span>; si no aparece es <span className="font-semibold text-red-600">Rotura</span>.
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}
