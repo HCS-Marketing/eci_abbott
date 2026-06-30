@@ -1,5 +1,8 @@
+"use client"
+
 import Link from "next/link"
 import { Search, ScanSearch, ListOrdered, Zap, Package, Tag } from "lucide-react"
+import { useGlobalFilters } from "@/lib/filter-context"
 
 const MODULES = [
   {
@@ -46,7 +49,14 @@ const MODULES = [
   },
 ]
 
+const MX_ONLY_MODULES = new Set(["/buybox", "/inventory"])
+
 export default function MainPage() {
+  const { country } = useGlobalFilters()
+  const visibleModules = country === "MX"
+    ? MODULES
+    : MODULES.filter(module => !MX_ONLY_MODULES.has(module.href))
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
@@ -57,7 +67,7 @@ export default function MainPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {MODULES.map(({ href, label, description, icon: Icon, color }) => (
+        {visibleModules.map(({ href, label, description, icon: Icon, color }) => (
           <Link
             key={href}
             href={href}

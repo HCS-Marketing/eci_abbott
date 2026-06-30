@@ -23,6 +23,7 @@ type ShowMode = "all" | "in_stock" | "break"
 export default function InventoryPage() {
   useMarket()
   const { country } = useGlobalFilters()
+  const isMexico = country === "MX"
 
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
@@ -126,6 +127,28 @@ export default function InventoryPage() {
   }, [channel, category, country, date, show, limit, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  if (!isMexico) {
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title="Inventario"
+          subtitle="Disponible solo para México"
+        />
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
+            <div>
+              <div className="text-sm font-semibold text-amber-800">Módulo en construcción para este país</div>
+              <p className="text-xs text-amber-700 mt-1">
+                Este módulo solo está habilitado para México. Para otros países se encuentra en construcción.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const filtered = useMemo(() =>
     data.filter(e =>

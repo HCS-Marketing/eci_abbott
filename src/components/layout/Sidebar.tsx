@@ -20,6 +20,8 @@ const NAV = [
   { href: "/pricing",         label: "Pricing Live",  icon: Tag         },
 ]
 
+const MX_ONLY_MODULES = new Set(["/buybox", "/inventory"])
+
 function SOSBrandmark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 120 128" fill="none">
@@ -38,6 +40,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const router = useRouter()
+  const visibleNav = country === "MX" ? NAV : NAV.filter(item => !MX_ONLY_MODULES.has(item.href))
 
   if (
     pathname?.startsWith("/sign-in") ||
@@ -119,7 +122,7 @@ export default function Sidebar() {
               Módulos
             </div>
           )}
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {visibleNav.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href
             return (
               <Link
@@ -237,7 +240,7 @@ export default function Sidebar() {
             </select>
           </div>
 
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {visibleNav.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href
             return (
               <Link

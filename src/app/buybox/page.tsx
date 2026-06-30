@@ -20,7 +20,7 @@ interface BuyboxRow {
 
 interface BuyboxLostRow {
   id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-  winner_seller: string; winner_price: number; winner_envio: string | null
+  winner_seller: string | null; winner_price: number; winner_envio: string | null
   winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
   ean: string | null; sku: string | null; meli_id: string | null; asin: string | null
 }
@@ -29,6 +29,7 @@ interface BuyboxLostRow {
 export default function BuyboxPage() {
   useMarket()
   const { country } = useGlobalFilters()
+  const isMexico = country === "MX"
 
   const [channel,  setChannel]  = useState("")
   const [category, setCategory] = useState("")
@@ -79,8 +80,9 @@ export default function BuyboxPage() {
     if (country)  p.set("country",  country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
-      setAvailableChannels(d)
-      if (channel && !d.includes(channel)) setChannel("")
+      const allowed = d.filter(c => /amazon|mercado.?libre/i.test(c))
+      setAvailableChannels(allowed)
+      if (channel && !allowed.includes(channel)) setChannel("")
     })
   }, [category, country])
 
@@ -112,6 +114,28 @@ export default function BuyboxPage() {
   }, [channel, category, country, topN, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  if (!isMexico) {
+    return (
+      <div className="space-y-4">
+        <PageHeader
+          title="BuyBox"
+          subtitle="Disponible solo para México"
+        />
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
+            <div>
+              <div className="text-sm font-semibold text-amber-800">Módulo en construcción para este país</div>
+              <p className="text-xs text-amber-700 mt-1">
+                Este módulo solo está habilitado para México. Para otros países se encuentra en construcción.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const lostFiltered = lostData.filter(e =>
     !search ||
@@ -312,7 +336,7 @@ export default function BuyboxPage() {
                           {e.newsan_wins ? (
                             <span className="flex items-center gap-1 text-[10px] font-black text-green-700"><Trophy size={9} className="text-amber-500" />Abbott</span>
                           ) : (
-                            <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller}</span>
+                            <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller?.trim() || "sin informacion"}</span>
                           )}
                         </td>
                         <td className="px-3 py-3 text-right whitespace-nowrap">

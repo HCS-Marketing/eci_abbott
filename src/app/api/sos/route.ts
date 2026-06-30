@@ -908,6 +908,7 @@ export async function GET(req: Request) {
       const show = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND ranking IS NOT NULL AND id IS NOT NULL AND precio_venta IS NOT NULL`
+      w += ` AND (retail ILIKE '%MERCADO LIBRE%' OR retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
@@ -979,7 +980,7 @@ export async function GET(req: Request) {
         marca:                  r.marca,
         subcategoria:           r.subcategoria,
         plataforma:             r.plataforma,
-        winner_seller:          r.winner_seller,
+        winner_seller:          r.winner_seller?.trim() ? r.winner_seller : "sin informacion",
         winner_price:           Number(r.winner_price),
         winner_precio_original: r.winner_precio_original != null ? Number(r.winner_precio_original) : null,
         winner_descuento:       r.winner_descuento != null ? Number(r.winner_descuento) : null,
@@ -1003,6 +1004,7 @@ export async function GET(req: Request) {
       let channelSql  = ""
       let categorySql = ""
       let countrySql  = ""
+      const buyboxRetailSql = `AND (s.retail ILIKE '%MERCADO LIBRE%' OR s.retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  channelSql  = `AND s.retail = $${p.length}` }
       if (category) { p.push(category); categorySql = `AND s.categoria = $${p.length}` }
       if (country)  { p.push(country);  countrySql  = `AND s.pais = $${p.length}` }
@@ -1021,7 +1023,7 @@ export async function GET(req: Request) {
           SELECT MAX(DATE(s.fecha)) AS max_date
           FROM eci.sos s
           WHERE s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
+            ${buyboxRetailSql} ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         abbott_present_7d AS (
           SELECT DISTINCT s.id
@@ -1030,7 +1032,7 @@ export async function GET(req: Request) {
             AND s.fecha < latest_date.max_date + INTERVAL '1 day'
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
             AND ${ABBOTT_LIKE.replace('fabricante', 's.fabricante')}
-            ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
+            ${buyboxRetailSql} ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         raw_latest AS (
           SELECT
@@ -1045,7 +1047,7 @@ export async function GET(req: Request) {
           FROM eci.sos s, latest_date
           WHERE DATE(s.fecha) = latest_date.max_date
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
-            ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
+            ${buyboxRetailSql} ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         latest_winners AS (
           SELECT id, titulo AS producto, marca, categoria AS subcategoria,
@@ -1089,7 +1091,7 @@ export async function GET(req: Request) {
         marca:         r.marca,
         subcategoria:  r.subcategoria,
         plataforma:    r.plataforma,
-        winner_seller: r.winner_seller,
+        winner_seller: r.winner_seller?.trim() ? r.winner_seller : "sin informacion",
         winner_price:  Number(r.winner_price),
         winner_envio:  null,
         winner_url:    r.winner_url,
