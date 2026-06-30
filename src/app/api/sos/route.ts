@@ -833,6 +833,127 @@ export async function GET(req: Request) {
       })))
     }
 
+    // ── catalog content (MX: Amazon + Mercado Libre) ─────
+    if (action === "catalog_content") {
+      const limit      = Math.min(5000, parseInt(searchParams.get("limit") || "500", 10))
+      const dateParam  = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const sortBy     = (searchParams.get("sortBy") || "score").toLowerCase()
+      const sortDir    = (searchParams.get("sortDir") || "desc").toLowerCase() === "asc" ? "asc" : "desc"
+
+      const p: unknown[] = [dateParam]
+      let w = `DATE(s.fecha) = $1::date AND s.skuid IS NOT NULL AND TRIM(s.skuid) <> ''`
+      // Module is MX-only. If country is not set by UI for any reason, default to MX.
+      if (country) { p.push(country); w += ` AND s.pais = $${p.length}` }
+      else { w += ` AND s.pais = 'MX'` }
+      if (channel)  { p.push(channel);  w += ` AND s.retail = $${p.length}` }
+      if (category) { p.push(category); w += ` AND s.categoria = $${p.length}` }
+      if (seller) {
+        p.push(seller)
+        w += ` AND ${FABRICANTE_UNIFIED} = $${p.length}`
+      }
+      w += marcaFilterSQL(p, "s")
+
+      const sql = `
+        WITH base AS (
+          SELECT
+            COALESCE(NULLIF(TRIM(s.titulo), ''), 'Sin titulo') AS titulo,
+            TRIM(s.skuid) AS skuid,
+            s.retail AS plataforma,
+            ${FABRICANTE_UNIFIED} AS fabricante,
+            COALESCE(
+              NULLIF(TRIM(to_jsonb(s)->>'valoracion'), ''),
+              NULLIF(TRIM(to_jsonb(s)->>'valoración'), ''),
+              NULLIF(TRIM(to_jsonb(s)->>'rating'), '')
+            ) AS valoracion_raw,
+            COALESCE(
+              NULLIF(TRIM(to_jsonb(s)->>'ventas'), ''),
+              NULLIF(TRIM(to_jsonb(s)->>'sales'), '')
+            ) AS ventas_raw,
+            s.ranking::numeric AS ranking,
+            s.orden::numeric AS orden
+          FROM eci.sos s
+          WHERE ${w}
+            AND (
+              UPPER(COALESCE(s.retail, '')) LIKE '%AMAZON%'
+              OR UPPER(COALESCE(s.retail, '')) LIKE '%MERCADO LIBRE%'
+              OR UPPER(COALESCE(s.retail, '')) LIKE '%MERCADOLIBRE%'
+              OR UPPER(COALESCE(s.retail, '')) = 'ML'
+            )
+        ),
+        dedup AS (
+          SELECT DISTINCT ON (skuid, plataforma)
+            titulo, skuid, plataforma, fabricante, valoracion_raw, ventas_raw, ranking, orden
+          FROM base
+          ORDER BY skuid, plataforma, ranking ASC NULLS LAST, orden ASC NULLS LAST
+        )
+        SELECT
+          titulo, skuid, plataforma, fabricante, valoracion_raw, ventas_raw
+        FROM dedup
+        LIMIT ${limit}
+      `
+
+      const rows = await prisma.$queryRawUnsafe<{
+        titulo: string; skuid: string; plataforma: string; fabricante: string
+        valoracion_raw: string | null; ventas_raw: string | null
+      }[]>(sql, ...p)
+
+      const parseRating = (input: string | null | undefined): number => {
+        if (!input) return 0
+        const v = Number.parseFloat(String(input).replace(",", ".").replace(/[^0-9.]/g, ""))
+        if (!Number.isFinite(v)) return 0
+        if (v < 0) return 0
+        if (v > 5) return 5
+        return v
+      }
+
+      const parseSales = (input: string | null | undefined): number => {
+        if (!input) return 0
+        const raw = String(input).trim().toLowerCase().replace(/\./g, "").replace(/,/g, ".")
+        const kMatch = raw.match(/([0-9]+(?:\.[0-9]+)?)\s*k\+?/)
+        if (kMatch) {
+          const base = Number.parseFloat(kMatch[1])
+          return Number.isFinite(base) ? Math.round(base * 1000) : 0
+        }
+        const plusMatch = raw.match(/([0-9]+)\s*\+/)
+        if (plusMatch) return Number.parseInt(plusMatch[1], 10) || 0
+        const numMatch = raw.match(/([0-9]+)/)
+        if (numMatch) return Number.parseInt(numMatch[1], 10) || 0
+        return 0
+      }
+
+      const parsed = rows.map(r => ({
+        titulo: r.titulo,
+        skuid: r.skuid,
+        plataforma: r.plataforma,
+        fabricante: r.fabricante,
+        valoracion: parseRating(r.valoracion_raw),
+        ventas: parseSales(r.ventas_raw),
+      }))
+
+      const maxVentas = parsed.reduce((m, r) => Math.max(m, r.ventas), 0)
+      const scored = parsed.map(r => {
+        const salesNorm = maxVentas > 0 ? r.ventas / maxVentas : 0
+        const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
+        const score = ((salesNorm * 0.65) + (ratingNorm * 0.35)) * 100
+        return { ...r, score: Math.round(score * 100) / 100 }
+      })
+
+      const rankByScore = [...scored]
+        .sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+        .map((r, i) => ({ ...r, rank: i + 1 }))
+
+      const sorted = [...rankByScore].sort((a, b) => {
+        let cmp = 0
+        if (sortBy === "valoracion") cmp = a.valoracion - b.valoracion
+        else if (sortBy === "ventas") cmp = a.ventas - b.ventas
+        else if (sortBy === "titulo") cmp = a.titulo.localeCompare(b.titulo)
+        else cmp = a.score - b.score
+        return sortDir === "asc" ? cmp : -cmp
+      })
+
+      return NextResponse.json(sorted)
+    }
+
     // ── assortment ────────────────────────────────────────
     if (action === "assortment") {
       const limit    = Math.min(1000, parseInt(searchParams.get("limit") || "500", 10))

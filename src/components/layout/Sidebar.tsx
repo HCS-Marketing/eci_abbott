@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Tag, LogOut, ScanSearch, LayoutGrid, Zap, Package,
+  Tag, LogOut, ScanSearch, LayoutGrid, Zap, Package, Star,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 import { useGlobalFilters } from "@/lib/filter-context"
@@ -17,10 +17,11 @@ const NAV = [
   { href: "/ranking",         label: "Ranking",       icon: ListOrdered },
   { href: "/buybox",          label: "BuyBox",        icon: Zap         },
   { href: "/inventory",       label: "Inventario",    icon: Package     },
+  { href: "/catalog-content", label: "Contenido catalogo", icon: Star   },
   { href: "/pricing",         label: "Pricing Live",  icon: Tag         },
 ]
 
-const MX_ONLY_MODULES = new Set(["/buybox", "/inventory"])
+const MX_ONLY_MODULES = new Set(["/buybox", "/inventory", "/catalog-content"])
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
   return (

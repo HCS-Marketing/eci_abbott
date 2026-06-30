@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Search, ScanSearch, ListOrdered, Zap, Package, Tag } from "lucide-react"
+import { Search, ScanSearch, ListOrdered, Zap, Package, Tag, Star } from "lucide-react"
 import { useGlobalFilters } from "@/lib/filter-context"
 
 const MODULES = [
@@ -41,6 +41,13 @@ const MODULES = [
     color: "#14b8a6",
   },
   {
+    href: "/catalog-content",
+    label: "Contenido de catalogo",
+    description: "Valoración, ventas y score de producto para priorizar planograma",
+    icon: Star,
+    color: "#d97706",
+  },
+  {
     href: "/pricing",
     label: "Pricing Live",
     description: "Precios actuales por producto, fabricante y canal — con descuentos y promociones",
@@ -49,7 +56,7 @@ const MODULES = [
   },
 ]
 
-const MX_ONLY_MODULES = new Set(["/buybox", "/inventory"])
+const MX_ONLY_MODULES = new Set(["/buybox", "/inventory", "/catalog-content"])
 
 export default function MainPage() {
   const { country } = useGlobalFilters()
