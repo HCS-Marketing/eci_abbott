@@ -1432,31 +1432,37 @@ export async function GET(req: Request) {
       }
       const mfCond2 = marcaFilter(p2)
       const sqlDirect = `
-        SELECT
+        SELECT DISTINCT ON (
           id,
-          MAX(titulo) AS producto,
-          MAX(marca) AS marca,
-          MAX(pais) AS pais,
-          retail AS seller,
-          retail AS plataforma,
-          MAX(categoria) AS subcategoria,
-          CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
-               ELSE COALESCE(fabricante,'DESCONOCIDO') END AS fabricante,
-          ROUND(AVG(COALESCE(precio_venta::numeric,0)), 0) AS precio_venta,
-          ROUND(AVG(COALESCE(precio_neto::numeric, 0)), 0) AS precio_neto,
-          ROUND(AVG(COALESCE(descuento::numeric,   0)), 1) AS descuento,
-          MAX(url_producto) AS url_producto,
-          MAX(presentacion) AS presentacion,
-          MAX(promocion) AS promocion
-        FROM eci.sos
-        WHERE ${w2} ${sellerCond2}${mfCond2}
-        GROUP BY id, retail,
+          retail,
           CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
                ELSE COALESCE(fabricante,'DESCONOCIDO') END
-        ORDER BY GREATEST(
-          AVG(COALESCE(precio_venta::numeric,0)),
-          AVG(COALESCE(precio_neto::numeric, 0))
-        ) DESC
+        )
+          id,
+          titulo AS producto,
+          marca,
+          pais,
+          retail AS seller,
+          retail AS plataforma,
+          categoria AS subcategoria,
+          CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
+               ELSE COALESCE(fabricante,'DESCONOCIDO') END AS fabricante,
+          COALESCE(precio_venta::numeric,0) AS precio_venta,
+          COALESCE(precio_neto::numeric, 0) AS precio_neto,
+          COALESCE(descuento::numeric,   0) AS descuento,
+          url_producto,
+          presentacion,
+          promocion
+        FROM eci.sos
+        WHERE ${w2} ${sellerCond2}${mfCond2}
+        ORDER BY
+          id,
+          retail,
+          CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
+               ELSE COALESCE(fabricante,'DESCONOCIDO') END,
+          ranking::numeric ASC NULLS LAST,
+          orden::numeric ASC NULLS LAST,
+          GREATEST(COALESCE(precio_venta::numeric,0), COALESCE(precio_neto::numeric,0)) DESC
         LIMIT ${limit}
       `
       const rowsDirect = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(sqlDirect, ...p2)
