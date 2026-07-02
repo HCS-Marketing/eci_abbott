@@ -84,6 +84,11 @@ function normalizeCategoryLabel(value: string): string {
     .trim()
 }
 
+function categorySourceSql(alias?: string): string {
+  const p = alias ? `${alias}.` : ""
+  return `COALESCE(NULLIF(TRIM(${p}subcategoria), ''), NULLIF(TRIM(${p}categoria), ''))`
+}
+
 const CO_CATEGORY_TARGET_BY_NORM = new Map<string, string>(
   Object.entries(CATEGORY_REMAP).map(([source, target]) => [normalizeCategoryLabel(source), target])
 )
@@ -232,11 +237,16 @@ export async function GET(req: Request) {
     // ── categories list — from mv_sos_dimensions ──────────
     if (action === "categories") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT categoria AS n FROM eci.mv_sos_dimensions WHERE categoria IS NOT NULL AND TRIM(categoria) <> ''`
-      if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
+      const src = categorySourceSql()
+      let sql = `SELECT DISTINCT ${src} AS n FROM eci.sos WHERE ${src} IS NOT NULL`
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
+      if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
+      if (startDate || endDate) {
+        p.push(startD, endD)
+        sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}`
+      }
       sql += " ORDER BY 1"
-      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      const rows = await prisma.$queryRawUnsafe<{ n: string | null }[]>(sql, ...p)
       const values = rows
         .map(r => remapCategory(r.n))
         .filter(Boolean)
@@ -244,12 +254,16 @@ export async function GET(req: Request) {
       return NextResponse.json(unique)
     }
 
-    // ── channels list (retailers) — from mv_sos_dimensions ─
+    // ── channels list (retailers) — category-aware via subcategoria/categoria source ─
     if (action === "channels") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT retail AS n FROM eci.mv_sos_dimensions WHERE 1=1`
-      if (category) { sql += categorySqlCondition("categoria", p, category) }
+      let sql = `SELECT DISTINCT retail AS n FROM eci.sos WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
+      if (category) { sql += categorySqlCondition(categorySourceSql(), p, category) }
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
+      if (startDate || endDate) {
+        p.push(startD, endD)
+        sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}`
+      }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
