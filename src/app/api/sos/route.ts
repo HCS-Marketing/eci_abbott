@@ -98,7 +98,8 @@ const CO_CATEGORY_SOURCES_BY_TARGET_NORM = (() => {
   return map
 })()
 
-function remapCategoryForCountry(rawCategory: string, countryCode: string): string {
+function remapCategoryForCountry(rawCategory: string | null | undefined, countryCode: string): string {
+  if (!rawCategory) return ""
   if (countryCode !== "CO") return rawCategory
   const mapped = CO_CATEGORY_TARGET_BY_NORM.get(normalizeCategoryLabel(rawCategory))
   return mapped || rawCategory
@@ -236,12 +237,14 @@ export async function GET(req: Request) {
     // ── categories list — from mv_sos_dimensions ──────────
     if (action === "categories") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT categoria AS n FROM eci.mv_sos_dimensions WHERE 1=1`
+      let sql = `SELECT DISTINCT categoria AS n FROM eci.mv_sos_dimensions WHERE categoria IS NOT NULL AND TRIM(categoria) <> ''`
       if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      const values = rows.map(r => remapCategoryForCountry(r.n, country))
+      const values = rows
+        .map(r => remapCategoryForCountry(r.n, country))
+        .filter(Boolean)
       const unique = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(unique)
     }
