@@ -37,6 +37,113 @@ const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABB
 // Abbott fabricante identifiers
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
 
+const CO_CATEGORY_REMAP: Record<string, string> = {
+  "ALIMENTACION DEL BEBE": "Formulas infantiles",
+  "Alimentación del Bebé": "Formulas infantiles",
+  "Alimentación y Lactancia": "Nutricion Infantil",
+  "BEBIDAS": "Bebidas Rehidratantes",
+  "Complementos Nutricionales": "Nutricion Infantil",
+  "CUIDADO INFANTIL": "No Abbott",
+  "Ensure y Glucerna": "Nutricion Adultos",
+  "FORMULAS INFANTILES": "Formulas infantiles",
+  "Fórmulas infantiles": "Formulas infantiles",
+  "FORMULAS INFANTILES - FARMATODO": "Formulas infantiles",
+  "Fórmulas Infantiles - Farmatodo": "Formulas infantiles",
+  "FORMULAS Y ALIMENTOS": "No Abbott",
+  "Fórmulas y Alimentos": "No Abbott",
+  "Infantil": "Nutricion Infantil",
+  "Medicamentos para la Diabetes": "No Abbott",
+  "Nutricion": "Formulas infantiles",
+  "Nutrición": "No Abbott",
+  "NUTRICION ADULTOS": "No Abbott",
+  "Nutrición adultos": "No Abbott",
+  "Nutricion Especializada": "Nutricion Adultos",
+  "Nutricion Infantil": "Formulas infantiles",
+  "NUTRICION NINOS": "No Abbott",
+  "Nutrición niños": "No Abbott",
+  "Pediasure en algunos casos": "Nutricion Infantil",
+  "Pedilayte": "No Abbott",
+  "Rehidratacion": "No Abbott",
+  "Rehidratantes": "No Abbott",
+  "SALUD DIGESTIVA": "No Abbott",
+  "Salud digestiva y sueros": "No Abbott",
+  "Salud Nutricional": "No Abbott",
+  "Similac": "No Abbott",
+  "Suplemento Nutricional": "Nutricion Adultos",
+  "SUPLEMENTOS - LA REBAJA": "No Abbott",
+  "SUPLEMENTOS ALIMENTICIOS": "No Abbott",
+  "Vitaminas": "Nutricion Adultos",
+}
+
+function normalizeCategoryLabel(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+const CO_CATEGORY_TARGET_BY_NORM = new Map<string, string>(
+  Object.entries(CO_CATEGORY_REMAP).map(([source, target]) => [normalizeCategoryLabel(source), target])
+)
+
+const CO_CATEGORY_SOURCES_BY_TARGET_NORM = (() => {
+  const map = new Map<string, Set<string>>()
+  for (const [source, target] of Object.entries(CO_CATEGORY_REMAP)) {
+    const targetNorm = normalizeCategoryLabel(target)
+    if (!map.has(targetNorm)) map.set(targetNorm, new Set<string>())
+    map.get(targetNorm)!.add(source)
+  }
+  return map
+})()
+
+function remapCategoryForCountry(rawCategory: string, countryCode: string): string {
+  if (countryCode !== "CO") return rawCategory
+  const mapped = CO_CATEGORY_TARGET_BY_NORM.get(normalizeCategoryLabel(rawCategory))
+  return mapped || rawCategory
+}
+
+function categorySqlCondition(columnSql: string, params: unknown[], selectedCategory: string, countryCode: string): string {
+  if (!selectedCategory) return ""
+  if (countryCode !== "CO") {
+    params.push(selectedCategory)
+    return ` AND ${columnSql} = $${params.length}`
+  }
+
+  const selectedNorm = normalizeCategoryLabel(selectedCategory)
+  const candidates = new Set<string>([selectedCategory])
+
+  const mappedTarget = CO_CATEGORY_TARGET_BY_NORM.get(selectedNorm)
+  if (mappedTarget) candidates.add(mappedTarget)
+
+  const sourceSetForSelected = CO_CATEGORY_SOURCES_BY_TARGET_NORM.get(selectedNorm)
+  if (sourceSetForSelected) {
+    for (const source of sourceSetForSelected) candidates.add(source)
+  }
+
+  if (mappedTarget) {
+    const sourceSetForMappedTarget = CO_CATEGORY_SOURCES_BY_TARGET_NORM.get(normalizeCategoryLabel(mappedTarget))
+    if (sourceSetForMappedTarget) {
+      for (const source of sourceSetForMappedTarget) candidates.add(source)
+    }
+  }
+
+  if (candidates.size === 1) {
+    params.push(selectedCategory)
+    return ` AND ${columnSql} = $${params.length}`
+  }
+
+  const placeholders = Array.from(candidates)
+    .map(v => {
+      params.push(v)
+      return `$${params.length}`
+    })
+    .join(", ")
+
+  return ` AND ${columnSql} IN (${placeholders})`
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const action   = searchParams.get("action") || "sellers"
@@ -96,8 +203,7 @@ export async function GET(req: Request) {
         w += ` AND retail = $${params.length}`
       }
       if (opts.category !== false && category) {
-        params.push(category)
-        w += ` AND categoria = $${params.length}`
+        w += categorySqlCondition("categoria", params, category, country)
       }
       if (opts.country !== false && country) {
         params.push(country)
@@ -121,7 +227,7 @@ export async function GET(req: Request) {
       let sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE fabricante IS NOT NULL`
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       if (channel)  { p.push(channel);  sql += ` AND retail = $${p.length}` }
-      if (category) { p.push(category); sql += ` AND categoria = $${p.length}` }
+      if (category) { sql += categorySqlCondition("categoria", p, category, country) }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
@@ -135,14 +241,16 @@ export async function GET(req: Request) {
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      const values = rows.map(r => remapCategoryForCountry(r.n, country))
+      const unique = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "es"))
+      return NextResponse.json(unique)
     }
 
     // ── channels list (retailers) — from mv_sos_dimensions ─
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.mv_sos_dimensions WHERE 1=1`
-      if (category) { p.push(category); sql += ` AND categoria = $${p.length}` }
+      if (category) { sql += categorySqlCondition("categoria", p, category, country) }
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -649,7 +757,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `fecha = $1::date`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (category) { w += categorySqlCondition("categoria", p, category, country) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const pageClause = pageFilter === "p1" ? "AND appearances_p1 > 0" : ""
       let sellerCond = ""
@@ -722,7 +830,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let wSos = `DATE(s.fecha) = $1::date`
       if (country)  { p.push(country);  wSos += ` AND s.pais = $${p.length}` }
-      if (category) { p.push(category); wSos += ` AND s.categoria = $${p.length}` }
+      if (category) { wSos += categorySqlCondition("s.categoria", p, category, country) }
 
       const channelValue = channel ? channel.toUpperCase() : ""
       const channelsSQL = channelValue.includes("AMAZON")
@@ -846,7 +954,7 @@ export async function GET(req: Request) {
       if (country) { p.push(country); w += ` AND s.pais = $${p.length}` }
       else { w += ` AND s.pais = 'MX'` }
       if (channel)  { p.push(channel);  w += ` AND s.retail = $${p.length}` }
-      if (category) { p.push(category); w += ` AND s.categoria = $${p.length}` }
+      if (category) { w += categorySqlCondition("s.categoria", p, category, country) }
       if (seller) {
         p.push(seller)
         w += ` AND ${FABRICANTE_UNIFIED} = $${p.length}`
@@ -962,7 +1070,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND titulo IS NOT NULL AND precio_venta IS NOT NULL`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (category) { w += categorySqlCondition("categoria", p, category, country) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       w += marcaFilter(p)
       const showFilter = show === "newsan" ? `ps.abbott_present = TRUE`
@@ -1036,7 +1144,7 @@ export async function GET(req: Request) {
       let w = `DATE(fecha) = $1::date AND ranking IS NOT NULL AND id IS NOT NULL AND precio_venta IS NOT NULL`
       w += ` AND (retail ILIKE '%MERCADO LIBRE%' OR retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (category) { w += categorySqlCondition("categoria", p, category, country) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const showFilter = show === "wins"  ? `(${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')})`
                        : show === "loses" ? `s.abbott_price IS NOT NULL AND NOT (${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')})`
@@ -1132,7 +1240,7 @@ export async function GET(req: Request) {
       let countrySql  = ""
       const buyboxRetailSql = `AND (s.retail ILIKE '%MERCADO LIBRE%' OR s.retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  channelSql  = `AND s.retail = $${p.length}` }
-      if (category) { p.push(category); categorySql = `AND s.categoria = $${p.length}` }
+      if (category) { categorySql = categorySqlCondition("s.categoria", p, category, country).trim() }
       if (country)  { p.push(country);  countrySql  = `AND s.pais = $${p.length}` }
       let mfBuybox = ""
       if (segmento || mercado) {
@@ -1239,7 +1347,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL AND id IS NOT NULL`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+      if (category) { w += categorySqlCondition("categoria", p, category, country) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       w += marcaFilter(p)
       const showFilter = show === "newsan" ? "AND abbott_price IS NOT NULL"
@@ -1394,7 +1502,7 @@ export async function GET(req: Request) {
         const p: unknown[] = [dateParam]
         let w = `fecha = $1::date`
         if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-        if (category) { p.push(category); w += ` AND categoria = $${p.length}` }
+        if (category) { w += categorySqlCondition("categoria", p, category, country) }
         if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
         const mfCond = marcaFilter(p)
         let sellerCond = ""
@@ -1423,7 +1531,7 @@ export async function GET(req: Request) {
       const p2: unknown[] = [dateParam]
       let w2 = `fecha::date = $1::date AND id IS NOT NULL`
       if (channel)  { p2.push(channel);  w2 += ` AND retail = $${p2.length}` }
-      if (category) { p2.push(category); w2 += ` AND categoria = $${p2.length}` }
+      if (category) { w2 += categorySqlCondition("categoria", p2, category, country) }
       if (country)  { p2.push(country);  w2 += ` AND pais = $${p2.length}` }
       let sellerCond2 = ""
       if (seller) {
