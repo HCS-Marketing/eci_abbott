@@ -89,6 +89,12 @@ function categorySourceSql(alias?: string): string {
   return `COALESCE(NULLIF(TRIM(${p}subcategoria), ''), NULLIF(TRIM(${p}categoria), ''))`
 }
 
+function categorySourceSqlByCountry(countryCode: string, alias?: string): string {
+  const p = alias ? `${alias}.` : ""
+  if (countryCode === "MX") return `${p}categoria`
+  return categorySourceSql(alias)
+}
+
 const CO_CATEGORY_TARGET_BY_NORM = new Map<string, string>(
   Object.entries(CATEGORY_REMAP).map(([source, target]) => [normalizeCategoryLabel(source), target])
 )
@@ -237,7 +243,7 @@ export async function GET(req: Request) {
     // ── categories list — from mv_sos_dimensions ──────────
     if (action === "categories") {
       const p: unknown[] = []
-      const src = categorySourceSql()
+      const src = categorySourceSqlByCountry(country)
       let sql = `SELECT DISTINCT ${src} AS n FROM eci.sos WHERE ${src} IS NOT NULL`
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
@@ -258,7 +264,7 @@ export async function GET(req: Request) {
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.sos WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
-      if (category) { sql += categorySqlCondition(categorySourceSql(), p, category) }
+      if (category) { sql += categorySqlCondition(categorySourceSqlByCountry(country), p, category) }
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       if (startDate || endDate) {
         p.push(startD, endD)
