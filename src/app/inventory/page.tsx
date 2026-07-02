@@ -50,6 +50,8 @@ export default function InventoryPage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   // Segmentos

@@ -61,6 +61,8 @@ export default function AssortmentPage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   // Segmentos

@@ -71,6 +71,8 @@ export default function PriceIndexPage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   // Segmentos

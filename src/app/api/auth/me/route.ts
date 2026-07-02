@@ -4,8 +4,15 @@ import { createHmac } from "crypto"
 
 export const dynamic = "force-dynamic"
 
-// Users locked to Mexico only (slots 2–6)
-const MX_SLOTS = [2, 3, 4, 5, 6]
+// Slot-based country lock. Add new restricted users by slot number.
+const COUNTRY_LOCK_BY_SLOT: Record<number, string[]> = {
+  2: ["MX"],
+  3: ["MX"],
+  4: ["MX"],
+  5: ["MX"],
+  6: ["MX"],
+  7: ["CO"],
+}
 
 export async function GET() {
   const cookieStore = await cookies()
@@ -36,12 +43,16 @@ export async function GET() {
   // Extract username (everything before the timestamp)
   const username = parts.slice(0, -1).join(".")
 
-  // Determine country lock by matching against env vars
-  const mxUsers = MX_SLOTS
-    .map(i => process.env[`USER_APP${i}`])
-    .filter(Boolean) as string[]
-
-  const countryLock: string[] | null = mxUsers.includes(username) ? ["MX"] : null
+  // Determine country lock by matching username against configured slot(s)
+  let countryLock: string[] | null = null
+  for (const [slotRaw, lock] of Object.entries(COUNTRY_LOCK_BY_SLOT)) {
+    const slot = Number(slotRaw)
+    const slotUser = process.env[`USER_APP${slot}`]
+    if (slotUser && slotUser === username) {
+      countryLock = lock
+      break
+    }
+  }
 
   return NextResponse.json({ authenticated: true, username, countryLock })
 }

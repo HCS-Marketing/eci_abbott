@@ -51,6 +51,11 @@ export default function CatalogContentPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    setCategory("")
+    setAvailableCategories([])
+  }, [country])
+
+  useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)

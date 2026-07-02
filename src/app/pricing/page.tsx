@@ -76,6 +76,8 @@ export default function PricingPage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   // Segmentos

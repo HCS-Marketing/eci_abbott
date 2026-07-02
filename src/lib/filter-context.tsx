@@ -49,11 +49,10 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
         const allCountries = (data as string[]).filter(Boolean)
         if (allCountries.length === 0) return
 
-        // Apply lock: if the user has a country restriction, filter the list
-        const list = countryLock
-          ? allCountries.filter(c => countryLock.includes(c))
+        // Apply lock strictly: locked users must only see their allowed country.
+        const effectiveList = countryLock && countryLock.length > 0
+          ? countryLock
           : allCountries
-        const effectiveList = list.length > 0 ? list : allCountries
 
         setCountries(effectiveList)
         setCountryState(prev => {

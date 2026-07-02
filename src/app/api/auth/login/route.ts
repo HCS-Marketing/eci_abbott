@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Check all user slots (USER_APP1 … USER_APP6)
-  const slots = Array.from({ length: 6 }, (_, i) => ({
+  // Check all user slots (USER_APP1 … USER_APP7)
+  const slots = Array.from({ length: 7 }, (_, i) => ({
     user: process.env[`USER_APP${i + 1}`],
     pass: process.env[`PASS_APP${i + 1}`],
   }))

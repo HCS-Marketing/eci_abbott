@@ -88,6 +88,8 @@ export default function BestsellersPage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   // Segmentos

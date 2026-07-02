@@ -192,6 +192,8 @@ export default function RankingScorePage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   useEffect(() => {

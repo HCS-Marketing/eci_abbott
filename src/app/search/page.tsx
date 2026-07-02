@@ -293,6 +293,8 @@ export default function ShareOfShelfPage() {
       setMercado("")
       setSegmento("")
     }
+    setCategory("")
+    setAvailableCategories([])
   }, [country])
 
   // ── Cargar rango de fechas disponible ─────────────────────
