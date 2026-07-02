@@ -37,7 +37,7 @@ const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABB
 // Abbott fabricante identifiers
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
 
-const CO_CATEGORY_REMAP: Record<string, string> = {
+const CATEGORY_REMAP: Record<string, string> = {
   "ALIMENTACION DEL BEBE": "Formulas infantiles",
   "Alimentación del Bebé": "Formulas infantiles",
   "Alimentación y Lactancia": "Nutricion Infantil",
@@ -85,12 +85,12 @@ function normalizeCategoryLabel(value: string): string {
 }
 
 const CO_CATEGORY_TARGET_BY_NORM = new Map<string, string>(
-  Object.entries(CO_CATEGORY_REMAP).map(([source, target]) => [normalizeCategoryLabel(source), target])
+  Object.entries(CATEGORY_REMAP).map(([source, target]) => [normalizeCategoryLabel(source), target])
 )
 
 const CO_CATEGORY_SOURCES_BY_TARGET_NORM = (() => {
   const map = new Map<string, Set<string>>()
-  for (const [source, target] of Object.entries(CO_CATEGORY_REMAP)) {
+  for (const [source, target] of Object.entries(CATEGORY_REMAP)) {
     const targetNorm = normalizeCategoryLabel(target)
     if (!map.has(targetNorm)) map.set(targetNorm, new Set<string>())
     map.get(targetNorm)!.add(source)
@@ -98,19 +98,14 @@ const CO_CATEGORY_SOURCES_BY_TARGET_NORM = (() => {
   return map
 })()
 
-function remapCategoryForCountry(rawCategory: string | null | undefined, countryCode: string): string {
+function remapCategory(rawCategory: string | null | undefined): string {
   if (!rawCategory) return ""
-  if (countryCode !== "CO") return rawCategory
   const mapped = CO_CATEGORY_TARGET_BY_NORM.get(normalizeCategoryLabel(rawCategory))
   return mapped || rawCategory
 }
 
-function categorySqlCondition(columnSql: string, params: unknown[], selectedCategory: string, countryCode: string): string {
+function categorySqlCondition(columnSql: string, params: unknown[], selectedCategory: string): string {
   if (!selectedCategory) return ""
-  if (countryCode !== "CO") {
-    params.push(selectedCategory)
-    return ` AND ${columnSql} = $${params.length}`
-  }
 
   const selectedNorm = normalizeCategoryLabel(selectedCategory)
   const candidates = new Set<string>([selectedCategory])
@@ -204,7 +199,7 @@ export async function GET(req: Request) {
         w += ` AND retail = $${params.length}`
       }
       if (opts.category !== false && category) {
-        w += categorySqlCondition("categoria", params, category, country)
+        w += categorySqlCondition("categoria", params, category)
       }
       if (opts.country !== false && country) {
         params.push(country)
@@ -228,7 +223,7 @@ export async function GET(req: Request) {
       let sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE fabricante IS NOT NULL`
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       if (channel)  { p.push(channel);  sql += ` AND retail = $${p.length}` }
-      if (category) { sql += categorySqlCondition("categoria", p, category, country) }
+      if (category) { sql += categorySqlCondition("categoria", p, category) }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
@@ -243,7 +238,7 @@ export async function GET(req: Request) {
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       const values = rows
-        .map(r => remapCategoryForCountry(r.n, country))
+        .map(r => remapCategory(r.n))
         .filter(Boolean)
       const unique = Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(unique)
@@ -253,7 +248,7 @@ export async function GET(req: Request) {
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.mv_sos_dimensions WHERE 1=1`
-      if (category) { sql += categorySqlCondition("categoria", p, category, country) }
+      if (category) { sql += categorySqlCondition("categoria", p, category) }
       if (country)  { p.push(country);  sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -760,7 +755,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `fecha = $1::date`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { w += categorySqlCondition("categoria", p, category, country) }
+      if (category) { w += categorySqlCondition("categoria", p, category) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const pageClause = pageFilter === "p1" ? "AND appearances_p1 > 0" : ""
       let sellerCond = ""
@@ -833,7 +828,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let wSos = `DATE(s.fecha) = $1::date`
       if (country)  { p.push(country);  wSos += ` AND s.pais = $${p.length}` }
-      if (category) { wSos += categorySqlCondition("s.categoria", p, category, country) }
+      if (category) { wSos += categorySqlCondition("s.categoria", p, category) }
 
       const channelValue = channel ? channel.toUpperCase() : ""
       const channelsSQL = channelValue.includes("AMAZON")
@@ -957,7 +952,7 @@ export async function GET(req: Request) {
       if (country) { p.push(country); w += ` AND s.pais = $${p.length}` }
       else { w += ` AND s.pais = 'MX'` }
       if (channel)  { p.push(channel);  w += ` AND s.retail = $${p.length}` }
-      if (category) { w += categorySqlCondition("s.categoria", p, category, country) }
+      if (category) { w += categorySqlCondition("s.categoria", p, category) }
       if (seller) {
         p.push(seller)
         w += ` AND ${FABRICANTE_UNIFIED} = $${p.length}`
@@ -1073,7 +1068,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND titulo IS NOT NULL AND precio_venta IS NOT NULL`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { w += categorySqlCondition("categoria", p, category, country) }
+      if (category) { w += categorySqlCondition("categoria", p, category) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       w += marcaFilter(p)
       const showFilter = show === "newsan" ? `ps.abbott_present = TRUE`
@@ -1147,7 +1142,7 @@ export async function GET(req: Request) {
       let w = `DATE(fecha) = $1::date AND ranking IS NOT NULL AND id IS NOT NULL AND precio_venta IS NOT NULL`
       w += ` AND (retail ILIKE '%MERCADO LIBRE%' OR retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { w += categorySqlCondition("categoria", p, category, country) }
+      if (category) { w += categorySqlCondition("categoria", p, category) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const showFilter = show === "wins"  ? `(${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')})`
                        : show === "loses" ? `s.abbott_price IS NOT NULL AND NOT (${ABBOTT_LIKE.replace('fabricante', 'w.winner_fabricante')})`
@@ -1243,7 +1238,7 @@ export async function GET(req: Request) {
       let countrySql  = ""
       const buyboxRetailSql = `AND (s.retail ILIKE '%MERCADO LIBRE%' OR s.retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  channelSql  = `AND s.retail = $${p.length}` }
-      if (category) { categorySql = categorySqlCondition("s.categoria", p, category, country).trim() }
+      if (category) { categorySql = categorySqlCondition("s.categoria", p, category).trim() }
       if (country)  { p.push(country);  countrySql  = `AND s.pais = $${p.length}` }
       let mfBuybox = ""
       if (segmento || mercado) {
@@ -1350,7 +1345,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL AND id IS NOT NULL`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { w += categorySqlCondition("categoria", p, category, country) }
+      if (category) { w += categorySqlCondition("categoria", p, category) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       w += marcaFilter(p)
       const showFilter = show === "newsan" ? "AND abbott_price IS NOT NULL"
@@ -1505,7 +1500,7 @@ export async function GET(req: Request) {
         const p: unknown[] = [dateParam]
         let w = `fecha = $1::date`
         if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-        if (category) { w += categorySqlCondition("categoria", p, category, country) }
+        if (category) { w += categorySqlCondition("categoria", p, category) }
         if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
         const mfCond = marcaFilter(p)
         let sellerCond = ""
@@ -1534,7 +1529,7 @@ export async function GET(req: Request) {
       const p2: unknown[] = [dateParam]
       let w2 = `fecha::date = $1::date AND id IS NOT NULL`
       if (channel)  { p2.push(channel);  w2 += ` AND retail = $${p2.length}` }
-      if (category) { w2 += categorySqlCondition("categoria", p2, category, country) }
+      if (category) { w2 += categorySqlCondition("categoria", p2, category) }
       if (country)  { p2.push(country);  w2 += ` AND pais = $${p2.length}` }
       let sellerCond2 = ""
       if (seller) {
