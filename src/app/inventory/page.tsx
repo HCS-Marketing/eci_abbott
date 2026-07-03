@@ -93,14 +93,17 @@ export default function InventoryPage() {
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
             .filter(r => !date || r.fecha === date)
-            .map(r => ({
-              id: `${r.retail}|||${r.titulo}`,
-              estado: r.disponibilidad || "NO DISPONIBLE",
-              producto: r.titulo || "",
-              canal: r.retail || "",
-              ultimo_visto: r.fecha || null,
-              stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
-            }))
+            .map(r => {
+              const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
+              return {
+                id: `${r.retail}|||${r.titulo}`,
+                estado: r.disponibilidad || "NO DISPONIBLE",
+                producto: r.titulo || "",
+                canal: r.retail || "",
+                ultimo_visto: r.fecha || null,
+                stock_status: status,
+              }
+            })
           setData(local)
           return
         }
@@ -116,14 +119,17 @@ export default function InventoryPage() {
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
           .filter(r => !date || r.fecha === date)
-          .map(r => ({
-            id: `${r.retail}|||${r.titulo}`,
-            estado: r.disponibilidad || "NO DISPONIBLE",
-            producto: r.titulo || "",
-            canal: r.retail || "",
-            ultimo_visto: r.fecha || null,
-            stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
-          }))
+          .map(r => {
+            const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
+            return {
+              id: `${r.retail}|||${r.titulo}`,
+              estado: r.disponibilidad || "NO DISPONIBLE",
+              producto: r.titulo || "",
+              canal: r.retail || "",
+              ultimo_visto: r.fecha || null,
+              stock_status: status,
+            }
+          })
         setData(local)
       })
       .finally(() => setLoading(false))
