@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { loadMxProviderRows, maxMxProviderDate, minMxProviderDate, toProviderSkuid } from "@/lib/mx-provider-data"
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,7 @@ export async function GET(req: Request) {
   const seller   = searchParams.get("seller") || ""
   const sellersParam = searchParams.get("sellers")?.split(",").filter(Boolean) || []
   const country  = searchParams.get("country") || ""
+  const source   = searchParams.get("source") || ""
   const segmento = searchParams.get("segmento") || ""
   const mercado  = searchParams.get("mercado") || ""
   const pageMode = (searchParams.get("page") || "p1") === "p1" ? "p1" : "total"
@@ -79,6 +81,164 @@ export async function GET(req: Request) {
   const rankPageFilter = pageMode === "p1" ? " AND sum_ranking_p1 > 0" : ""
 
   try {
+    if (source === "provider" && country === "MX") {
+      const rows = loadMxProviderRows()
+      const normalizeChannel = (value: string): string => {
+        const raw = String(value || "").toUpperCase()
+        if (!raw) return ""
+        if (raw === "ML" || raw.includes("MERCADO")) return "MERCADO LIBRE"
+        if (raw.includes("AMAZON")) return "AMAZON"
+        return raw
+      }
+
+      const channelNorm = normalizeChannel(channel)
+      const rowsByChannel = channelNorm ? rows.filter(r => r.retail === channelNorm) : rows
+
+      if (action === "dates") {
+        const min = minMxProviderDate(rowsByChannel)
+        const max = maxMxProviderDate(rowsByChannel)
+        return NextResponse.json({ min, max })
+      }
+
+      if (action === "channels") {
+        const endDateParam = searchParams.get("endDate") || ""
+        const filtered = endDateParam ? rows.filter(r => r.fecha <= endDateParam) : rows
+        const channels = Array.from(new Set(filtered.map(r => r.retail))).sort((a, b) => a.localeCompare(b, "es"))
+        return NextResponse.json(channels)
+      }
+
+      if (action === "categories") {
+        return NextResponse.json([])
+      }
+
+      if (action === "fabricantes_inv") {
+        const sellers = Array.from(new Set(rowsByChannel.map(r => r.seller))).sort((a, b) => a.localeCompare(b, "es"))
+        return NextResponse.json(sellers)
+      }
+
+      const maxDate = maxMxProviderDate(rowsByChannel)
+      const dateParam = searchParams.get("date") || searchParams.get("endDate") || maxDate
+
+      if (action === "inventory") {
+        const show = searchParams.get("show") || "all"
+        const grouped = new Map<string, typeof rowsByChannel>()
+
+        for (const r of rowsByChannel) {
+          if (r.fecha > dateParam) continue
+          const key = `${r.retail}|||${r.titulo}`
+          const list = grouped.get(key) || []
+          list.push(r)
+          grouped.set(key, list)
+        }
+
+        const out = Array.from(grouped.entries()).map(([key, list]) => {
+          list.sort((a, b) => (a.fecha === b.fecha ? (a.posicion ?? 9999) - (b.posicion ?? 9999) : b.fecha.localeCompare(a.fecha)))
+          const current = list[0]
+          const lastAvailable = list.find(x => x.disponible)
+          return {
+            id: key,
+            estado: current?.disponibilidad || "NO DISPONIBLE",
+            producto: current?.titulo || "",
+            canal: current?.retail || "",
+            ultimo_visto: lastAvailable?.fecha || null,
+            plataforma: current?.retail || "",
+            stock_status: current?.disponible ? "in_stock" : "break",
+          }
+        })
+
+        const shown = out.filter(r => {
+          if (show === "in_stock") return r.stock_status === "in_stock"
+          if (show === "break") return r.stock_status === "break"
+          return true
+        })
+
+        shown.sort((a, b) => {
+          if (a.estado !== b.estado) return a.estado.localeCompare(b.estado)
+          if (a.canal !== b.canal) return a.canal.localeCompare(b.canal)
+          return a.producto.localeCompare(b.producto, "es")
+        })
+
+        return NextResponse.json(shown)
+      }
+
+      if (action === "buybox_lost") {
+        const todays = rowsByChannel.filter(r => r.fecha === dateParam)
+        const byKey = new Map<string, typeof todays[number]>()
+        for (const r of todays) {
+          const key = `${r.retail}|||${r.titulo}`
+          const prev = byKey.get(key)
+          if (!prev || (r.posicion ?? 9999) < (prev.posicion ?? 9999)) byKey.set(key, r)
+        }
+
+        const out = Array.from(byKey.values())
+          .sort((a, b) => {
+            if (a.retail !== b.retail) return a.retail.localeCompare(b.retail)
+            return (a.posicion ?? 9999) - (b.posicion ?? 9999)
+          })
+          .map((r, idx) => ({
+            id: `${r.retail}|||${r.titulo}|||${idx}`,
+            producto: r.titulo,
+            plataforma: r.retail,
+            estado_hoy: r.disponibilidad,
+            winner_seller: r.seller || "SIN INFORMACION",
+          }))
+
+        return NextResponse.json(out)
+      }
+
+      if (action === "catalog_content") {
+        const sortBy = (searchParams.get("sortBy") || "score").toLowerCase()
+        const sortDir = (searchParams.get("sortDir") || "desc").toLowerCase() === "asc" ? "asc" : "desc"
+        const limit = Math.min(5000, Number.parseInt(searchParams.get("limit") || "500", 10))
+        const sellerNorm = seller.trim().toUpperCase()
+
+        const base = rowsByChannel.filter(r => r.fecha === dateParam).filter(r => {
+          if (!sellerNorm) return true
+          const fab = r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller.trim().toUpperCase()
+          return fab === sellerNorm || r.seller.trim().toUpperCase() === sellerNorm
+        })
+
+        const dedup = new Map<string, typeof base[number]>()
+        for (const r of base) {
+          const key = `${r.retail}|||${r.titulo}`
+          const prev = dedup.get(key)
+          if (!prev || (r.posicion ?? 9999) < (prev.posicion ?? 9999)) dedup.set(key, r)
+        }
+
+        const parsed = Array.from(dedup.values()).map((r, idx) => ({
+          titulo: r.titulo,
+          skuid: toProviderSkuid(r, idx),
+          plataforma: r.retail,
+          fabricante: r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller,
+          valoracion: r.valoracion,
+          ventas: r.ventas,
+        }))
+
+        const maxVentas = parsed.reduce((m, r) => Math.max(m, r.ventas), 0)
+        const scored = parsed.map(r => {
+          const salesNorm = maxVentas > 0 ? r.ventas / maxVentas : 0
+          const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
+          const score = ((salesNorm * 0.65) + (ratingNorm * 0.35)) * 100
+          return { ...r, score: Math.round(score * 100) / 100 }
+        })
+
+        const rankByScore = [...scored]
+          .sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+          .map((r, i) => ({ ...r, rank: i + 1 }))
+
+        const sorted = [...rankByScore].sort((a, b) => {
+          let cmp = 0
+          if (sortBy === "valoracion") cmp = a.valoracion - b.valoracion
+          else if (sortBy === "ventas") cmp = a.ventas - b.ventas
+          else if (sortBy === "titulo") cmp = a.titulo.localeCompare(b.titulo)
+          else cmp = a.score - b.score
+          return sortDir === "asc" ? cmp : -cmp
+        })
+
+        return NextResponse.json(sorted.slice(0, limit))
+      }
+    }
+
     // ── date range (from mv_sos_dimensions — 83 rows) ────
     if (action === "dates") {
       if (channel) {

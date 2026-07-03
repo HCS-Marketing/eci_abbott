@@ -3,26 +3,17 @@ import { useState, useEffect, useCallback } from "react"
 import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
-import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
-import { Search, Trophy, Truck, ExternalLink, AlertTriangle, Download, FileText } from "lucide-react"
+import { Search, AlertTriangle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
 // ─── TYPES ────────────────────────────────────────────────────
-interface BuyboxRow {
-  id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-  winner_seller: string; winner_price: number; winner_precio_original: number
-  winner_descuento: number; winner_envio: string; winner_url: string; winner_ranking: number
-  total_sellers: number; newsan_price: number | null; newsan_ranking: number | null
-  newsan_envio: string | null; newsan_cuotas: number | null
-  newsan_present: boolean; newsan_wins: boolean
-}
-
 interface BuyboxLostRow {
-  id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-  winner_seller: string | null; winner_price: number; winner_envio: string | null
-  winner_url: string | null; newsan_price: number | null; newsan_wins: boolean; latest_date: string
-  ean: string | null; sku: string | null; meli_id: string | null; asin: string | null
+  id: string
+  producto: string
+  plataforma: string
+  estado_hoy: string
+  winner_seller: string
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────
@@ -32,7 +23,6 @@ export default function BuyboxPage() {
   const isMexico = country === "MX"
 
   const [channel,  setChannel]  = useState("")
-  const [category, setCategory] = useState("")
   const [segmento, setSegmento] = useState("")
   const [mercado,  setMercado]  = useState("")
   const [topN,     setTopN]     = useState(100)
@@ -41,7 +31,6 @@ export default function BuyboxPage() {
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
-  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
 
@@ -53,8 +42,6 @@ export default function BuyboxPage() {
       setMercado("")
       setSegmento("")
     }
-    setCategory("")
-    setAvailableCategories([])
   }, [country])
 
   // Segmentos
@@ -86,7 +73,7 @@ export default function BuyboxPage() {
   // Cascading channels
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (category) p.set("category", category)
+    p.set("source", "provider")
     if (country)  p.set("country",  country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
@@ -94,26 +81,14 @@ export default function BuyboxPage() {
       setAvailableChannels(allowed)
       if (channel && !allowed.includes(channel)) setChannel("")
     })
-  }, [category, country])
-
-  // Cascading categories
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "categories" })
-    if (channel) p.set("channel", channel)
-    if (country) p.set("country", country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableCategories(d)
-      if (category && !d.includes(category)) setCategory("")
-    })
-  }, [channel, country])
+  }, [country])
 
   // Fetch buybox Newsan 7d
   const fetchData = useCallback(() => {
     setLoading(true)
     const p = new URLSearchParams({ action: "buybox_lost", limit: String(topN) })
+    p.set("source", "provider")
     if (channel)  p.set("channel",  channel)
-    if (category) p.set("category", category)
     if (country)  p.set("country",  country)
     if (segmento) p.set("segmento", segmento)
     if (mercado)  p.set("mercado",  mercado)
@@ -121,7 +96,7 @@ export default function BuyboxPage() {
       .then(r => r.json())
       .then(d => setLostData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, topN, segmento, mercado])
+  }, [channel, country, topN, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -151,19 +126,16 @@ export default function BuyboxPage() {
     !search ||
     e.producto?.toLowerCase().includes(search.toLowerCase()) ||
     e.winner_seller?.toLowerCase().includes(search.toLowerCase()) ||
-    e.marca?.toLowerCase().includes(search.toLowerCase())
+    e.plataforma?.toLowerCase().includes(search.toLowerCase())
   )
-  const lostWins    = lostFiltered.filter(e => e.newsan_wins).length
-  const lostLoses   = lostFiltered.filter(e => !e.newsan_wins && e.newsan_price != null).length
-  const lostWinRate = (lostWins + lostLoses) > 0
-    ? Math.round(lostWins / (lostWins + lostLoses) * 100)
-    : 0
+  const availableCount = lostFiltered.filter(e => e.estado_hoy === "DISPONIBLE").length
+  const unavailableCount = lostFiltered.length - availableCount
 
   return (
     <div className="space-y-4">
       <PageHeader
         title="BuyBox"
-        subtitle="Quién gana la posición destacada por producto — Abbott vs competencia"
+        subtitle="BuyBox Winner por producto desde archivos base_prov"
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -202,16 +174,6 @@ export default function BuyboxPage() {
           </select>
         </div>
 
-        {/* Categoría */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todas las categorías</option>
-            {availableCategories.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
         {/* Límite */}
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
           {[50, 100, 200].map(n => (
@@ -242,25 +204,25 @@ export default function BuyboxPage() {
             label: "Productos universo",
             value: String(lostFiltered.length),
             color: "#7c3aed",
-            sub: "con presencia Abbott en últimos 7 días",
+            sub: "productos del ultimo corte",
           },
           {
-            label: "Ganó BuyBox hoy",
-            value: String(lostWins),
+            label: "Disponibles hoy",
+            value: String(availableCount),
             color: "#16a34a",
-            sub: "Abbott es el winner en último día",
+            sub: "estado DISPONIBLE",
           },
           {
-            label: "Perdió BuyBox hoy",
-            value: String(lostLoses),
+            label: "No disponibles hoy",
+            value: String(unavailableCount),
             color: "#dc2626",
-            sub: "presente pero no gana en último día",
+            sub: "estado NO DISPONIBLE",
           },
           {
-            label: "Win Rate (7d)",
-            value: `${lostWinRate}%`,
-            color: lostWinRate >= 50 ? "#16a34a" : lostWinRate >= 30 ? "#d97706" : "#dc2626",
-            sub: "sobre productos donde Abbott compite",
+            label: "Canales activos",
+            value: String(new Set(lostFiltered.map(r => r.plataforma)).size),
+            color: "#2563eb",
+            sub: "Amazon / Mercado Libre",
           },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
@@ -276,7 +238,7 @@ export default function BuyboxPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {category || "Todas las categorías"} · {channel || "Todos los retails"}
+              {channel || "Todos los retails"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
               {lostFiltered.length} productos
@@ -284,7 +246,7 @@ export default function BuyboxPage() {
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
-            <input type="text" placeholder="Buscar producto, seller, marca..." value={search}
+            <input type="text" placeholder="Buscar producto, canal o winner..." value={search}
               onChange={e => setSearch(e.target.value)}
               className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-52" />
           </div>
@@ -295,90 +257,37 @@ export default function BuyboxPage() {
             <div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : lostFiltered.length === 0 ? (
-          <div className="text-center py-14 text-gray-400 text-sm">Sin productos de Abbott en los últimos 7 días</div>
+          <div className="text-center py-14 text-gray-400 text-sm">Sin productos para los filtros seleccionados</div>
         ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
                     <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Retail</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">SKU</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">MLA</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Estado hoy</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado hoy (disponibilidad)</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Winner</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">P. Abbott hoy</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Diferencia</th>
-                    <th className="px-3 py-2.5"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {lostFiltered.map((e, i) => {
-                    const diff = e.newsan_price != null && !e.newsan_wins
-                      ? Math.round(((e.newsan_price - e.winner_price) / e.winner_price) * 100)
-                      : null
                     return (
-                      <tr key={`${e.id}-${i}`}
-                        className={clsx("transition-colors",
-                          e.newsan_wins ? "bg-green-50/40 hover:bg-green-50" : "hover:bg-gray-50"
-                        )}>
+                      <tr key={`${e.id}-${i}`} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 max-w-xs">
                           <div className="font-medium text-gray-800 leading-snug mb-0.5">{e.producto}</div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {e.marca        && <span className="text-[10px] text-gray-400">{e.marca}</span>}
-                            {e.subcategoria && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">· {e.subcategoria}</span>}
-                          </div>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.ean || "—"}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.sku || "—"}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.meli_id || "—"}</td>
-                        <td className="px-3 py-3 text-center whitespace-nowrap">
-                          {e.newsan_wins ? (
-                            <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">✓ Ganó BuyBox</span>
-                          ) : e.newsan_price != null ? (
-                            <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">✗ Perdió BuyBox</span>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {e.estado_hoy === "DISPONIBLE" ? (
+                            <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">DISPONIBLE</span>
                           ) : (
-                            <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">sin Abbott</span>
+                            <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">NO DISPONIBLE</span>
                           )}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
-                          {e.newsan_wins ? (
-                            <span className="flex items-center gap-1 text-[10px] font-black text-green-700"><Trophy size={9} className="text-amber-500" />Abbott</span>
-                          ) : (
-                            <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller?.trim() || "sin informacion"}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          <div className="font-black text-gray-900 font-mono">{fmtPrice(e.winner_price, country)}</div>
-                        </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          {e.newsan_wins ? (
-                            <span className="text-gray-300 text-[10px]">= winner</span>
-                          ) : e.newsan_price != null ? (
-                            <div className="font-mono text-gray-700">{fmtPrice(e.newsan_price, country)}</div>
-                          ) : (
-                            <span className="text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-right whitespace-nowrap">
-                          {diff != null && diff !== 0 ? (
-                            <span className={clsx("text-[10px] font-bold", diff > 0 ? "text-red-500" : "text-green-600")}>
-                              {diff > 0 ? "+" : ""}{diff}%
-                            </span>
-                          ) : <span className="text-gray-300">—</span>}
-                        </td>
-                        <td className="px-3 py-3 text-center">
-                          {e.winner_url && (
-                            <a href={e.winner_url} target="_blank" rel="noopener noreferrer"
-                              className="flex items-center justify-center gap-1 text-[9px] text-gray-400 hover:text-purple-600 transition-colors bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">
-                              <ExternalLink size={8} />ver
-                            </a>
-                          )}
+                          <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller?.trim() || "sin informacion"}</span>
                         </td>
                       </tr>
                     )

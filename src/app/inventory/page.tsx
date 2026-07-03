@@ -4,17 +4,18 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
-import { fmtPrice } from "@/lib/format"
 import clsx from "clsx"
-import { Search, AlertTriangle, CheckCircle2, Download, FileText } from "lucide-react"
+import { Search, AlertTriangle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
 // ─── TYPES ──────────────────────────────────────────────────────────
 interface InventoryRow {
-  id: string; producto: string; marca: string; subcategoria: string; plataforma: string
-  seller: string; precio_venta: number | null; last_seen: string | null
-  days_seen: number; stock_status: "in_stock" | "break"; is_newsan: boolean
-  ean: string | null; sku: string | null; meli_id: string | null; asin: string | null
+  id: string
+  estado: "DISPONIBLE" | "NO DISPONIBLE" | string
+  producto: string
+  canal: string
+  ultimo_visto: string | null
+  stock_status: "in_stock" | "break"
 }
 
 type ShowMode = "all" | "in_stock" | "break"
@@ -26,7 +27,6 @@ export default function InventoryPage() {
   const isMexico = country === "MX"
 
   const [channel,    setChannel]    = useState("")
-  const [category,   setCategory]   = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
   const [date,      setDate]      = useState("")
@@ -39,7 +39,6 @@ export default function InventoryPage() {
   const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
   const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
-  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -50,8 +49,6 @@ export default function InventoryPage() {
       setMercado("")
       setSegmento("")
     }
-    setCategory("")
-    setAvailableCategories([])
   }, [country])
 
   // Segmentos
@@ -83,6 +80,7 @@ export default function InventoryPage() {
   // Fecha canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
+    p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     fetch(`/api/sos?${p}`)
@@ -96,7 +94,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (category) p.set("category", category)
+    p.set("source", "provider")
     if (country)  p.set("country",  country)
     if (date) p.set("endDate", date)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
@@ -105,19 +103,7 @@ export default function InventoryPage() {
       setAvailableChannels(allowed)
       if (channel && !allowed.includes(channel)) setChannel("")
     })
-  }, [category, country, date])
-
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "categories" })
-    if (channel) p.set("channel", channel)
-    if (country) p.set("country", country)
-    if (date) p.set("endDate", date)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableCategories(d)
-      if (category && !d.includes(category)) setCategory("")
-    })
-  }, [channel, country, date])
+  }, [country, date])
 
   const fetchData = useCallback(() => {
     if (!date) return
@@ -126,8 +112,8 @@ export default function InventoryPage() {
       action: "inventory", date, show,
       limit: String(limit),
     })
+    p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
-    if (category)   p.set("category",   category)
     if (country)    p.set("country",    country)
     if (segmento)   p.set("segmento",   segmento)
     if (mercado)    p.set("mercado",    mercado)
@@ -135,7 +121,7 @@ export default function InventoryPage() {
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, date, show, limit, segmento, mercado])
+  }, [channel, country, date, show, limit, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -165,9 +151,8 @@ export default function InventoryPage() {
     data.filter(e =>
       !search ||
       e.producto?.toLowerCase().includes(search.toLowerCase()) ||
-      e.seller?.toLowerCase().includes(search.toLowerCase()) ||
-      e.marca?.toLowerCase().includes(search.toLowerCase()) ||
-      e.subcategoria?.toLowerCase().includes(search.toLowerCase())
+      e.canal?.toLowerCase().includes(search.toLowerCase()) ||
+      e.estado?.toLowerCase().includes(search.toLowerCase())
     )
   , [data, search])
 
@@ -181,12 +166,12 @@ export default function InventoryPage() {
     <div className="space-y-4">
       <PageHeader
         title="Inventario"
-        subtitle="Stock diario de productos de products_master en Amazon y Mercado Libre"
+        subtitle="Estado diario de productos desde archivos base_prov (Amazon y Mercado Libre)"
       />
 
       {/* ── Nota lógica ──────────────────────────────── */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
-        <span className="font-semibold">Lógica de stock diario:</span> se toma cada producto de <span className="font-semibold">products_master</span> y se busca en <span className="font-semibold">eci.sos</span> del día. Cruce por canal: <span className="font-semibold">Amazon: skuid = asin</span> y <span className="font-semibold">Mercado Libre: meli_id = meli_id</span>. Si aparece es <span className="font-semibold">En stock</span>; si no aparece es <span className="font-semibold text-red-600">Rotura</span>.
+        <span className="font-semibold">Lógica de inventario:</span> se unifican todos los Excel diarios de <span className="font-semibold">base_prov/amz</span> y <span className="font-semibold">base_prov/ml</span>. El estado se toma de la columna <span className="font-semibold">disponibilidad</span> y <span className="font-semibold">Ultimo visto</span> muestra la fecha más reciente con disponibilidad.
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -233,16 +218,6 @@ export default function InventoryPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos los retails</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* Categoría */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todas las categorías</option>
-            {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
 
@@ -307,13 +282,13 @@ export default function InventoryPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {category || "Todas las categorías"} · {channel || "Todos los retails"}
+              {channel || "Todos los retails"}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">{filtered.length} registros del día</div>
+            <div className="text-xs text-gray-500 mt-0.5">{filtered.length} productos</div>
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
-            <input type="text" placeholder="Buscar producto, seller, marca..." value={search}
+            <input type="text" placeholder="Buscar producto, canal o estado..." value={search}
               onChange={e => setSearch(e.target.value)}
               className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-52" />
           </div>
@@ -332,19 +307,13 @@ export default function InventoryPage() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Retail</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">SKU</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">MLA</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Fabricante</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Precio</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Último visto</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Activo</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Ultimo visto</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((e, i) => (
-                  <tr key={`${e.id}-${e.seller}-${i}`}
+                  <tr key={`${e.id}-${i}`}
                     className={clsx("transition-colors",
                       e.stock_status === "break"
                         ? "bg-red-50/60 hover:bg-red-50"
@@ -353,13 +322,13 @@ export default function InventoryPage() {
 
                     {/* Estado */}
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      {e.stock_status === "break" ? (
+                      {e.estado === "NO DISPONIBLE" ? (
                         <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit text-red-700 bg-red-100 border-red-200">
-                          <AlertTriangle size={9} />Rotura
+                          <AlertTriangle size={9} />No disponible
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full w-fit">
-                          <CheckCircle2 size={9} />En stock
+                          Disponible
                         </span>
                       )}
                     </td>
@@ -367,49 +336,19 @@ export default function InventoryPage() {
                     {/* Producto */}
                     <td className="px-3 py-2.5 max-w-xs">
                       <div className="font-medium text-gray-800 leading-snug truncate">{e.producto}</div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {e.marca       && <span className="text-[10px] text-gray-400">{e.marca}</span>}
-                        {e.subcategoria && <span className="text-[10px] text-gray-400">· {e.subcategoria}</span>}
-                      </div>
                     </td>
 
-                    {/* Retail */}
+                    {/* Canal */}
                     <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
+                      <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.canal}</span>
                     </td>
 
-                    {/* EAN / SKU / MLA */}
-                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.ean || "—"}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.sku || "—"}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.meli_id || "—"}</td>
-
-                    {/* Seller */}
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="text-[10px] text-gray-600">{e.seller || "—"}</span>
-                    </td>
-
-                    {/* Precio */}
-                    <td className="px-3 py-2.5 text-right font-mono">
-                      {e.precio_venta != null
-                        ? <span className="text-gray-800 font-semibold">{fmtPrice(e.precio_venta, country)}</span>
-                        : <span className="text-gray-300 text-[10px]">—</span>}
-                    </td>
-
-                    {/* Último visto — solo para roturas */}
+                    {/* Ultimo visto */}
                     <td className="px-3 py-2.5 text-center">
-                      {e.stock_status === "break" ? (
-                        <span className="text-[10px] font-medium text-red-500">No visto hoy</span>
+                      {e.ultimo_visto ? (
+                        <span className="text-[10px] font-medium text-gray-700">{e.ultimo_visto}</span>
                       ) : (
-                        <span className="text-[10px] font-medium text-green-600">Hoy</span>
-                      )}
-                    </td>
-
-                    {/* Estado diario */}
-                    <td className="px-3 py-2.5 text-center">
-                      {e.stock_status === "in_stock" ? (
-                        <span className="text-[10px] font-medium text-green-600">Disponible</span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-red-500">Rotura</span>
+                        <span className="text-[10px] font-medium text-gray-400">—</span>
                       )}
                     </td>
                   </tr>

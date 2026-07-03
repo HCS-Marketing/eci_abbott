@@ -29,7 +29,6 @@ export default function CatalogContentPage() {
   const isMexico = country === "MX"
 
   const [channel, setChannel] = useState("")
-  const [category, setCategory] = useState("")
   const [segmento, setSegmento] = useState("")
   const [mercado, setMercado] = useState("")
   const [date, setDate] = useState("")
@@ -45,15 +44,9 @@ export default function CatalogContentPage() {
   const [availableSegmentos, setAvailableSegmentos] = useState<string[]>([])
   const [availableMercados, setAvailableMercados] = useState<string[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
-  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [availableSellers, setAvailableSellers] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    setCategory("")
-    setAvailableCategories([])
-  }, [country])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "segmentos" })
@@ -81,6 +74,7 @@ export default function CatalogContentPage() {
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
+    p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
@@ -93,7 +87,7 @@ export default function CatalogContentPage() {
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
-    if (category) p.set("category", category)
+    p.set("source", "provider")
     if (country) p.set("country", country)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
@@ -101,31 +95,20 @@ export default function CatalogContentPage() {
       setAvailableChannels(allowed)
       if (channel && !allowed.includes(channel)) setChannel("")
     })
-  }, [category, country, channel])
-
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "categories" })
-    if (channel) p.set("channel", channel)
-    if (country) p.set("country", country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableCategories(d)
-      if (category && !d.includes(category)) setCategory("")
-    })
-  }, [channel, country, category])
+  }, [country, channel])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "fabricantes_inv" })
+    p.set("source", "provider")
     if (country) p.set("country", country)
     if (channel) p.set("channel", channel)
-    if (category) p.set("category", category)
     fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableSellers(d)
       if (d.includes("ABBOTT") && !selectedSeller) setSelectedSeller("ABBOTT")
       else if (selectedSeller && !d.includes(selectedSeller)) setSelectedSeller(d.includes("ABBOTT") ? "ABBOTT" : "")
     })
-  }, [country, channel, category, selectedSeller])
+  }, [country, channel, selectedSeller])
 
   const fetchData = useCallback(() => {
     if (!date) return
@@ -137,8 +120,8 @@ export default function CatalogContentPage() {
       sortDir,
       limit: String(topN),
     })
+    p.set("source", "provider")
     if (channel) p.set("channel", channel)
-    if (category) p.set("category", category)
     if (country) p.set("country", country)
     if (selectedSeller) p.set("seller", selectedSeller)
     if (segmento) p.set("segmento", segmento)
@@ -147,7 +130,7 @@ export default function CatalogContentPage() {
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [date, sortBy, sortDir, topN, channel, category, country, selectedSeller, segmento, mercado])
+  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -221,15 +204,6 @@ export default function CatalogContentPage() {
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Amazon + Mercado Libre</option>
             {availableChannels.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoría</span>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todas las categorías</option>
-            {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
 
@@ -314,7 +288,7 @@ export default function CatalogContentPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {category || "Todas las categorías"} · {channel || "Amazon + Mercado Libre"}
+              {channel || "Amazon + Mercado Libre"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">{filtered.length} productos</div>
           </div>
