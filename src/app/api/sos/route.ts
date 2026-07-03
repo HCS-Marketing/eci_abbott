@@ -81,7 +81,15 @@ export async function GET(req: Request) {
   const rankPageFilter = pageMode === "p1" ? " AND sum_ranking_p1 > 0" : ""
 
   try {
-    if (source === "provider" && country === "MX") {
+    const countryNorm = country.trim().toUpperCase()
+    const useProviderSourceForMx = source === "provider" && (
+      !countryNorm ||
+      countryNorm === "MX" ||
+      countryNorm === "MEXICO" ||
+      countryNorm === "MÉXICO"
+    )
+
+    if (useProviderSourceForMx) {
       const rows = loadMxProviderRows()
       const normalizeChannel = (value: string): string => {
         const raw = String(value || "").toUpperCase()
