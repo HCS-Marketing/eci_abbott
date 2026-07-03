@@ -6,7 +6,6 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
-import clsx from "clsx"
 import { Search, Download, FileText, Star, ShoppingCart } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
@@ -21,10 +20,6 @@ interface CatalogRow {
   rank: number
 }
 
-type ViewMode = "list" | "planogram"
-type SortBy = "score" | "valoracion" | "ventas" | "titulo"
-type SortDir = "asc" | "desc"
-
 export default function CatalogContentPage() {
   useMarket()
   const { country } = useGlobalFilters()
@@ -34,14 +29,8 @@ export default function CatalogContentPage() {
   const [minDate, setMinDate] = useState("")
   const [maxDate, setMaxDate] = useState("")
   const [search, setSearch] = useState("")
-  const [viewMode, setViewMode] = useState<ViewMode>("list")
-  const [sortBy, setSortBy] = useState<SortBy>("score")
-  const [sortDir, setSortDir] = useState<SortDir>("desc")
-  const [topN, setTopN] = useState(200)
-  const [selectedSeller, setSelectedSeller] = useState("ABBOTT")
 
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
-  const [availableSellers, setAvailableSellers] = useState<string[]>([])
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
@@ -89,19 +78,6 @@ export default function CatalogContentPage() {
   }, [country, channel])
 
   useEffect(() => {
-    const p = new URLSearchParams({ action: "sellers" })
-    p.set("source", "provider")
-    if (country) p.set("country", country)
-    if (channel) p.set("channel", channel)
-    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableSellers(d)
-      if (d.includes("ABBOTT") && !selectedSeller) setSelectedSeller("ABBOTT")
-      else if (selectedSeller && !d.includes(selectedSeller)) setSelectedSeller(d.includes("ABBOTT") ? "ABBOTT" : "")
-    })
-  }, [country, channel, selectedSeller])
-
-  useEffect(() => {
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
     if (date) p.set("date", date)
@@ -128,15 +104,12 @@ export default function CatalogContentPage() {
     const p = new URLSearchParams({
       action: "content",
       date: effectiveDate,
-      sortBy,
-      sortDir,
-      limit: String(topN),
+      limit: "5000",
     })
     p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
-    if (selectedSeller) p.set("seller", selectedSeller)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then(async d => {
@@ -145,7 +118,7 @@ export default function CatalogContentPage() {
           return
         }
 
-        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(topN) })
+        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (channel) pRaw.set("channel", channel)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
@@ -196,7 +169,7 @@ export default function CatalogContentPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller, fallbackDateBounds.max, selectedProducts])
+  }, [date, channel, country, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -238,62 +211,12 @@ export default function CatalogContentPage() {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Fabricante</span>
-          <select value={selectedSeller} onChange={e => setSelectedSeller(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white min-w-[140px]">
-            <option value="">Todos</option>
-            {availableSellers.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-
         <ProductMultiSelect
           options={availableProducts}
           selected={selectedProducts}
           onChange={setSelectedProducts}
           label="Producto"
         />
-
-        <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Orden</span>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as SortBy)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="score">Puntaje</option>
-            <option value="valoracion">Valoración</option>
-            <option value="ventas">Ventas</option>
-            <option value="titulo">Título</option>
-          </select>
-          <select value={sortDir} onChange={e => setSortDir(e.target.value as SortDir)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="desc">Descendente</option>
-            <option value="asc">Ascendente</option>
-          </select>
-        </div>
-
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {[100, 200, 500].map(n => (
-            <button key={n} onClick={() => setTopN(n)}
-              className={clsx("px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                topN === n ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-              Top {n}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          <button onClick={() => setViewMode("list")}
-            className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-              viewMode === "list" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-            Lista
-          </button>
-          <button onClick={() => setViewMode("planogram")}
-            className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-              viewMode === "planogram" ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-            Planograma
-          </button>
-        </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => downloadCSV(filtered as unknown as Record<string, unknown>[], "catalog-content")}
@@ -344,7 +267,7 @@ export default function CatalogContentPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-14 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
-        ) : viewMode === "list" ? (
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -380,37 +303,6 @@ export default function CatalogContentPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        ) : (
-          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filtered.map((e, i) => (
-              <div key={`${e.skuid}-${e.plataforma}-${i}`} className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">#{e.rank}</span>
-                  <span className="text-[10px] text-gray-500">{e.plataforma}</span>
-                </div>
-                <div className="text-xs font-semibold text-gray-800 line-clamp-2 min-h-[32px]">{e.titulo}</div>
-                <div className="text-[10px] font-mono text-gray-500 mt-1 truncate">{e.skuid}</div>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-lg bg-amber-50 border border-amber-100 p-2 text-center">
-                    <div className="text-[9px] text-amber-700">Rating</div>
-                    <div className="text-xs font-bold text-amber-800">{e.valoracion.toFixed(1)}</div>
-                  </div>
-                  <div className="rounded-lg bg-green-50 border border-green-100 p-2 text-center">
-                    <div className="text-[9px] text-green-700">Ventas</div>
-                    <div className="text-xs font-bold text-green-800">{e.ventas.toLocaleString("es-MX")}</div>
-                  </div>
-                  <div className="rounded-lg bg-purple-50 border border-purple-100 p-2 text-center">
-                    <div className="text-[9px] text-purple-700">Score</div>
-                    <div className="text-xs font-bold text-purple-800">{e.score.toFixed(1)}</div>
-                  </div>
-                </div>
-                <div className="mt-2 text-[10px] text-gray-500 flex items-center gap-1">
-                  <ShoppingCart size={11} />
-                  Prioridad sugerida para planograma
-                </div>
-              </div>
-            ))}
           </div>
         )}
       </div>

@@ -20,8 +20,6 @@ interface InventoryRow {
   stock_status: "in_stock" | "break"
 }
 
-type ShowMode = "all" | "in_stock" | "break"
-
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function InventoryPage() {
   useMarket()
@@ -31,8 +29,6 @@ export default function InventoryPage() {
   const [date,      setDate]      = useState("")
   const [minDate,    setMinDate]    = useState("")
   const [maxDate,    setMaxDate]    = useState("")
-  const [show,       setShow]       = useState<ShowMode>("all")
-  const [limit,      setLimit]      = useState(200)
   const [search,     setSearch]     = useState("")
 
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -111,8 +107,8 @@ export default function InventoryPage() {
     setLoading(true)
     const effectiveDate = date || fallbackDateBounds.max
     const p = new URLSearchParams({
-      action: "inventory", date: effectiveDate, show,
-      limit: String(limit),
+      action: "inventory", date: effectiveDate,
+      limit: "5000",
     })
     p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
@@ -126,7 +122,7 @@ export default function InventoryPage() {
           return
         }
 
-        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(limit) })
+        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (channel) pRaw.set("channel", channel)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
@@ -177,7 +173,7 @@ export default function InventoryPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, date, show, limit, fallbackDateBounds.max, selectedProducts])
+  }, [channel, country, date, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -239,34 +235,6 @@ export default function InventoryPage() {
           onChange={setSelectedProducts}
           label="Producto"
         />
-
-        <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        {/* Show toggle */}
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {([
-            ["all",      "Todos"],
-            ["in_stock", "En stock"],
-            ["break",    "Roturas"],
-          ] as const).map(([val, label]) => (
-            <button key={val} onClick={() => setShow(val)}
-              className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-                show === val ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Límite */}
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {[100, 200, 500].map(n => (
-            <button key={n} onClick={() => setLimit(n)}
-              className={clsx("px-2.5 py-1 rounded-md text-xs font-medium transition-all",
-                limit === n ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-              {n}
-            </button>
-          ))}
-        </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => downloadCSV(data as unknown as Record<string, unknown>[], "inventory")}

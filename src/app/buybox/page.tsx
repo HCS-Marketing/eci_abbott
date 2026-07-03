@@ -6,7 +6,6 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
-import clsx from "clsx"
 import { Search, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
@@ -28,7 +27,6 @@ export default function BuyboxPage() {
   const [date,     setDate]     = useState("")
   const [minDate,  setMinDate]  = useState("")
   const [maxDate,  setMaxDate]  = useState("")
-  const [topN,     setTopN]     = useState(100)
   const [search,   setSearch]   = useState("")
 
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
@@ -106,7 +104,7 @@ export default function BuyboxPage() {
   const fetchData = useCallback(() => {
     setLoading(true)
     const effectiveDate = date || fallbackDateBounds.max
-    const p = new URLSearchParams({ action: "buybox", limit: String(topN) })
+    const p = new URLSearchParams({ action: "buybox", limit: "5000" })
     p.set("source", "provider")
     p.set("date", effectiveDate)
     if (channel)  p.set("channel",  channel)
@@ -120,7 +118,7 @@ export default function BuyboxPage() {
           return
         }
 
-        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(topN) })
+        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (channel) pRaw.set("channel", channel)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
@@ -162,7 +160,7 @@ export default function BuyboxPage() {
         setLostData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, topN, date, fallbackDateBounds.max, selectedProducts])
+  }, [channel, country, date, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -208,17 +206,6 @@ export default function BuyboxPage() {
           onChange={setSelectedProducts}
           label="Producto"
         />
-
-        {/* Límite */}
-        <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
-          {[50, 100, 200].map(n => (
-            <button key={n} onClick={() => setTopN(n)}
-              className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
-                topN === n ? "bg-purple-600 text-white" : "text-gray-500 hover:text-gray-700")}>
-              {n}
-            </button>
-          ))}
-        </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => downloadCSV(lostData as unknown as Record<string, unknown>[], "buybox")}
