@@ -159,8 +159,8 @@ export default function InventoryPage() {
   // KPIs
   const inStock      = filtered.filter(e => e.stock_status === "in_stock").length
   const breaks       = filtered.filter(e => e.stock_status === "break").length
-  const amazonStock  = filtered.filter(e => e.stock_status === "in_stock" && /amazon/i.test(e.plataforma)).length
-  const meliStock    = filtered.filter(e => e.stock_status === "in_stock" && /mercado.?libre/i.test(e.plataforma)).length
+  const amazonStock  = filtered.filter(e => e.stock_status === "in_stock" && /amazon/i.test(e.canal)).length
+  const meliStock    = filtered.filter(e => e.stock_status === "in_stock" && /mercado.?libre/i.test(e.canal)).length
 
   return (
     <div className="space-y-4">
