@@ -45,7 +45,7 @@ export default function InventoryPage() {
     p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
         if (!d.max) return
@@ -59,7 +59,7 @@ export default function InventoryPage() {
     p.set("source", "provider")
     if (country)  p.set("country",  country)
     if (date) p.set("endDate", date)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       const allowed = d.filter(c => /amazon|mercado.?libre/i.test(c))
       setAvailableChannels(allowed)
@@ -77,7 +77,7 @@ export default function InventoryPage() {
     p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
     if (country)    p.set("country",    country)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))

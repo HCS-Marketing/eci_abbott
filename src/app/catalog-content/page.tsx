@@ -49,7 +49,7 @@ export default function CatalogContentPage() {
     p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
+    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
       if (!d?.max) return
       setMinDate(d.min)
       setMaxDate(d.max)
@@ -61,7 +61,7 @@ export default function CatalogContentPage() {
     const p = new URLSearchParams({ action: "channels" })
     p.set("source", "provider")
     if (country) p.set("country", country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       const allowed = d.filter(c => /amazon|mercado.?libre|^ml$/i.test(c))
       setAvailableChannels(allowed)
@@ -70,11 +70,11 @@ export default function CatalogContentPage() {
   }, [country, channel])
 
   useEffect(() => {
-    const p = new URLSearchParams({ action: "fabricantes_inv" })
+    const p = new URLSearchParams({ action: "sellers" })
     p.set("source", "provider")
     if (country) p.set("country", country)
     if (channel) p.set("channel", channel)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       setAvailableSellers(d)
       if (d.includes("ABBOTT") && !selectedSeller) setSelectedSeller("ABBOTT")
@@ -86,7 +86,7 @@ export default function CatalogContentPage() {
     if (!date) return
     setLoading(true)
     const p = new URLSearchParams({
-      action: "catalog_content",
+      action: "content",
       date,
       sortBy,
       sortDir,
@@ -96,7 +96,7 @@ export default function CatalogContentPage() {
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (selectedSeller) p.set("seller", selectedSeller)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))

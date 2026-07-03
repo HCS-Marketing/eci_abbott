@@ -41,7 +41,7 @@ export default function BuyboxPage() {
     p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
+    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
       if (!d?.max) return
       setMinDate(d.min)
       setMaxDate(d.max)
@@ -54,7 +54,7 @@ export default function BuyboxPage() {
     const p = new URLSearchParams({ action: "channels" })
     p.set("source", "provider")
     if (country)  p.set("country",  country)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
+    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
       if (!Array.isArray(d)) return
       const allowed = d.filter(c => /amazon|mercado.?libre/i.test(c))
       setAvailableChannels(allowed)
@@ -66,12 +66,12 @@ export default function BuyboxPage() {
   const fetchData = useCallback(() => {
     if (!date) return
     setLoading(true)
-    const p = new URLSearchParams({ action: "buybox_lost", limit: String(topN) })
+    const p = new URLSearchParams({ action: "buybox", limit: String(topN) })
     p.set("source", "provider")
     p.set("date", date)
     if (channel)  p.set("channel",  channel)
     if (country)  p.set("country",  country)
-    fetch(`/api/sos?${p}`)
+    fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then(d => setLostData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
