@@ -22,8 +22,6 @@ interface BuyboxLostRow {
 export default function BuyboxPage() {
   useMarket()
   const { country } = useGlobalFilters()
-  const countryNorm = (country || "").trim().toUpperCase()
-  const isMexico = !countryNorm || countryNorm === "MX" || countryNorm === "MEXICO" || countryNorm === "MÉXICO"
 
   const [channel,  setChannel]  = useState("")
   const [date,     setDate]     = useState("")
@@ -35,6 +33,22 @@ export default function BuyboxPage() {
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
+
+  const fallbackDateBounds = useState(() => {
+    const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
+    return {
+      min: dates[0] || "",
+      max: dates[dates.length - 1] || "",
+    }
+  })[0]
+
+  useEffect(() => {
+    if (!date && fallbackDateBounds.max) {
+      setMinDate(fallbackDateBounds.min)
+      setMaxDate(fallbackDateBounds.max)
+      setDate(fallbackDateBounds.max)
+    }
+  }, [date, fallbackDateBounds])
 
   // Countries handled by global filter context
 
@@ -66,11 +80,11 @@ export default function BuyboxPage() {
 
   // Fetch buybox Newsan 7d
   const fetchData = useCallback(() => {
-    if (!date) return
     setLoading(true)
+    const effectiveDate = date || fallbackDateBounds.max
     const p = new URLSearchParams({ action: "buybox", limit: String(topN) })
     p.set("source", "provider")
-    p.set("date", date)
+    p.set("date", effectiveDate)
     if (channel)  p.set("channel",  channel)
     if (country)  p.set("country",  country)
     fetch(`/api/provider?${p}`)
@@ -81,12 +95,12 @@ export default function BuyboxPage() {
           return
         }
 
-        const pRaw = new URLSearchParams({ action: "raw", date, limit: String(topN) })
+        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(topN) })
         if (channel) pRaw.set("channel", channel)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
-            .filter(r => !date || r.fecha === date)
+            .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .map((r, i) => ({
               id: `${r.retail}|||${r.titulo}|||${i}`,
               producto: r.titulo || "",
@@ -107,7 +121,7 @@ export default function BuyboxPage() {
       })
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
-          .filter(r => !date || r.fecha === date)
+          .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .map((r, i) => ({
             id: `${r.retail}|||${r.titulo}|||${i}`,
             producto: r.titulo || "",
@@ -118,31 +132,9 @@ export default function BuyboxPage() {
         setLostData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, topN, date])
+  }, [channel, country, topN, date, fallbackDateBounds.max])
 
   useEffect(() => { fetchData() }, [fetchData])
-
-  if (!isMexico) {
-    return (
-      <div className="space-y-4">
-        <PageHeader
-          title="BuyBox"
-          subtitle="Disponible solo para México"
-        />
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
-            <div>
-              <div className="text-sm font-semibold text-amber-800">Módulo en construcción para este país</div>
-              <p className="text-xs text-amber-700 mt-1">
-                Este módulo solo está habilitado para México. Para otros países se encuentra en construcción.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   const lostFiltered = lostData.filter(e =>
     !search ||

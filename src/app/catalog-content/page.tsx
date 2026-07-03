@@ -27,8 +27,6 @@ type SortDir = "asc" | "desc"
 export default function CatalogContentPage() {
   useMarket()
   const { country } = useGlobalFilters()
-  const countryNorm = (country || "").trim().toUpperCase()
-  const isMexico = !countryNorm || countryNorm === "MX" || countryNorm === "MEXICO" || countryNorm === "MÉXICO"
 
   const [channel, setChannel] = useState("")
   const [date, setDate] = useState("")
@@ -45,6 +43,22 @@ export default function CatalogContentPage() {
   const [availableSellers, setAvailableSellers] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
   const [loading, setLoading] = useState(false)
+
+  const fallbackDateBounds = useMemo(() => {
+    const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
+    return {
+      min: dates[0] || "",
+      max: dates[dates.length - 1] || "",
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!date && fallbackDateBounds.max) {
+      setMinDate(fallbackDateBounds.min)
+      setMaxDate(fallbackDateBounds.max)
+      setDate(fallbackDateBounds.max)
+    }
+  }, [date, fallbackDateBounds])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
@@ -85,11 +99,11 @@ export default function CatalogContentPage() {
   }, [country, channel, selectedSeller])
 
   const fetchData = useCallback(() => {
-    if (!date) return
     setLoading(true)
+    const effectiveDate = date || fallbackDateBounds.max
     const p = new URLSearchParams({
       action: "content",
-      date,
+      date: effectiveDate,
       sortBy,
       sortDir,
       limit: String(topN),
@@ -106,12 +120,12 @@ export default function CatalogContentPage() {
           return
         }
 
-        const pRaw = new URLSearchParams({ action: "raw", date, limit: String(topN) })
+        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(topN) })
         if (channel) pRaw.set("channel", channel)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
-            .filter(r => !date || r.fecha === date)
+            .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .map((r, i) => ({
               titulo: r.titulo || "",
               skuid: `${r.retail}-${i + 1}`,
@@ -138,7 +152,7 @@ export default function CatalogContentPage() {
       })
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
-          .filter(r => !date || r.fecha === date)
+          .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .map((r, i) => ({
             titulo: r.titulo || "",
             skuid: `${r.retail}-${i + 1}`,
@@ -152,7 +166,7 @@ export default function CatalogContentPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller])
+  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller, fallbackDateBounds.max])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -166,25 +180,6 @@ export default function CatalogContentPage() {
 
   const avgRating = filtered.length ? (filtered.reduce((s, e) => s + e.valoracion, 0) / filtered.length) : 0
   const totalSales = filtered.reduce((s, e) => s + e.ventas, 0)
-
-  if (!isMexico) {
-    return (
-      <div className="space-y-4">
-        <PageHeader title="Contenido de catalogo" subtitle="Disponible solo para México" />
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
-            <div>
-              <div className="text-sm font-semibold text-amber-800">Módulo en construcción para este país</div>
-              <p className="text-xs text-amber-700 mt-1">
-                Este módulo solo está habilitado para México. Para otros países se encuentra en construcción.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-4">

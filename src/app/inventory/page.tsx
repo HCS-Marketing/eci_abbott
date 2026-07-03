@@ -25,8 +25,6 @@ type ShowMode = "all" | "in_stock" | "break"
 export default function InventoryPage() {
   useMarket()
   const { country } = useGlobalFilters()
-  const countryNorm = (country || "").trim().toUpperCase()
-  const isMexico = !countryNorm || countryNorm === "MX" || countryNorm === "MEXICO" || countryNorm === "MÉXICO"
 
   const [channel,    setChannel]    = useState("")
   const [date,      setDate]      = useState("")
@@ -39,6 +37,22 @@ export default function InventoryPage() {
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
+
+  const fallbackDateBounds = useMemo(() => {
+    const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
+    return {
+      min: dates[0] || "",
+      max: dates[dates.length - 1] || "",
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!date && fallbackDateBounds.max) {
+      setMinDate(fallbackDateBounds.min)
+      setMaxDate(fallbackDateBounds.max)
+      setDate(fallbackDateBounds.max)
+    }
+  }, [date, fallbackDateBounds])
 
   // Countries handled by global filter context
   // Fecha canal-aware
@@ -70,10 +84,10 @@ export default function InventoryPage() {
   }, [country, date])
 
   const fetchData = useCallback(() => {
-    if (!date) return
     setLoading(true)
+    const effectiveDate = date || fallbackDateBounds.max
     const p = new URLSearchParams({
-      action: "inventory", date, show,
+      action: "inventory", date: effectiveDate, show,
       limit: String(limit),
     })
     p.set("source", "provider")
@@ -87,12 +101,12 @@ export default function InventoryPage() {
           return
         }
 
-        const pRaw = new URLSearchParams({ action: "raw", date, limit: String(limit) })
+        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(limit) })
         if (channel) pRaw.set("channel", channel)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
-            .filter(r => !date || r.fecha === date)
+            .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .map(r => {
               const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
               return {
@@ -118,7 +132,7 @@ export default function InventoryPage() {
       })
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
-          .filter(r => !date || r.fecha === date)
+          .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .map(r => {
             const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
             return {
@@ -133,31 +147,9 @@ export default function InventoryPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, date, show, limit])
+  }, [channel, country, date, show, limit, fallbackDateBounds.max])
 
   useEffect(() => { fetchData() }, [fetchData])
-
-  if (!isMexico) {
-    return (
-      <div className="space-y-4">
-        <PageHeader
-          title="Inventario"
-          subtitle="Disponible solo para México"
-        />
-        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
-            <div>
-              <div className="text-sm font-semibold text-amber-800">Módulo en construcción para este país</div>
-              <p className="text-xs text-amber-700 mt-1">
-                Este módulo solo está habilitado para México. Para otros países se encuentra en construcción.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   const filtered = useMemo(() =>
     data.filter(e =>
