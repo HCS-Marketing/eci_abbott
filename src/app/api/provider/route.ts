@@ -58,6 +58,17 @@ export async function GET(req: Request) {
       return NextResponse.json(sellers)
     }
 
+    if (action === "raw") {
+      const base = rowsByChannel
+        .filter(r => !effectiveDate || r.fecha === effectiveDate)
+        .sort((a, b) => {
+          if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha)
+          if (a.retail !== b.retail) return a.retail.localeCompare(b.retail)
+          return (a.posicion ?? 9999) - (b.posicion ?? 9999)
+        })
+      return NextResponse.json(base.slice(0, limit))
+    }
+
     if (action === "inventory") {
       const grouped = new Map<string, typeof rowsByChannel>()
 

@@ -79,7 +79,25 @@ export default function InventoryPage() {
     if (country)    p.set("country",    country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
-      .then(d => setData(Array.isArray(d) ? d : []))
+      .then(async d => {
+        if (Array.isArray(d) && d.length > 0) {
+          setData(d)
+          return
+        }
+
+        const pRaw = new URLSearchParams({ action: "raw", date, limit: String(limit) })
+        if (channel) pRaw.set("channel", channel)
+        const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
+        if (!Array.isArray(raw)) { setData([]); return }
+        setData(raw.map((r: { retail: string; titulo: string; fecha: string; disponibilidad: string }) => ({
+          id: `${r.retail}|||${r.titulo}`,
+          estado: r.disponibilidad || "NO DISPONIBLE",
+          producto: r.titulo || "",
+          canal: r.retail || "",
+          ultimo_visto: r.fecha || null,
+          stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
+        })))
+      })
       .finally(() => setLoading(false))
   }, [channel, country, date, show, limit])
 

@@ -73,7 +73,24 @@ export default function BuyboxPage() {
     if (country)  p.set("country",  country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
-      .then(d => setLostData(Array.isArray(d) ? d : []))
+      .then(async d => {
+        if (Array.isArray(d) && d.length > 0) {
+          setLostData(d)
+          return
+        }
+
+        const pRaw = new URLSearchParams({ action: "raw", date, limit: String(topN) })
+        if (channel) pRaw.set("channel", channel)
+        const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
+        if (!Array.isArray(raw)) { setLostData([]); return }
+        setLostData(raw.map((r: { retail: string; titulo: string; disponibilidad: string; seller: string }, i: number) => ({
+          id: `${r.retail}|||${r.titulo}|||${i}`,
+          producto: r.titulo || "",
+          plataforma: r.retail || "",
+          estado_hoy: r.disponibilidad || "NO DISPONIBLE",
+          winner_seller: r.seller || "SIN INFORMACION",
+        })))
+      })
       .finally(() => setLoading(false))
   }, [channel, country, topN, date])
 

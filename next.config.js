@@ -5,6 +5,8 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/sos": ["./base_prov/**/*.xlsx"],
     "/api/sos/route": ["./base_prov/**/*.xlsx"],
+    "/api/provider": ["./base_prov/**/*.xlsx"],
+    "/api/provider/route": ["./base_prov/**/*.xlsx"],
   },
   async redirects() {
     return [

@@ -98,7 +98,27 @@ export default function CatalogContentPage() {
     if (selectedSeller) p.set("seller", selectedSeller)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
-      .then(d => setData(Array.isArray(d) ? d : []))
+      .then(async d => {
+        if (Array.isArray(d) && d.length > 0) {
+          setData(d)
+          return
+        }
+
+        const pRaw = new URLSearchParams({ action: "raw", date, limit: String(topN) })
+        if (channel) pRaw.set("channel", channel)
+        const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
+        if (!Array.isArray(raw)) { setData([]); return }
+        setData(raw.map((r: { titulo: string; retail: string; seller: string; valoracion: number; ventas: number }, i: number) => ({
+          titulo: r.titulo || "",
+          skuid: `${r.retail}-${i + 1}`,
+          plataforma: r.retail || "",
+          fabricante: r.seller || "SIN INFORMACION",
+          valoracion: Number(r.valoracion || 0),
+          ventas: Number(r.ventas || 0),
+          score: Number(r.ventas || 0),
+          rank: i + 1,
+        })))
+      })
       .finally(() => setLoading(false))
   }, [date, sortBy, sortDir, topN, channel, country, selectedSeller])
 
