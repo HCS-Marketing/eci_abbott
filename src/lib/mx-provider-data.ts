@@ -1,6 +1,16 @@
 import fs from "node:fs"
 import path from "node:path"
-import XLSX from "xlsx"
+import * as XLSX from "xlsx"
+
+const XLSX_API: {
+  readFile: (path: string) => { SheetNames: string[]; Sheets: Record<string, unknown> }
+  utils: { sheet_to_json: <T>(sheet: unknown, opts?: Record<string, unknown>) => T[] }
+  SSF: { parse_date_code: (v: number) => { y: number; m: number; d: number } | null }
+} = ((XLSX as unknown as { default?: unknown }).default ?? XLSX) as unknown as {
+  readFile: (path: string) => { SheetNames: string[]; Sheets: Record<string, unknown> }
+  utils: { sheet_to_json: <T>(sheet: unknown, opts?: Record<string, unknown>) => T[] }
+  SSF: { parse_date_code: (v: number) => { y: number; m: number; d: number } | null }
+}
 
 export interface MxProviderRow {
   fecha: string
@@ -23,7 +33,7 @@ function normalizeDate(value: unknown): string | null {
   }
 
   if (typeof value === "number" && Number.isFinite(value)) {
-    const parsed = XLSX.SSF.parse_date_code(value)
+    const parsed = XLSX_API.SSF.parse_date_code(value)
     if (parsed) {
       const d = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d))
       return d.toISOString().slice(0, 10)
@@ -35,7 +45,7 @@ function normalizeDate(value: unknown): string | null {
 
   const asNum = Number(str)
   if (Number.isFinite(asNum) && String(asNum) === str) {
-    const parsed = XLSX.SSF.parse_date_code(asNum)
+    const parsed = XLSX_API.SSF.parse_date_code(asNum)
     if (parsed) {
       const d = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d))
       return d.toISOString().slice(0, 10)
@@ -104,12 +114,12 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 
   for (const fileName of fileNames) {
     const fullPath = path.join(dirPath, fileName)
-    const wb = XLSX.readFile(fullPath)
+    const wb = XLSX_API.readFile(fullPath)
     const sheetName = wb.SheetNames[0]
     if (!sheetName) continue
 
     const ws = wb.Sheets[sheetName]
-    const data = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" })
+    const data = XLSX_API.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" })
 
     for (const r of data) {
       const fecha = normalizeDate(r.fecha)
