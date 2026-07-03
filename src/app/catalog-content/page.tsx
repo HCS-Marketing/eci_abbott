@@ -20,6 +20,9 @@ interface CatalogRow {
   rank: number
 }
 
+type ContentSortBy = "ventas" | "valoracion" | "score"
+type ContentSortDir = "asc" | "desc"
+
 export default function CatalogContentPage() {
   useMarket()
   const { country } = useGlobalFilters()
@@ -37,6 +40,8 @@ export default function CatalogContentPage() {
   const [minDate, setMinDate] = useState("")
   const [maxDate, setMaxDate] = useState("")
   const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState<ContentSortBy>("score")
+  const [sortDir, setSortDir] = useState<ContentSortDir>("desc")
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
@@ -207,6 +212,33 @@ export default function CatalogContentPage() {
     )
   , [data, search, selectedProducts])
 
+  const sorted = useMemo(() => {
+    const rows = [...filtered]
+    rows.sort((a, b) => {
+      let cmp = 0
+      if (sortBy === "ventas") cmp = a.ventas - b.ventas
+      else if (sortBy === "valoracion") cmp = a.valoracion - b.valoracion
+      else cmp = a.score - b.score
+      if (cmp === 0) cmp = a.titulo.localeCompare(b.titulo, "es")
+      return sortDir === "asc" ? cmp : -cmp
+    })
+    return rows
+  }, [filtered, sortBy, sortDir])
+
+  function toggleSort(column: ContentSortBy) {
+    if (sortBy === column) {
+      setSortDir(prev => (prev === "asc" ? "desc" : "asc"))
+      return
+    }
+    setSortBy(column)
+    setSortDir("desc")
+  }
+
+  const sortMark = (column: ContentSortBy) => {
+    if (sortBy !== column) return ""
+    return sortDir === "asc" ? " ▲" : " ▼"
+  }
+
   const avgRating = filtered.length ? (filtered.reduce((s, e) => s + e.valoracion, 0) / filtered.length) : 0
   const totalSales = filtered.reduce((s, e) => s + e.ventas, 0)
 
@@ -276,7 +308,7 @@ export default function CatalogContentPage() {
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
               {channel || "Todos"}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">{filtered.length} productos</div>
+                <div className="text-xs text-gray-500 mt-0.5">{sorted.length} productos</div>
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
@@ -290,7 +322,7 @@ export default function CatalogContentPage() {
           <div className="flex items-center justify-center py-16">
             <div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="text-center py-14 text-gray-400 text-sm">Sin resultados para los filtros seleccionados</div>
         ) : (
           <div className="overflow-x-auto">
@@ -301,13 +333,25 @@ export default function CatalogContentPage() {
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Titulo</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Skuid</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Valoración</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Ventas</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Puntaje</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
+                    <button type="button" onClick={() => toggleSort("valoracion")} className="hover:text-gray-700">
+                      Valoración{sortMark("valoracion")}
+                    </button>
+                  </th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
+                    <button type="button" onClick={() => toggleSort("ventas")} className="hover:text-gray-700">
+                      Ventas{sortMark("ventas")}
+                    </button>
+                  </th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
+                    <button type="button" onClick={() => toggleSort("score")} className="hover:text-gray-700">
+                      Puntaje{sortMark("score")}
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.map((e, i) => (
+                {sorted.map((e, i) => (
                   <tr key={`${e.skuid}-${e.plataforma}-${i}`} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5">
                       <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">#{e.rank}</span>
