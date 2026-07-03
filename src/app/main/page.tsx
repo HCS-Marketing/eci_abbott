@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Search, ScanSearch, ListOrdered, Tag } from "lucide-react"
+import { Search, ScanSearch, ListOrdered, Tag, Boxes, Trophy, BookOpenText } from "lucide-react"
+import { useGlobalFilters } from "@/lib/filter-context"
 
 const MODULES = [
   {
@@ -34,8 +35,33 @@ const MODULES = [
   },
 ]
 
+const MX_MODULES = [
+  {
+    href: "/inventory",
+    label: "Inventario",
+    description: "Estado diario de disponibilidad de productos en Amazon y Mercado Libre",
+    icon: Boxes,
+    color: "#16a34a",
+  },
+  {
+    href: "/buybox",
+    label: "BuyBox",
+    description: "Winner por producto y estado de disponibilidad del día",
+    icon: Trophy,
+    color: "#ea580c",
+  },
+  {
+    href: "/catalog-content",
+    label: "Contenido",
+    description: "Ranking de contenido por ventas, valoración y score",
+    icon: BookOpenText,
+    color: "#0ea5e9",
+  },
+]
+
 export default function MainPage() {
-  const visibleModules = MODULES
+  const { country } = useGlobalFilters()
+  const visibleModules = country === "MX" ? [...MODULES, ...MX_MODULES] : MODULES
 
   return (
     <div className="max-w-5xl mx-auto">
