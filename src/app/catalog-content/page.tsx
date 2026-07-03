@@ -29,8 +29,6 @@ export default function CatalogContentPage() {
   const isMexico = country === "MX"
 
   const [channel, setChannel] = useState("")
-  const [segmento, setSegmento] = useState("")
-  const [mercado, setMercado] = useState("")
   const [date, setDate] = useState("")
   const [minDate, setMinDate] = useState("")
   const [maxDate, setMaxDate] = useState("")
@@ -41,36 +39,10 @@ export default function CatalogContentPage() {
   const [topN, setTopN] = useState(200)
   const [selectedSeller, setSelectedSeller] = useState("ABBOTT")
 
-  const [availableSegmentos, setAvailableSegmentos] = useState<string[]>([])
-  const [availableMercados, setAvailableMercados] = useState<string[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [availableSellers, setAvailableSellers] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "segmentos" })
-    if (channel) p.set("channel", channel)
-    if (country) p.set("country", country)
-    if (mercado) p.set("mercado", mercado)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableSegmentos(d)
-      if (segmento && !d.includes(segmento)) setSegmento("")
-    })
-  }, [channel, country, mercado, segmento])
-
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "mercados" })
-    if (channel) p.set("channel", channel)
-    if (country) p.set("country", country)
-    if (segmento) p.set("segmento", segmento)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableMercados(d)
-      if (mercado && !d.includes(mercado)) setMercado("")
-    })
-  }, [channel, country, segmento, mercado])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
@@ -124,13 +96,11 @@ export default function CatalogContentPage() {
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (selectedSeller) p.set("seller", selectedSeller)
-    if (segmento) p.set("segmento", segmento)
-    if (mercado) p.set("mercado", mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller, segmento, mercado])
+  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -179,24 +149,6 @@ export default function CatalogContentPage() {
         {maxDate && <span className="text-[10px] text-green-600 font-semibold">Última actualización BD: {maxDate}</span>}
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Mercado</span>
-          <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableMercados.map(m => <option key={m}>{m}</option>)}
-          </select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Segmento</span>
-          <select value={segmento} onChange={e => setSegmento(e.target.value)}
-            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
-            {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>

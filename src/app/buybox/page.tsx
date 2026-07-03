@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
+import DateInput from "@/components/ui/DateInput"
 import clsx from "clsx"
 import { Search, AlertTriangle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -23,52 +24,30 @@ export default function BuyboxPage() {
   const isMexico = country === "MX"
 
   const [channel,  setChannel]  = useState("")
-  const [segmento, setSegmento] = useState("")
-  const [mercado,  setMercado]  = useState("")
+  const [date,     setDate]     = useState("")
+  const [minDate,  setMinDate]  = useState("")
+  const [maxDate,  setMaxDate]  = useState("")
   const [topN,     setTopN]     = useState(100)
   const [search,   setSearch]   = useState("")
 
-  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
-  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
 
   // Countries handled by global filter context
 
-  // Mercado / Segmento solo aplican a MX
   useEffect(() => {
-    if (country !== "MX") {
-      setMercado("")
-      setSegmento("")
-    }
-  }, [country])
-
-  // Segmentos
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "segmentos" })
+    const p = new URLSearchParams({ action: "dates" })
+    p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
-    if (mercado) p.set("mercado", mercado)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableSegmentos(d)
-      if (segmento && !d.includes(segmento)) setSegmento("")
+    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
+      if (!d?.max) return
+      setMinDate(d.min)
+      setMaxDate(d.max)
+      setDate(prev => (!prev || prev > d.max || prev < d.min) ? d.max : prev)
     })
-  }, [channel, country, mercado])
-
-  // Mercados
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "mercados" })
-    if (channel)  p.set("channel",  channel)
-    if (country)  p.set("country", country)
-    if (segmento) p.set("segmento", segmento)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableMercados(d)
-      if (mercado && !d.includes(mercado)) setMercado("")
-    })
-  }, [channel, country, segmento])
+  }, [channel, country])
 
   // Cascading channels
   useEffect(() => {
@@ -85,18 +64,18 @@ export default function BuyboxPage() {
 
   // Fetch buybox Newsan 7d
   const fetchData = useCallback(() => {
+    if (!date) return
     setLoading(true)
     const p = new URLSearchParams({ action: "buybox_lost", limit: String(topN) })
     p.set("source", "provider")
+    p.set("date", date)
     if (channel)  p.set("channel",  channel)
     if (country)  p.set("country",  country)
-    if (segmento) p.set("segmento", segmento)
-    if (mercado)  p.set("mercado",  mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setLostData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, country, topN, segmento, mercado])
+  }, [channel, country, topN, date])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -140,29 +119,11 @@ export default function BuyboxPage() {
 
       {/* ── Filtros ───────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
-        {country === "MX" && (
-          <>
-            {/* Mercado */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Mercado</span>
-              <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
-                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-                <option value="">Todos</option>
-                {availableMercados.map(m => <option key={m}>{m}</option>)}
-              </select>
-            </div>
-
-            {/* Segmento */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Segmento</span>
-              <select value={segmento} onChange={e => setSegmento(e.target.value)}
-                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-                <option value="">Todos</option>
-                {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-          </>
-        )}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Fecha</span>
+          <DateInput value={date} min={minDate} max={maxDate} onChange={setDate} />
+        </div>
+        {maxDate && <span className="text-[10px] text-green-600 font-semibold">Última fecha Excel: {maxDate}</span>}
 
         {/* Retail */}
         <div className="flex items-center gap-2">

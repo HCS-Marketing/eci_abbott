@@ -27,8 +27,6 @@ export default function InventoryPage() {
   const isMexico = country === "MX"
 
   const [channel,    setChannel]    = useState("")
-  const [segmento,   setSegmento]   = useState("")
-  const [mercado,    setMercado]    = useState("")
   const [date,      setDate]      = useState("")
   const [minDate,    setMinDate]    = useState("")
   const [maxDate,    setMaxDate]    = useState("")
@@ -36,47 +34,11 @@ export default function InventoryPage() {
   const [limit,      setLimit]      = useState(200)
   const [search,     setSearch]     = useState("")
 
-  const [availableSegmentos,  setAvailableSegmentos]  = useState<string[]>([])
-  const [availableMercados,   setAvailableMercados]   = useState<string[]>([])
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
 
   // Countries handled by global filter context
-  // Mercado / Segmento solo aplican a MX
-  useEffect(() => {
-    if (country !== "MX") {
-      setMercado("")
-      setSegmento("")
-    }
-  }, [country])
-
-  // Segmentos
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "segmentos" })
-    if (channel) p.set("channel", channel)
-    if (country) p.set("country", country)
-    if (mercado) p.set("mercado", mercado)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableSegmentos(d)
-      if (segmento && !d.includes(segmento)) setSegmento("")
-    })
-  }, [channel, country, mercado])
-
-  // Mercados
-  useEffect(() => {
-    const p = new URLSearchParams({ action: "mercados" })
-    if (channel)  p.set("channel",  channel)
-    if (country)  p.set("country", country)
-    if (segmento) p.set("segmento", segmento)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableMercados(d)
-      if (mercado && !d.includes(mercado)) setMercado("")
-    })
-  }, [channel, country, segmento])
-
   // Fecha canal-aware
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
@@ -115,13 +77,11 @@ export default function InventoryPage() {
     p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
     if (country)    p.set("country",    country)
-    if (segmento)   p.set("segmento",   segmento)
-    if (mercado)    p.set("mercado",    mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, country, date, show, limit, segmento, mercado])
+  }, [channel, country, date, show, limit])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -186,30 +146,6 @@ export default function InventoryPage() {
         )}
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
-
-        {country === "MX" && (
-          <>
-            {/* Mercado */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Mercado</span>
-              <select value={mercado} onChange={e => { setMercado(e.target.value); if (!e.target.value) setSegmento("") }}
-                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-                <option value="">Todos</option>
-                {availableMercados.map(m => <option key={m}>{m}</option>)}
-              </select>
-            </div>
-
-            {/* Segmento */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Segmento</span>
-              <select value={segmento} onChange={e => setSegmento(e.target.value)}
-                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-                <option value="">Todos</option>
-                {availableSegmentos.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-          </>
-        )}
 
         {/* Retail */}
         <div className="flex items-center gap-2">
