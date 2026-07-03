@@ -25,13 +25,20 @@ export default function InventoryPage() {
   useMarket()
   const { country } = useGlobalFilters()
 
+  const normalizeChannel = (value: string) => {
+    const v = String(value || "").trim().toUpperCase()
+    if (!v) return ""
+    if (v === "ML" || v.includes("MERCADO")) return "MERCADO LIBRE"
+    if (v.includes("AMAZON")) return "AMAZON"
+    return v
+  }
+
   const [channel,    setChannel]    = useState("")
   const [date,      setDate]      = useState("")
   const [minDate,    setMinDate]    = useState("")
   const [maxDate,    setMaxDate]    = useState("")
   const [search,     setSearch]     = useState("")
 
-  const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
@@ -70,38 +77,27 @@ export default function InventoryPage() {
   }, [channel, country])
 
   useEffect(() => {
-    const p = new URLSearchParams({ action: "channels" })
-    p.set("source", "provider")
-    if (country)  p.set("country",  country)
-    if (date) p.set("endDate", date)
-    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      const allowed = d.filter(c => /amazon|mercado.?libre/i.test(c))
-      setAvailableChannels(allowed)
-      if (channel && !allowed.includes(channel)) setChannel("")
-    })
-  }, [country, date])
+    const effectiveDate = date || fallbackDateBounds.max
+    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+      .map(r => r.titulo)
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
 
-  useEffect(() => {
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
-    if (date) p.set("date", date)
+    if (effectiveDate) p.set("date", effectiveDate)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then((d: string[]) => {
-        if (!Array.isArray(d)) return
-        setAvailableProducts(d)
-        setSelectedProducts(prev => prev.filter(item => d.includes(item)))
+        const merged = Array.from(new Set([...(Array.isArray(d) ? d : []), ...local])).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableProducts(merged)
+        setSelectedProducts(prev => prev.filter(item => merged.includes(item)))
       })
       .catch(() => {
-        const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
-          .filter(r => (!date || r.fecha === date) && (!channel || r.retail === channel))
-          .map(r => r.titulo)
-          .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel])
+  }, [date, channel, fallbackDateBounds.max])
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -129,7 +125,7 @@ export default function InventoryPage() {
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
-            .filter(r => !channel || r.retail === channel)
+            .filter(r => !channel || normalizeChannel(r.retail) === channel)
             .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map(r => {
               const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
@@ -157,7 +153,7 @@ export default function InventoryPage() {
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
-          .filter(r => !channel || r.retail === channel)
+          .filter(r => !channel || normalizeChannel(r.retail) === channel)
           .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map(r => {
             const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
@@ -224,8 +220,9 @@ export default function InventoryPage() {
           <span className="text-xs text-gray-400">Retail</span>
           <select value={channel} onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos los retails</option>
-            {availableChannels.map(c => <option key={c}>{c}</option>)}
+            <option value="">Todos</option>
+            <option value="AMAZON">Amazon</option>
+            <option value="MERCADO LIBRE">Mercado Libre</option>
           </select>
         </div>
 
@@ -269,7 +266,7 @@ export default function InventoryPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {channel || "Todos los retails"}
+              {channel || "Todos"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">{filtered.length} productos</div>
           </div>

@@ -177,7 +177,7 @@ export async function GET(req: Request) {
       const scored = parsed.map(r => {
         const salesNorm = maxVentas > 0 ? r.ventas / maxVentas : 0
         const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
-        const score = ((salesNorm * 0.65) + (ratingNorm * 0.35)) * 100
+        const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
         return { ...r, score: Math.round(score * 100) / 100 }
       })
 

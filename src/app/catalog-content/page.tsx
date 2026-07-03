@@ -24,13 +24,20 @@ export default function CatalogContentPage() {
   useMarket()
   const { country } = useGlobalFilters()
 
+  const normalizeChannel = (value: string) => {
+    const v = String(value || "").trim().toUpperCase()
+    if (!v) return ""
+    if (v === "ML" || v.includes("MERCADO")) return "MERCADO LIBRE"
+    if (v.includes("AMAZON")) return "AMAZON"
+    return v
+  }
+
   const [channel, setChannel] = useState("")
   const [date, setDate] = useState("")
   const [minDate, setMinDate] = useState("")
   const [maxDate, setMaxDate] = useState("")
   const [search, setSearch] = useState("")
 
-  const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
@@ -66,37 +73,27 @@ export default function CatalogContentPage() {
   }, [channel, country])
 
   useEffect(() => {
-    const p = new URLSearchParams({ action: "channels" })
-    p.set("source", "provider")
-    if (country) p.set("country", country)
-    fetch(`/api/provider?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      const allowed = d.filter(c => /amazon|mercado.?libre|^ml$/i.test(c))
-      setAvailableChannels(allowed)
-      if (channel && !allowed.includes(channel)) setChannel("")
-    })
-  }, [country, channel])
+    const effectiveDate = date || fallbackDateBounds.max
+    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+      .map(r => r.titulo)
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
 
-  useEffect(() => {
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
-    if (date) p.set("date", date)
+    if (effectiveDate) p.set("date", effectiveDate)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then((d: string[]) => {
-        if (!Array.isArray(d)) return
-        setAvailableProducts(d)
-        setSelectedProducts(prev => prev.filter(item => d.includes(item)))
+        const merged = Array.from(new Set([...(Array.isArray(d) ? d : []), ...local])).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableProducts(merged)
+        setSelectedProducts(prev => prev.filter(item => merged.includes(item)))
       })
       .catch(() => {
-        const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
-          .filter(r => (!date || r.fecha === date) && (!channel || r.retail === channel))
-          .map(r => r.titulo)
-          .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel])
+  }, [date, channel, fallbackDateBounds.max])
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -123,9 +120,9 @@ export default function CatalogContentPage() {
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
-          const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
+          const localRaw = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
-            .filter(r => !channel || r.retail === channel)
+            .filter(r => !channel || normalizeChannel(r.retail) === channel)
             .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map((r, i) => ({
               titulo: r.titulo || "",
@@ -134,27 +131,45 @@ export default function CatalogContentPage() {
               fabricante: r.seller || "SIN INFORMACION",
               valoracion: Number(r.valoracion || 0),
               ventas: Number(r.ventas || 0),
-              score: Number(r.ventas || 0),
               rank: i + 1,
             }))
-          setData(local)
+
+          const maxVentasLocal = localRaw.reduce((m, r) => Math.max(m, r.ventas), 0)
+          const scoredLocal = localRaw.map(r => {
+            const salesNorm = maxVentasLocal > 0 ? r.ventas / maxVentasLocal : 0
+            const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
+            const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+            return { ...r, score: Math.round(score * 100) / 100 }
+          }).sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+            .map((r, idx) => ({ ...r, rank: idx + 1 }))
+
+          setData(scoredLocal)
           return
         }
-        setData(raw.map((r: { titulo: string; retail: string; seller: string; valoracion: number; ventas: number }, i: number) => ({
+
+        const mappedRaw = raw.map((r: { titulo: string; retail: string; seller: string; valoracion: number; ventas: number }, i: number) => ({
           titulo: r.titulo || "",
           skuid: `${r.retail}-${i + 1}`,
           plataforma: r.retail || "",
           fabricante: r.seller || "SIN INFORMACION",
           valoracion: Number(r.valoracion || 0),
           ventas: Number(r.ventas || 0),
-          score: Number(r.ventas || 0),
           rank: i + 1,
-        })))
+        }))
+        const maxVentasRaw = mappedRaw.reduce((m, r) => Math.max(m, r.ventas), 0)
+        const scoredRaw = mappedRaw.map(r => {
+          const salesNorm = maxVentasRaw > 0 ? r.ventas / maxVentasRaw : 0
+          const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
+          const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+          return { ...r, score: Math.round(score * 100) / 100 }
+        }).sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+          .map((r, idx) => ({ ...r, rank: idx + 1 }))
+        setData(scoredRaw)
       })
       .catch(() => {
-        const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
+        const localRaw = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
-          .filter(r => !channel || r.retail === channel)
+          .filter(r => !channel || normalizeChannel(r.retail) === channel)
           .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map((r, i) => ({
             titulo: r.titulo || "",
@@ -163,10 +178,19 @@ export default function CatalogContentPage() {
             fabricante: r.seller || "SIN INFORMACION",
             valoracion: Number(r.valoracion || 0),
             ventas: Number(r.ventas || 0),
-            score: Number(r.ventas || 0),
             rank: i + 1,
           }))
-        setData(local)
+
+        const maxVentasLocal = localRaw.reduce((m, r) => Math.max(m, r.ventas), 0)
+        const scoredLocal = localRaw.map(r => {
+          const salesNorm = maxVentasLocal > 0 ? r.ventas / maxVentasLocal : 0
+          const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
+          const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+          return { ...r, score: Math.round(score * 100) / 100 }
+        }).sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+          .map((r, idx) => ({ ...r, rank: idx + 1 }))
+
+        setData(scoredLocal)
       })
       .finally(() => setLoading(false))
   }, [date, channel, country, fallbackDateBounds.max, selectedProducts])
@@ -206,8 +230,9 @@ export default function CatalogContentPage() {
           <span className="text-xs text-gray-400">Canal</span>
           <select value={channel} onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Amazon + Mercado Libre</option>
-            {availableChannels.map(c => <option key={c}>{c}</option>)}
+            <option value="">Todos</option>
+            <option value="AMAZON">Amazon</option>
+            <option value="MERCADO LIBRE">Mercado Libre</option>
           </select>
         </div>
 
@@ -249,7 +274,7 @@ export default function CatalogContentPage() {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-gray-400">
-              {channel || "Amazon + Mercado Libre"}
+              {channel || "Todos"}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">{filtered.length} productos</div>
           </div>
