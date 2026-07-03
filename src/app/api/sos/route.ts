@@ -81,26 +81,7 @@ export async function GET(req: Request) {
   const rankPageFilter = pageMode === "p1" ? " AND sum_ranking_p1 > 0" : ""
 
   try {
-    const countryNorm = country.trim().toUpperCase()
-    const mxProviderActions = new Set([
-      "provider_health",
-      "dates",
-      "channels",
-      "categories",
-      "fabricantes_inv",
-      "inventory",
-      "buybox_lost",
-      "catalog_content",
-    ])
-    const isMxCountry = (
-      !countryNorm ||
-      countryNorm === "MX" ||
-      countryNorm === "MEXICO" ||
-      countryNorm === "MÉXICO"
-    )
-    const useProviderSourceForMx = (
-      source === "provider" || (isMxCountry && mxProviderActions.has(action))
-    ) && isMxCountry
+    const useProviderSourceForMx = source === "provider" || action === "provider_health"
 
     if (useProviderSourceForMx) {
       const rows = loadMxProviderRows()

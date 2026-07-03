@@ -4,9 +4,10 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
+import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
 import clsx from "clsx"
-import { Search, AlertTriangle, Download, FileText } from "lucide-react"
+import { Search, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
 // ─── TYPES ────────────────────────────────────────────────────
@@ -31,6 +32,8 @@ export default function BuyboxPage() {
   const [search,   setSearch]   = useState("")
 
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
+  const [availableProducts, setAvailableProducts] = useState<string[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
 
@@ -78,6 +81,27 @@ export default function BuyboxPage() {
     })
   }, [country])
 
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "products" })
+    if (channel) p.set("channel", channel)
+    if (date) p.set("date", date)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        if (!Array.isArray(d)) return
+        setAvailableProducts(d)
+        setSelectedProducts(prev => prev.filter(item => d.includes(item)))
+      })
+      .catch(() => {
+        const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
+          .filter(r => (!date || r.fecha === date) && (!channel || r.retail === channel))
+          .map(r => r.titulo)
+          .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableProducts(local)
+        setSelectedProducts(prev => prev.filter(item => local.includes(item)))
+      })
+  }, [date, channel])
+
   // Fetch buybox Newsan 7d
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -86,6 +110,7 @@ export default function BuyboxPage() {
     p.set("source", "provider")
     p.set("date", effectiveDate)
     if (channel)  p.set("channel",  channel)
+    if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
     if (country)  p.set("country",  country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -97,10 +122,13 @@ export default function BuyboxPage() {
 
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(topN) })
         if (channel) pRaw.set("channel", channel)
+        if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
+            .filter(r => !channel || r.retail === channel)
+            .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map((r, i) => ({
               id: `${r.retail}|||${r.titulo}|||${i}`,
               producto: r.titulo || "",
@@ -122,6 +150,8 @@ export default function BuyboxPage() {
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
+          .filter(r => !channel || r.retail === channel)
+          .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map((r, i) => ({
             id: `${r.retail}|||${r.titulo}|||${i}`,
             producto: r.titulo || "",
@@ -132,15 +162,17 @@ export default function BuyboxPage() {
         setLostData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, topN, date, fallbackDateBounds.max])
+  }, [channel, country, topN, date, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const lostFiltered = lostData.filter(e =>
-    !search ||
-    e.producto?.toLowerCase().includes(search.toLowerCase()) ||
-    e.winner_seller?.toLowerCase().includes(search.toLowerCase()) ||
-    e.plataforma?.toLowerCase().includes(search.toLowerCase())
+    (selectedProducts.length === 0 || selectedProducts.includes(e.producto)) && (
+      !search ||
+      e.producto?.toLowerCase().includes(search.toLowerCase()) ||
+      e.winner_seller?.toLowerCase().includes(search.toLowerCase()) ||
+      e.plataforma?.toLowerCase().includes(search.toLowerCase())
+    )
   )
   const availableCount = lostFiltered.filter(e => e.estado_hoy === "DISPONIBLE").length
   const unavailableCount = lostFiltered.length - availableCount
@@ -153,7 +185,7 @@ export default function BuyboxPage() {
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
-      <div className="hidden items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl flex">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
           <DateInput value={date} min={minDate} max={maxDate} onChange={setDate} />
@@ -169,6 +201,13 @@ export default function BuyboxPage() {
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
+
+        <ProductMultiSelect
+          options={availableProducts}
+          selected={selectedProducts}
+          onChange={setSelectedProducts}
+          label="Producto"
+        />
 
         {/* Límite */}
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">

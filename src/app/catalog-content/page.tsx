@@ -4,9 +4,10 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
+import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
 import clsx from "clsx"
-import { AlertTriangle, Search, Download, FileText, Star, ShoppingCart } from "lucide-react"
+import { Search, Download, FileText, Star, ShoppingCart } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
 interface CatalogRow {
@@ -41,6 +42,8 @@ export default function CatalogContentPage() {
 
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [availableSellers, setAvailableSellers] = useState<string[]>([])
+  const [availableProducts, setAvailableProducts] = useState<string[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -98,6 +101,27 @@ export default function CatalogContentPage() {
     })
   }, [country, channel, selectedSeller])
 
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "products" })
+    if (channel) p.set("channel", channel)
+    if (date) p.set("date", date)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        if (!Array.isArray(d)) return
+        setAvailableProducts(d)
+        setSelectedProducts(prev => prev.filter(item => d.includes(item)))
+      })
+      .catch(() => {
+        const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
+          .filter(r => (!date || r.fecha === date) && (!channel || r.retail === channel))
+          .map(r => r.titulo)
+          .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableProducts(local)
+        setSelectedProducts(prev => prev.filter(item => local.includes(item)))
+      })
+  }, [date, channel])
+
   const fetchData = useCallback(() => {
     setLoading(true)
     const effectiveDate = date || fallbackDateBounds.max
@@ -111,6 +135,7 @@ export default function CatalogContentPage() {
     p.set("source", "provider")
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
+    if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
     if (selectedSeller) p.set("seller", selectedSeller)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -122,10 +147,13 @@ export default function CatalogContentPage() {
 
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(topN) })
         if (channel) pRaw.set("channel", channel)
+        if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
+            .filter(r => !channel || r.retail === channel)
+            .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map((r, i) => ({
               titulo: r.titulo || "",
               skuid: `${r.retail}-${i + 1}`,
@@ -153,6 +181,8 @@ export default function CatalogContentPage() {
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
+          .filter(r => !channel || r.retail === channel)
+          .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map((r, i) => ({
             titulo: r.titulo || "",
             skuid: `${r.retail}-${i + 1}`,
@@ -166,17 +196,19 @@ export default function CatalogContentPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller, fallbackDateBounds.max])
+  }, [date, sortBy, sortDir, topN, channel, country, selectedSeller, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const filtered = useMemo(() =>
     data.filter(e =>
-      !search ||
-      e.titulo?.toLowerCase().includes(search.toLowerCase()) ||
-      e.skuid?.toLowerCase().includes(search.toLowerCase())
+      (selectedProducts.length === 0 || selectedProducts.includes(e.titulo)) && (
+        !search ||
+        e.titulo?.toLowerCase().includes(search.toLowerCase()) ||
+        e.skuid?.toLowerCase().includes(search.toLowerCase())
+      )
     )
-  , [data, search])
+  , [data, search, selectedProducts])
 
   const avgRating = filtered.length ? (filtered.reduce((s, e) => s + e.valoracion, 0) / filtered.length) : 0
   const totalSales = filtered.reduce((s, e) => s + e.ventas, 0)
@@ -188,7 +220,7 @@ export default function CatalogContentPage() {
         subtitle="Calidad de catálogo por producto en Amazon y Mercado Libre"
       />
 
-      <div className="hidden items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl flex">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
           <DateInput value={date} min={minDate} max={maxDate} onChange={setDate} />
@@ -214,6 +246,13 @@ export default function CatalogContentPage() {
             {availableSellers.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
+
+        <ProductMultiSelect
+          options={availableProducts}
+          selected={selectedProducts}
+          onChange={setSelectedProducts}
+          label="Producto"
+        />
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 

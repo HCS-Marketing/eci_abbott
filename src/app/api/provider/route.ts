@@ -20,6 +20,10 @@ export async function GET(req: Request) {
     const endDate = searchParams.get("endDate") || ""
     const show = searchParams.get("show") || "all"
     const seller = searchParams.get("seller") || ""
+    const products = (searchParams.get("products") || "")
+      .split(",")
+      .map(v => decodeURIComponent(v.trim()))
+      .filter(Boolean)
     const sortBy = (searchParams.get("sortBy") || "score").toLowerCase()
     const sortDir = (searchParams.get("sortDir") || "desc").toLowerCase() === "asc" ? "asc" : "desc"
     const limit = Math.min(5000, Number.parseInt(searchParams.get("limit") || "500", 10))
@@ -53,6 +57,12 @@ export async function GET(req: Request) {
       return NextResponse.json(channels)
     }
 
+    if (action === "products") {
+      const scoped = rowsByChannel.filter(r => !effectiveDate || r.fecha === effectiveDate)
+      const items = Array.from(new Set(scoped.map(r => r.titulo).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      return NextResponse.json(items)
+    }
+
     if (action === "sellers") {
       const sellers = Array.from(new Set(rowsByChannel.map(r => r.seller))).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(sellers)
@@ -60,6 +70,7 @@ export async function GET(req: Request) {
 
     if (action === "raw") {
       const base = rowsByChannel
+        .filter(r => products.length === 0 || products.includes(r.titulo))
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .sort((a, b) => {
           if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha)
@@ -73,6 +84,7 @@ export async function GET(req: Request) {
       const grouped = new Map<string, typeof rowsByChannel>()
 
       for (const r of rowsByChannel) {
+        if (products.length > 0 && !products.includes(r.titulo)) continue
         if (r.fecha > effectiveDate) continue
         const key = `${r.retail}|||${r.titulo}`
         const list = grouped.get(key) || []
@@ -110,7 +122,9 @@ export async function GET(req: Request) {
     }
 
     if (action === "buybox") {
-      const todays = rowsByChannel.filter(r => r.fecha === effectiveDate)
+      const todays = rowsByChannel
+        .filter(r => r.fecha === effectiveDate)
+        .filter(r => products.length === 0 || products.includes(r.titulo))
       const byKey = new Map<string, typeof todays[number]>()
       for (const r of todays) {
         const key = `${r.retail}|||${r.titulo}`
@@ -137,6 +151,7 @@ export async function GET(req: Request) {
     if (action === "content") {
       const sellerNorm = seller.trim().toUpperCase()
       const base = rowsByChannel.filter(r => r.fecha === effectiveDate).filter(r => {
+        if (products.length > 0 && !products.includes(r.titulo)) return false
         if (!sellerNorm) return true
         const fab = r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller.trim().toUpperCase()
         return fab === sellerNorm || r.seller.trim().toUpperCase() === sellerNorm

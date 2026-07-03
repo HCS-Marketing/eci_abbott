@@ -4,6 +4,7 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
+import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
 import clsx from "clsx"
 import { Search, AlertTriangle, Download, FileText } from "lucide-react"
@@ -35,6 +36,8 @@ export default function InventoryPage() {
   const [search,     setSearch]     = useState("")
 
   const [availableChannels,   setAvailableChannels]   = useState<string[]>([])
+  const [availableProducts, setAvailableProducts] = useState<string[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -83,6 +86,27 @@ export default function InventoryPage() {
     })
   }, [country, date])
 
+  useEffect(() => {
+    const p = new URLSearchParams({ action: "products" })
+    if (channel) p.set("channel", channel)
+    if (date) p.set("date", date)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        if (!Array.isArray(d)) return
+        setAvailableProducts(d)
+        setSelectedProducts(prev => prev.filter(item => d.includes(item)))
+      })
+      .catch(() => {
+        const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
+          .filter(r => (!date || r.fecha === date) && (!channel || r.retail === channel))
+          .map(r => r.titulo)
+          .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableProducts(local)
+        setSelectedProducts(prev => prev.filter(item => local.includes(item)))
+      })
+  }, [date, channel])
+
   const fetchData = useCallback(() => {
     setLoading(true)
     const effectiveDate = date || fallbackDateBounds.max
@@ -92,6 +116,7 @@ export default function InventoryPage() {
     })
     p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
+    if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
     if (country)    p.set("country",    country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -103,10 +128,13 @@ export default function InventoryPage() {
 
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: String(limit) })
         if (channel) pRaw.set("channel", channel)
+        if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
           const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
+            .filter(r => !channel || r.retail === channel)
+            .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map(r => {
               const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
               return {
@@ -133,6 +161,8 @@ export default function InventoryPage() {
       .catch(() => {
         const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
+          .filter(r => !channel || r.retail === channel)
+          .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map(r => {
             const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
             return {
@@ -147,18 +177,20 @@ export default function InventoryPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, date, show, limit, fallbackDateBounds.max])
+  }, [channel, country, date, show, limit, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const filtered = useMemo(() =>
     data.filter(e =>
-      !search ||
-      e.producto?.toLowerCase().includes(search.toLowerCase()) ||
-      e.canal?.toLowerCase().includes(search.toLowerCase()) ||
-      e.estado?.toLowerCase().includes(search.toLowerCase())
+      (selectedProducts.length === 0 || selectedProducts.includes(e.producto)) && (
+        !search ||
+        e.producto?.toLowerCase().includes(search.toLowerCase()) ||
+        e.canal?.toLowerCase().includes(search.toLowerCase()) ||
+        e.estado?.toLowerCase().includes(search.toLowerCase())
+      )
     )
-  , [data, search])
+  , [data, search, selectedProducts])
 
   // KPIs
   const inStock      = filtered.filter(e => e.stock_status === "in_stock").length
@@ -179,7 +211,7 @@ export default function InventoryPage() {
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}
-      <div className="hidden items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl flex">
         {/* Fecha */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
@@ -200,6 +232,13 @@ export default function InventoryPage() {
             {availableChannels.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
+
+        <ProductMultiSelect
+          options={availableProducts}
+          selected={selectedProducts}
+          onChange={setSelectedProducts}
+          label="Producto"
+        />
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
