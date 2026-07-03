@@ -1,8 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Search, ScanSearch, ListOrdered, Zap, Package, Tag, Star } from "lucide-react"
-import { useGlobalFilters } from "@/lib/filter-context"
+import { Search, ScanSearch, ListOrdered, Tag } from "lucide-react"
 
 const MODULES = [
   {
@@ -27,27 +26,6 @@ const MODULES = [
     color: "#003DA5",
   },
   {
-    href: "/buybox",
-    label: "BuyBox",
-    description: "Quién gana la posición destacada por producto — Abbott vs competencia",
-    icon: Zap,
-    color: "#ef4444",
-  },
-  {
-    href: "/inventory",
-    label: "Inventario",
-    description: "Estado del stock por SKU — productos activos y roturas detectadas",
-    icon: Package,
-    color: "#14b8a6",
-  },
-  {
-    href: "/catalog-content",
-    label: "Contenido de catalogo",
-    description: "Valoración, ventas y score de producto para priorizar planograma",
-    icon: Star,
-    color: "#d97706",
-  },
-  {
     href: "/pricing",
     label: "Pricing Live",
     description: "Precios actuales por producto, fabricante y canal — con descuentos y promociones",
@@ -56,13 +34,8 @@ const MODULES = [
   },
 ]
 
-const MX_ONLY_MODULES = new Set(["/buybox", "/inventory", "/catalog-content"])
-
 export default function MainPage() {
-  const { country } = useGlobalFilters()
-  const visibleModules = country === "MX"
-    ? MODULES
-    : MODULES.filter(module => !MX_ONLY_MODULES.has(module.href))
+  const visibleModules = MODULES
 
   return (
     <div className="max-w-5xl mx-auto">
