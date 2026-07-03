@@ -4,6 +4,7 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
+import fallbackRows from "@/data/mx-provider-rows.json"
 import clsx from "clsx"
 import { Search, AlertTriangle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -21,7 +22,8 @@ interface BuyboxLostRow {
 export default function BuyboxPage() {
   useMarket()
   const { country } = useGlobalFilters()
-  const isMexico = country === "MX"
+  const countryNorm = (country || "").trim().toUpperCase()
+  const isMexico = !countryNorm || countryNorm === "MX" || countryNorm === "MEXICO" || countryNorm === "MÉXICO"
 
   const [channel,  setChannel]  = useState("")
   const [date,     setDate]     = useState("")
@@ -82,7 +84,19 @@ export default function BuyboxPage() {
         const pRaw = new URLSearchParams({ action: "raw", date, limit: String(topN) })
         if (channel) pRaw.set("channel", channel)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
-        if (!Array.isArray(raw)) { setLostData([]); return }
+        if (!Array.isArray(raw) || raw.length === 0) {
+          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
+            .filter(r => !date || r.fecha === date)
+            .map((r, i) => ({
+              id: `${r.retail}|||${r.titulo}|||${i}`,
+              producto: r.titulo || "",
+              plataforma: r.retail || "",
+              estado_hoy: r.disponibilidad || "NO DISPONIBLE",
+              winner_seller: r.seller || "SIN INFORMACION",
+            }))
+          setLostData(local)
+          return
+        }
         setLostData(raw.map((r: { retail: string; titulo: string; disponibilidad: string; seller: string }, i: number) => ({
           id: `${r.retail}|||${r.titulo}|||${i}`,
           producto: r.titulo || "",
@@ -90,6 +104,18 @@ export default function BuyboxPage() {
           estado_hoy: r.disponibilidad || "NO DISPONIBLE",
           winner_seller: r.seller || "SIN INFORMACION",
         })))
+      })
+      .catch(() => {
+        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
+          .filter(r => !date || r.fecha === date)
+          .map((r, i) => ({
+            id: `${r.retail}|||${r.titulo}|||${i}`,
+            producto: r.titulo || "",
+            plataforma: r.retail || "",
+            estado_hoy: r.disponibilidad || "NO DISPONIBLE",
+            winner_seller: r.seller || "SIN INFORMACION",
+          }))
+        setLostData(local)
       })
       .finally(() => setLoading(false))
   }, [channel, country, topN, date])
@@ -135,7 +161,7 @@ export default function BuyboxPage() {
       />
 
       {/* ── Filtros ───────────────────────────────────────── */}
-      <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="hidden items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
           <DateInput value={date} min={minDate} max={maxDate} onChange={setDate} />

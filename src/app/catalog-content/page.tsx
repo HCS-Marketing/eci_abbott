@@ -4,6 +4,7 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
+import fallbackRows from "@/data/mx-provider-rows.json"
 import clsx from "clsx"
 import { AlertTriangle, Search, Download, FileText, Star, ShoppingCart } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -26,7 +27,8 @@ type SortDir = "asc" | "desc"
 export default function CatalogContentPage() {
   useMarket()
   const { country } = useGlobalFilters()
-  const isMexico = country === "MX"
+  const countryNorm = (country || "").trim().toUpperCase()
+  const isMexico = !countryNorm || countryNorm === "MX" || countryNorm === "MEXICO" || countryNorm === "MÉXICO"
 
   const [channel, setChannel] = useState("")
   const [date, setDate] = useState("")
@@ -107,7 +109,22 @@ export default function CatalogContentPage() {
         const pRaw = new URLSearchParams({ action: "raw", date, limit: String(topN) })
         if (channel) pRaw.set("channel", channel)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
-        if (!Array.isArray(raw)) { setData([]); return }
+        if (!Array.isArray(raw) || raw.length === 0) {
+          const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
+            .filter(r => !date || r.fecha === date)
+            .map((r, i) => ({
+              titulo: r.titulo || "",
+              skuid: `${r.retail}-${i + 1}`,
+              plataforma: r.retail || "",
+              fabricante: r.seller || "SIN INFORMACION",
+              valoracion: Number(r.valoracion || 0),
+              ventas: Number(r.ventas || 0),
+              score: Number(r.ventas || 0),
+              rank: i + 1,
+            }))
+          setData(local)
+          return
+        }
         setData(raw.map((r: { titulo: string; retail: string; seller: string; valoracion: number; ventas: number }, i: number) => ({
           titulo: r.titulo || "",
           skuid: `${r.retail}-${i + 1}`,
@@ -118,6 +135,21 @@ export default function CatalogContentPage() {
           score: Number(r.ventas || 0),
           rank: i + 1,
         })))
+      })
+      .catch(() => {
+        const local = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
+          .filter(r => !date || r.fecha === date)
+          .map((r, i) => ({
+            titulo: r.titulo || "",
+            skuid: `${r.retail}-${i + 1}`,
+            plataforma: r.retail || "",
+            fabricante: r.seller || "SIN INFORMACION",
+            valoracion: Number(r.valoracion || 0),
+            ventas: Number(r.ventas || 0),
+            score: Number(r.ventas || 0),
+            rank: i + 1,
+          }))
+        setData(local)
       })
       .finally(() => setLoading(false))
   }, [date, sortBy, sortDir, topN, channel, country, selectedSeller])
@@ -161,7 +193,7 @@ export default function CatalogContentPage() {
         subtitle="Calidad de catálogo por producto en Amazon y Mercado Libre"
       />
 
-      <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="hidden items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
           <DateInput value={date} min={minDate} max={maxDate} onChange={setDate} />

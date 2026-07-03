@@ -4,6 +4,7 @@ import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
+import fallbackRows from "@/data/mx-provider-rows.json"
 import clsx from "clsx"
 import { Search, AlertTriangle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -24,7 +25,8 @@ type ShowMode = "all" | "in_stock" | "break"
 export default function InventoryPage() {
   useMarket()
   const { country } = useGlobalFilters()
-  const isMexico = country === "MX"
+  const countryNorm = (country || "").trim().toUpperCase()
+  const isMexico = !countryNorm || countryNorm === "MX" || countryNorm === "MEXICO" || countryNorm === "MÉXICO"
 
   const [channel,    setChannel]    = useState("")
   const [date,      setDate]      = useState("")
@@ -88,7 +90,20 @@ export default function InventoryPage() {
         const pRaw = new URLSearchParams({ action: "raw", date, limit: String(limit) })
         if (channel) pRaw.set("channel", channel)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
-        if (!Array.isArray(raw)) { setData([]); return }
+        if (!Array.isArray(raw) || raw.length === 0) {
+          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
+            .filter(r => !date || r.fecha === date)
+            .map(r => ({
+              id: `${r.retail}|||${r.titulo}`,
+              estado: r.disponibilidad || "NO DISPONIBLE",
+              producto: r.titulo || "",
+              canal: r.retail || "",
+              ultimo_visto: r.fecha || null,
+              stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
+            }))
+          setData(local)
+          return
+        }
         setData(raw.map((r: { retail: string; titulo: string; fecha: string; disponibilidad: string }) => ({
           id: `${r.retail}|||${r.titulo}`,
           estado: r.disponibilidad || "NO DISPONIBLE",
@@ -97,6 +112,19 @@ export default function InventoryPage() {
           ultimo_visto: r.fecha || null,
           stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
         })))
+      })
+      .catch(() => {
+        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
+          .filter(r => !date || r.fecha === date)
+          .map(r => ({
+            id: `${r.retail}|||${r.titulo}`,
+            estado: r.disponibilidad || "NO DISPONIBLE",
+            producto: r.titulo || "",
+            canal: r.retail || "",
+            ultimo_visto: r.fecha || null,
+            stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
+          }))
+        setData(local)
       })
       .finally(() => setLoading(false))
   }, [channel, country, date, show, limit])
@@ -153,7 +181,7 @@ export default function InventoryPage() {
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}
-      <div className="flex items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
+      <div className="hidden items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl">
         {/* Fecha */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
