@@ -4,6 +4,7 @@ const nextConfig = {
   reactStrictMode: true,
   outputFileTracingIncludes: {
     "/api/sos": ["./base_prov/**/*.xlsx"],
+    "/api/sos/route": ["./base_prov/**/*.xlsx"],
   },
   async redirects() {
     return [

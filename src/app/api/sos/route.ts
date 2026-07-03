@@ -82,12 +82,25 @@ export async function GET(req: Request) {
 
   try {
     const countryNorm = country.trim().toUpperCase()
-    const useProviderSourceForMx = source === "provider" && (
+    const mxProviderActions = new Set([
+      "provider_health",
+      "dates",
+      "channels",
+      "categories",
+      "fabricantes_inv",
+      "inventory",
+      "buybox_lost",
+      "catalog_content",
+    ])
+    const isMxCountry = (
       !countryNorm ||
       countryNorm === "MX" ||
       countryNorm === "MEXICO" ||
       countryNorm === "MÉXICO"
     )
+    const useProviderSourceForMx = (
+      source === "provider" || (isMxCountry && mxProviderActions.has(action))
+    ) && isMxCountry
 
     if (useProviderSourceForMx) {
       const rows = loadMxProviderRows()
@@ -97,6 +110,16 @@ export async function GET(req: Request) {
         if (raw === "ML" || raw.includes("MERCADO")) return "MERCADO LIBRE"
         if (raw.includes("AMAZON")) return "AMAZON"
         return raw
+      }
+
+      if (action === "provider_health") {
+        return NextResponse.json({
+          ok: true,
+          rows: rows.length,
+          minDate: minMxProviderDate(rows),
+          maxDate: maxMxProviderDate(rows),
+          channels: Array.from(new Set(rows.map(r => r.retail))).sort((a, b) => a.localeCompare(b, "es")),
+        })
       }
 
       const channelNorm = normalizeChannel(channel)
