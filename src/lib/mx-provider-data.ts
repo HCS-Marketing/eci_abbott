@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import * as XLSX from "xlsx"
+import fallbackRowsJson from "@/data/mx-provider-rows.json"
 
 const XLSX_API: {
   readFile: (path: string) => { SheetNames: string[]; Sheets: Record<string, unknown> }
@@ -147,12 +148,14 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 
 export function loadMxProviderRows(): MxProviderRow[] {
   const all = [...readExcelFilesFromDir(AMZ_DIR), ...readExcelFilesFromDir(ML_DIR)]
-  all.sort((a, b) => {
+  const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
+  const base = all.length > 0 ? all : fallbackRows
+  base.sort((a, b) => {
     if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha)
     if (a.retail !== b.retail) return a.retail.localeCompare(b.retail)
     return a.titulo.localeCompare(b.titulo, "es")
   })
-  return all
+  return base
 }
 
 export function maxMxProviderDate(rows: MxProviderRow[]): string {
