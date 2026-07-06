@@ -10,12 +10,14 @@ export default function DateInput({
   onChange,
   min,
   max,
+  disabled,
   className,
 }: {
   value: string
   onChange: (v: string) => void
   min?: string
   max?: string
+  disabled?: boolean
   className?: string
 }) {
   const [local, setLocal] = useState(value)
@@ -33,6 +35,7 @@ export default function DateInput({
       value={local}
       min={min}
       max={max}
+      disabled={disabled}
       onChange={e => {
         const v = e.target.value
         setLocal(v)

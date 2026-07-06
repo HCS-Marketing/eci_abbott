@@ -7,6 +7,7 @@ import clsx from "clsx"
 import { Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
 import { getRetailColor, fmtDateDMY } from "@/lib/format"
+import { getDefaultLast7DayRange } from "@/lib/date-range"
 import { useGlobalFilters } from "@/lib/filter-context"
 
 // ── helpers ──────────────────────────────────────────────────
@@ -313,8 +314,9 @@ export default function ShareOfShelfPage() {
     fetch("/api/sos?action=dates")
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
+        const defaults = getDefaultLast7DayRange(d)
         setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(d.min); setEndDate(d.max)
+        setStartDate(defaults.start); setEndDate(defaults.end)
       })
       .catch(() => {})
   }, [])

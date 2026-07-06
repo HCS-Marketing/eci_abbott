@@ -4,6 +4,7 @@ import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { fmtPrice } from "@/lib/format"
+import { getDefaultLast7DayRange } from "@/lib/date-range"
 import clsx from "clsx"
 import { Search, CheckCircle2, XCircle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -100,9 +101,10 @@ export default function AssortmentPage() {
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
         if (!d.max) return
+        const defaults = getDefaultLast7DayRange(d)
         setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(prev => (!prev || prev < d.min) ? d.min : prev)
-        setEndDate(prev => (!prev || prev > d.max) ? d.max : prev)
+        setStartDate(prev => (!prev || prev < d.min || prev > d.max) ? defaults.start : prev)
+        setEndDate(prev => (!prev || prev < d.min || prev > d.max) ? defaults.end : prev)
       })
   }, [channel, country])
 

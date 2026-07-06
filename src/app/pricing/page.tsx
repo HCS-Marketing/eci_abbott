@@ -116,8 +116,8 @@ export default function PricingPage() {
       .then((d: { min: string; max: string }) => {
         if (!d.max) return
         setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(prev => (!prev || prev < d.min || prev > d.max) ? d.max : prev)
-        setEndDate(prev => (!prev || prev < d.min || prev > d.max) ? d.max : prev)
+        setStartDate(d.max)
+        setEndDate(d.max)
       })
   }, [channel, country])
 
@@ -216,7 +216,7 @@ export default function PricingPage() {
         {/* Fecha unica */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Fecha</span>
-          <DateInput value={endDate} min={minDate} max={maxDate} onChange={setEndDate} />
+          <DateInput value={endDate} min={minDate} max={maxDate} onChange={setEndDate} disabled />
         </div>
         {endDate === maxDate && maxDate && (
           <span className="text-[10px] text-green-600 font-semibold">✓ Última fecha</span>
