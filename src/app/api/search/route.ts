@@ -49,18 +49,33 @@ export async function GET(req: Request) {
     const startDate = searchParams.get("startDate") || ""
     const endDate   = searchParams.get("endDate") || ""
 
-    // ── date range — uses MV ──
+    // ── date range — dynamic from base table eci.search ──
     if (action === "dates") {
-      const [minR] = await prisma.$queryRawUnsafe<{ d: string }[]>(
-        `SELECT fecha::text AS d FROM eci.mv_search_daily_fab ORDER BY fecha ASC LIMIT 1`
+      const p: unknown[] = []
+      let w = `search IS NOT NULL AND TRIM(search) <> ''`
+      if (channel) {
+        const vals = RETAIL_ALIASES[channel] || [channel]
+        if (vals.length === 1) {
+          p.push(vals[0])
+          w += ` AND retail = $${p.length}`
+        } else {
+          const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", ")
+          w += ` AND retail IN (${phs})`
+        }
+      }
+      if (country) {
+        p.push(country)
+        w += ` AND pais = $${p.length}`
+      }
+
+      const [r] = await prisma.$queryRawUnsafe<{ min_d: Date | null; max_d: Date | null }[]>(
+        `SELECT MIN(fecha) AS min_d, MAX(fecha) AS max_d FROM eci.search WHERE ${w}`,
+        ...p
       )
-      const [maxR] = await prisma.$queryRawUnsafe<{ d: string }[]>(
-        `SELECT fecha::text AS d FROM eci.mv_search_daily_fab ORDER BY fecha DESC LIMIT 1`
-      )
-      if (!minR?.d) return NextResponse.json({ min: "", max: "" })
+      if (!r?.max_d) return NextResponse.json({ min: "", max: "" })
       return NextResponse.json({
-        min: minR.d.substring(0, 10),
-        max: maxR.d.substring(0, 10),
+        min: r.min_d?.toISOString().slice(0, 10) || "",
+        max: r.max_d?.toISOString().slice(0, 10) || "",
       })
     }
 

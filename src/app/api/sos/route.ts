@@ -251,26 +251,21 @@ export async function GET(req: Request) {
       }
     }
 
-    // ── date range (from mv_sos_dimensions — 83 rows) ────
+    // ── date range (dynamic from base table eci.sos) ────
     if (action === "dates") {
-      if (channel) {
-        const rows = await prisma.$queryRawUnsafe<{ min_d: Date; max_d: Date }[]>(
-          `SELECT MIN(min_fecha) AS min_d, MAX(max_fecha) AS max_d FROM eci.mv_sos_dimensions WHERE retail = $1`,
-          channel
-        )
-        const r = rows[0]
-        if (!r?.min_d) return NextResponse.json({ min: "", max: "" })
-        return NextResponse.json({
-          min: r.min_d.toISOString().split("T")[0],
-          max: r.max_d.toISOString().split("T")[0],
-        })
-      }
-      const [r] = await prisma.$queryRaw<{ min_d: Date; max_d: Date }[]>`
-        SELECT MIN(min_fecha) AS min_d, MAX(max_fecha) AS max_d FROM eci.mv_sos_dimensions
-      `
+      const p: unknown[] = []
+      let w = "1=1"
+      if (channel) { p.push(channel); w += ` AND retail = $${p.length}` }
+      if (country) { p.push(country); w += ` AND pais = $${p.length}` }
+
+      const [r] = await prisma.$queryRawUnsafe<{ min_d: Date | null; max_d: Date | null }[]>(
+        `SELECT MIN(fecha) AS min_d, MAX(fecha) AS max_d FROM eci.sos WHERE ${w}`,
+        ...p
+      )
+      if (!r?.max_d) return NextResponse.json({ min: "", max: "" })
       return NextResponse.json({
-        min: r.min_d.toISOString().split("T")[0],
-        max: r.max_d.toISOString().split("T")[0],
+        min: r.min_d?.toISOString().split("T")[0] || "",
+        max: r.max_d?.toISOString().split("T")[0] || "",
       })
     }
 
