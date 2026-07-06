@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run refresh:provider-json && next build",
     "start": "next start",
     "lint": "next lint",
+    "refresh:provider-json": "node scripts/refresh-provider-json.cjs",
     "db:pull": "prisma db pull",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
