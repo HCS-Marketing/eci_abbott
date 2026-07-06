@@ -21,6 +21,12 @@ export interface MxProviderRow {
   seller: string
   ventas: number
   valoracion: number
+  reviews: number
+  img_count: number
+  video_count: number
+  title_count_characters: number
+  count_character_desc: number
+  url_producto: string
   disponibilidad: string
   disponible: boolean
 }
@@ -94,6 +100,16 @@ function parseValoracion(value: unknown): number {
   return Math.max(0, Math.min(5, n))
 }
 
+function parseIntegerField(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, Math.round(value))
+  const raw = String(value ?? "").trim()
+  if (!raw || raw === "-") return 0
+  const digits = raw.replace(/\D/g, "")
+  if (!digits) return 0
+  const n = Number.parseInt(digits, 10)
+  return Number.isFinite(n) ? Math.max(0, n) : 0
+}
+
 function normalizeDisponibilidad(value: unknown): { disponibilidad: string; disponible: boolean } {
   const raw = String(value ?? "").trim().toUpperCase()
   if (raw.includes("NO")) return { disponibilidad: "NO DISPONIBLE", disponible: false }
@@ -137,6 +153,12 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
         seller: String(r.seller ?? "").trim() || "SIN INFORMACION",
         ventas: parseVentas(r.ventas),
         valoracion: parseValoracion(r.valoracion),
+        reviews: parseIntegerField(r.reviews),
+        img_count: parseIntegerField(r.img_count),
+        video_count: parseIntegerField(r.video_count),
+        title_count_characters: parseIntegerField(r.title_count_characters),
+        count_character_desc: parseIntegerField(r.count_character_desc),
+        url_producto: String(r.url_producto ?? "").trim(),
         disponibilidad,
         disponible,
       })

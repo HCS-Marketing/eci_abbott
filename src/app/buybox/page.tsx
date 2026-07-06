@@ -16,6 +16,7 @@ interface BuyboxLostRow {
   plataforma: string
   estado_hoy: string
   winner_seller: string
+  url_producto: string
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────
@@ -129,20 +130,22 @@ export default function BuyboxPage() {
               plataforma: r.retail || "",
               estado_hoy: r.disponibilidad || "NO DISPONIBLE",
               winner_seller: r.seller || "SIN INFORMACION",
+              url_producto: "",
             }))
           setLostData(local)
           return
         }
-        setLostData(raw.map((r: { retail: string; titulo: string; disponibilidad: string; seller: string }, i: number) => ({
+        setLostData(raw.map((r: { retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string }, i: number) => ({
           id: `${r.retail}|||${r.titulo}|||${i}`,
           producto: r.titulo || "",
           plataforma: r.retail || "",
           estado_hoy: r.disponibilidad || "NO DISPONIBLE",
           winner_seller: r.seller || "SIN INFORMACION",
+          url_producto: String(r.url_producto || "").trim(),
         })))
       })
       .catch(() => {
-        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
+        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .filter(r => !channel || normalizeChannel(r.retail) === channel)
           .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
@@ -152,6 +155,7 @@ export default function BuyboxPage() {
             plataforma: r.retail || "",
             estado_hoy: r.disponibilidad || "NO DISPONIBLE",
             winner_seller: r.seller || "SIN INFORMACION",
+            url_producto: String(r.url_producto || "").trim(),
           }))
         setLostData(local)
       })
@@ -286,6 +290,7 @@ export default function BuyboxPage() {
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado hoy (disponibilidad)</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Link</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -307,6 +312,13 @@ export default function BuyboxPage() {
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">{e.winner_seller?.trim() || "sin informacion"}</span>
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {e.url_producto ? (
+                            <a href={e.url_producto} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Ver producto</a>
+                          ) : (
+                            <span className="text-[11px] text-gray-400">-</span>
+                          )}
                         </td>
                       </tr>
                     )

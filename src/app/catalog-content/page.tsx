@@ -6,22 +6,27 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
-import { Search, Download, FileText, Star, ShoppingCart } from "lucide-react"
+import { Search, Download, FileText, Star } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
 interface CatalogRow {
   titulo: string
   skuid: string
-  plataforma: string
-  fabricante: string
+  canal: string
   valoracion: number
-  ventas: number
+  reviews: number
+  img_count: number
+  video_count: number
+  title_count_characters: number
+  count_character_desc: number
+  url_producto: string
   score: number
   rank: number
 }
 
-type ContentSortBy = "ventas" | "valoracion" | "score"
+type ContentSortBy = "reviews" | "valoracion" | "score"
 type ContentSortDir = "asc" | "desc"
+type TableMode = "score" | "content"
 
 export default function CatalogContentPage() {
   useMarket()
@@ -42,6 +47,7 @@ export default function CatalogContentPage() {
   const [search, setSearch] = useState("")
   const [sortBy, setSortBy] = useState<ContentSortBy>("score")
   const [sortDir, setSortDir] = useState<ContentSortDir>("desc")
+  const [tableMode, setTableMode] = useState<TableMode>("score")
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
@@ -125,74 +131,86 @@ export default function CatalogContentPage() {
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
-          const localRaw = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
+          const localRaw = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .filter(r => !channel || normalizeChannel(r.retail) === channel)
             .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map((r, i) => ({
               titulo: r.titulo || "",
               skuid: `${r.retail}-${i + 1}`,
-              plataforma: r.retail || "",
-              fabricante: r.seller || "SIN INFORMACION",
+              canal: r.retail || "",
               valoracion: Number(r.valoracion || 0),
-              ventas: Number(r.ventas || 0),
+              reviews: Number(r.reviews || 0),
+              img_count: Number(r.img_count || 0),
+              video_count: Number(r.video_count || 0),
+              title_count_characters: Number(r.title_count_characters || 0),
+              count_character_desc: Number(r.count_character_desc || 0),
+              url_producto: String(r.url_producto || "").trim(),
               rank: i + 1,
             }))
 
-          const maxVentasLocal = localRaw.reduce((m, r) => Math.max(m, r.ventas), 0)
+          const maxReviewsLocal = localRaw.reduce((m, r) => Math.max(m, r.reviews), 0)
           const scoredLocal = localRaw.map(r => {
-            const salesNorm = maxVentasLocal > 0 ? r.ventas / maxVentasLocal : 0
+            const reviewsNorm = maxReviewsLocal > 0 ? r.reviews / maxReviewsLocal : 0
             const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
-            const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+            const score = ((reviewsNorm * 0.6) + (ratingNorm * 0.4)) * 100
             return { ...r, score: Math.round(score * 100) / 100 }
-          }).sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+          }).sort((a, b) => (b.score - a.score) || (b.reviews - a.reviews) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
             .map((r, idx) => ({ ...r, rank: idx + 1 }))
 
           setData(scoredLocal)
           return
         }
 
-        const mappedRaw = raw.map((r: { titulo: string; retail: string; seller: string; valoracion: number; ventas: number }, i: number) => ({
+        const mappedRaw = raw.map((r: { titulo: string; retail: string; valoracion: number; reviews: number; img_count: number; video_count: number; title_count_characters: number; count_character_desc: number; url_producto?: string }, i: number) => ({
           titulo: r.titulo || "",
           skuid: `${r.retail}-${i + 1}`,
-          plataforma: r.retail || "",
-          fabricante: r.seller || "SIN INFORMACION",
+          canal: r.retail || "",
           valoracion: Number(r.valoracion || 0),
-          ventas: Number(r.ventas || 0),
+          reviews: Number(r.reviews || 0),
+          img_count: Number(r.img_count || 0),
+          video_count: Number(r.video_count || 0),
+          title_count_characters: Number(r.title_count_characters || 0),
+          count_character_desc: Number(r.count_character_desc || 0),
+          url_producto: String(r.url_producto || "").trim(),
           rank: i + 1,
         }))
-        const maxVentasRaw = mappedRaw.reduce((m, r) => Math.max(m, r.ventas), 0)
+        const maxReviewsRaw = mappedRaw.reduce((m, r) => Math.max(m, r.reviews), 0)
         const scoredRaw = mappedRaw.map(r => {
-          const salesNorm = maxVentasRaw > 0 ? r.ventas / maxVentasRaw : 0
+          const reviewsNorm = maxReviewsRaw > 0 ? r.reviews / maxReviewsRaw : 0
           const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
-          const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+          const score = ((reviewsNorm * 0.6) + (ratingNorm * 0.4)) * 100
           return { ...r, score: Math.round(score * 100) / 100 }
-        }).sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+        }).sort((a, b) => (b.score - a.score) || (b.reviews - a.reviews) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
           .map((r, idx) => ({ ...r, rank: idx + 1 }))
         setData(scoredRaw)
       })
       .catch(() => {
-        const localRaw = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; seller: string; valoracion: number; ventas: number }>)
+        const localRaw = (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .filter(r => !channel || normalizeChannel(r.retail) === channel)
           .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map((r, i) => ({
             titulo: r.titulo || "",
             skuid: `${r.retail}-${i + 1}`,
-            plataforma: r.retail || "",
-            fabricante: r.seller || "SIN INFORMACION",
+            canal: r.retail || "",
             valoracion: Number(r.valoracion || 0),
-            ventas: Number(r.ventas || 0),
+            reviews: Number(r.reviews || 0),
+            img_count: Number(r.img_count || 0),
+            video_count: Number(r.video_count || 0),
+            title_count_characters: Number(r.title_count_characters || 0),
+            count_character_desc: Number(r.count_character_desc || 0),
+            url_producto: String(r.url_producto || "").trim(),
             rank: i + 1,
           }))
 
-        const maxVentasLocal = localRaw.reduce((m, r) => Math.max(m, r.ventas), 0)
+        const maxReviewsLocal = localRaw.reduce((m, r) => Math.max(m, r.reviews), 0)
         const scoredLocal = localRaw.map(r => {
-          const salesNorm = maxVentasLocal > 0 ? r.ventas / maxVentasLocal : 0
+          const reviewsNorm = maxReviewsLocal > 0 ? r.reviews / maxReviewsLocal : 0
           const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
-          const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+          const score = ((reviewsNorm * 0.6) + (ratingNorm * 0.4)) * 100
           return { ...r, score: Math.round(score * 100) / 100 }
-        }).sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+        }).sort((a, b) => (b.score - a.score) || (b.reviews - a.reviews) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
           .map((r, idx) => ({ ...r, rank: idx + 1 }))
 
         setData(scoredLocal)
@@ -216,7 +234,7 @@ export default function CatalogContentPage() {
     const rows = [...filtered]
     rows.sort((a, b) => {
       let cmp = 0
-      if (sortBy === "ventas") cmp = a.ventas - b.ventas
+      if (sortBy === "reviews") cmp = a.reviews - b.reviews
       else if (sortBy === "valoracion") cmp = a.valoracion - b.valoracion
       else cmp = a.score - b.score
       if (cmp === 0) cmp = a.titulo.localeCompare(b.titulo, "es")
@@ -240,7 +258,7 @@ export default function CatalogContentPage() {
   }
 
   const avgRating = filtered.length ? (filtered.reduce((s, e) => s + e.valoracion, 0) / filtered.length) : 0
-  const totalSales = filtered.reduce((s, e) => s + e.ventas, 0)
+  const totalReviews = filtered.reduce((s, e) => s + e.reviews, 0)
 
   return (
     <div className="space-y-4">
@@ -291,7 +309,7 @@ export default function CatalogContentPage() {
         {[
           { label: "Productos", value: String(filtered.length), color: "#7c3aed", sub: "universo filtrado" },
           { label: "Valoración promedio", value: avgRating.toFixed(2), color: "#d97706", sub: "escala 0-5" },
-          { label: "Ventas acumuladas", value: totalSales.toLocaleString("es-MX"), color: "#16a34a", sub: "normalizadas" },
+          { label: "Reviews acumuladas", value: totalReviews.toLocaleString("es-MX"), color: "#16a34a", sub: "personas que puntuaron" },
           { label: "Top score", value: filtered[0] ? `${filtered[0].score.toFixed(2)}` : "0", color: "#2563eb", sub: "mejor producto" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
@@ -309,6 +327,14 @@ export default function CatalogContentPage() {
               {channel || "Todos"}
             </div>
                 <div className="text-xs text-gray-500 mt-0.5">{sorted.length} productos</div>
+          </div>
+          <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
+            <button type="button" onClick={() => setTableMode("score")} className={`px-3 py-1 rounded-md text-xs font-medium ${tableMode === "score" ? "bg-purple-600 text-white" : "text-gray-600 hover:text-gray-800"}`}>
+              Producto Score
+            </button>
+            <button type="button" onClick={() => setTableMode("content")} className={`px-3 py-1 rounded-md text-xs font-medium ${tableMode === "content" ? "bg-purple-600 text-white" : "text-gray-600 hover:text-gray-800"}`}>
+              Producto Contenido
+            </button>
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
@@ -329,45 +355,89 @@ export default function CatalogContentPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Puesto</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Titulo</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Skuid</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
-                    <button type="button" onClick={() => toggleSort("valoracion")} className="hover:text-gray-700">
-                      Valoración{sortMark("valoracion")}
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
-                    <button type="button" onClick={() => toggleSort("ventas")} className="hover:text-gray-700">
-                      Ventas{sortMark("ventas")}
-                    </button>
-                  </th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
-                    <button type="button" onClick={() => toggleSort("score")} className="hover:text-gray-700">
-                      Puntaje{sortMark("score")}
-                    </button>
-                  </th>
+                  {tableMode === "score" ? (
+                    <>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Posición</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Titulo</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
+                        <button type="button" onClick={() => toggleSort("valoracion")} className="hover:text-gray-700">
+                          Valoración{sortMark("valoracion")}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
+                        <button type="button" onClick={() => toggleSort("reviews")} className="hover:text-gray-700">
+                          Reviews{sortMark("reviews")}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">
+                        <button type="button" onClick={() => toggleSort("score")} className="hover:text-gray-700">
+                          Puntaje{sortMark("score")}
+                        </button>
+                      </th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Link</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Titulo</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Imágenes</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Video</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Caracteres del titulo</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Caracteres de la descripción</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Link</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {sorted.map((e, i) => (
-                  <tr key={`${e.skuid}-${e.plataforma}-${i}`} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5">
-                      <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">#{e.rank}</span>
-                    </td>
-                    <td className="px-3 py-2.5 max-w-md">
-                      <div className="font-medium text-gray-800 truncate">{e.titulo}</div>
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-[10px] font-mono text-gray-600">{e.skuid}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.plataforma}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      <span className="inline-flex items-center gap-1 text-gray-700 font-semibold"><Star size={11} className="text-amber-500" />{e.valoracion.toFixed(1)}</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.ventas.toLocaleString("es-MX")}</td>
-                    <td className="px-3 py-2.5 text-right font-bold text-purple-700">{e.score.toFixed(2)}</td>
+                  <tr key={`${e.skuid}-${e.canal}-${i}`} className="hover:bg-gray-50">
+                    {tableMode === "score" ? (
+                      <>
+                        <td className="px-3 py-2.5">
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">#{e.rank}</span>
+                        </td>
+                        <td className="px-3 py-2.5 max-w-md">
+                          <div className="font-medium text-gray-800 truncate">{e.titulo}</div>
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.canal}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="inline-flex items-center gap-1 text-gray-700 font-semibold"><Star size={11} className="text-amber-500" />{e.valoracion.toFixed(1)}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.reviews.toLocaleString("es-MX")}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-purple-700">{e.score.toFixed(2)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          {e.url_producto ? (
+                            <a href={e.url_producto} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Ver producto</a>
+                          ) : (
+                            <span className="text-[11px] text-gray-400">-</span>
+                          )}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-3 py-2.5 max-w-md">
+                          <div className="font-medium text-gray-800 truncate">{e.titulo}</div>
+                        </td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.canal}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.img_count}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.video_count}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.title_count_characters}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.count_character_desc}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          {e.url_producto ? (
+                            <a href={e.url_producto} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Ver producto</a>
+                          ) : (
+                            <span className="text-[11px] text-gray-400">-</span>
+                          )}
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
               </tbody>

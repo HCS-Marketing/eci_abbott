@@ -143,6 +143,7 @@ export async function GET(req: Request) {
           plataforma: r.retail,
           estado_hoy: r.disponibilidad,
           winner_seller: r.seller || "SIN INFORMACION",
+          url_producto: r.url_producto || "",
         }))
 
       return NextResponse.json(out.slice(0, limit))
@@ -170,25 +171,30 @@ export async function GET(req: Request) {
         plataforma: r.retail,
         fabricante: r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller,
         valoracion: r.valoracion,
-        ventas: r.ventas,
+        reviews: r.reviews,
+        img_count: r.img_count,
+        video_count: r.video_count,
+        title_count_characters: r.title_count_characters,
+        count_character_desc: r.count_character_desc,
+        url_producto: r.url_producto || "",
       }))
 
-      const maxVentas = parsed.reduce((m, r) => Math.max(m, r.ventas), 0)
+      const maxReviews = parsed.reduce((m, r) => Math.max(m, r.reviews), 0)
       const scored = parsed.map(r => {
-        const salesNorm = maxVentas > 0 ? r.ventas / maxVentas : 0
+        const reviewsNorm = maxReviews > 0 ? r.reviews / maxReviews : 0
         const ratingNorm = r.valoracion > 0 ? r.valoracion / 5 : 0
-        const score = ((salesNorm * 0.7) + (ratingNorm * 0.3)) * 100
+        const score = ((reviewsNorm * 0.6) + (ratingNorm * 0.4)) * 100
         return { ...r, score: Math.round(score * 100) / 100 }
       })
 
       const rankByScore = [...scored]
-        .sort((a, b) => (b.score - a.score) || (b.ventas - a.ventas) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
+        .sort((a, b) => (b.score - a.score) || (b.reviews - a.reviews) || (b.valoracion - a.valoracion) || a.titulo.localeCompare(b.titulo))
         .map((r, i) => ({ ...r, rank: i + 1 }))
 
       const sorted = [...rankByScore].sort((a, b) => {
         let cmp = 0
         if (sortBy === "valoracion") cmp = a.valoracion - b.valoracion
-        else if (sortBy === "ventas") cmp = a.ventas - b.ventas
+        else if (sortBy === "reviews") cmp = a.reviews - b.reviews
         else if (sortBy === "titulo") cmp = a.titulo.localeCompare(b.titulo)
         else cmp = a.score - b.score
         return sortDir === "asc" ? cmp : -cmp
