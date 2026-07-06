@@ -70,7 +70,7 @@ export default function BuyboxPage() {
       if (!d?.max) return
       setMinDate(d.min)
       setMaxDate(d.max)
-      setDate(prev => (!prev || prev > d.max || prev < d.min) ? d.max : prev)
+      setDate(d.max)
     })
   }, [channel, country])
 

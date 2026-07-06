@@ -46,8 +46,8 @@ export async function GET(req: Request) {
 
     if (action === "dates") {
       return NextResponse.json({
-        min: minMxProviderDate(rowsByChannel),
-        max: maxMxProviderDate(rowsByChannel),
+        min: minMxProviderDate(rows),
+        max: maxMxProviderDate(rows),
       })
     }
 
