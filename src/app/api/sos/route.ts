@@ -56,6 +56,18 @@ function categoryFilterColumnByCountry(countryCode: string, alias?: string): str
   if (countryCode === "CO") return `${p}categoria_col`
   return `${p}categoria`
 }
+
+function categoryFilterColumnForSource(
+  countryCode: string,
+  source: "base" | "mv",
+  alias?: string
+): string {
+  if (source === "mv") {
+    const p = alias ? `${alias}.` : ""
+    return `${p}categoria`
+  }
+  return categoryFilterColumnByCountry(countryCode, alias)
+}
 function categorySqlCondition(columnSql: string, params: unknown[], selectedCategory: string): string {
   if (!selectedCategory) return ""
   params.push(selectedCategory)
@@ -290,7 +302,7 @@ export async function GET(req: Request) {
         w += ` AND retail = $${params.length}`
       }
       if (opts.category !== false && category) {
-        w += categorySqlCondition(categoryFilterColumnByCountry(country), params, category)
+        w += categorySqlCondition(categoryFilterColumnForSource(country, "mv"), params, category)
       }
       if (opts.country !== false && country) {
         params.push(country)
@@ -937,7 +949,7 @@ export async function GET(req: Request) {
       const p: unknown[] = [dateParam]
       let w = `fecha = $1::date`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-      if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
+      if (category) { w += categorySqlCondition(categoryFilterColumnForSource(country, "mv"), p, category) }
       if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
       const pageClause = pageFilter === "p1" ? "AND appearances_p1 > 0" : ""
       let sellerCond = ""
@@ -1682,7 +1694,7 @@ export async function GET(req: Request) {
         const p: unknown[] = [dateParam]
         let w = `fecha = $1::date`
         if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-        if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
+        if (category) { w += categorySqlCondition(categoryFilterColumnForSource(country, "mv"), p, category) }
         if (country)  { p.push(country);  w += ` AND pais = $${p.length}` }
         const mfCond = marcaFilter(p)
         let sellerCond = ""
@@ -1711,7 +1723,7 @@ export async function GET(req: Request) {
       const p2: unknown[] = [dateParam]
       let w2 = `fecha::date = $1::date AND id IS NOT NULL`
       if (channel)  { p2.push(channel);  w2 += ` AND retail = $${p2.length}` }
-      if (category) { w2 += categorySqlCondition(categoryFilterColumnByCountry(country), p2, category) }
+      if (category) { w2 += categorySqlCondition(categoryFilterColumnForSource(country, "base"), p2, category) }
       if (country)  { p2.push(country);  w2 += ` AND pais = $${p2.length}` }
       let sellerCond2 = ""
       if (seller) {
