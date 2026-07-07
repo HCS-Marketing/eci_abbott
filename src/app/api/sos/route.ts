@@ -301,7 +301,30 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_sos_daily_fab WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      const sellers = rows.map(r => r.n)
+
+      // Fallback: some MVs can lag or keep fabricante collapsed as only MARCA LOCAL.
+      // In that case, derive sellers dynamically from base table eci.search.
+      if (sellers.length === 0 || (sellers.length === 1 && sellers[0] === "MARCA LOCAL")) {
+        const p2: unknown[] = [startD, endD]
+        let w2 = `fecha >= $1 AND fecha <= $2`
+        if (channel) { p2.push(channel); w2 += ` AND retail = $${p2.length}` }
+        if (country) { p2.push(country); w2 += ` AND pais = $${p2.length}` }
+        if (category) {
+          p2.push(category)
+          w2 += ` AND categoria = $${p2.length}`
+        }
+        const fb = await prisma.$queryRawUnsafe<{ n: string }[]>(
+          `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n
+           FROM eci.search
+           WHERE ${w2}
+           ORDER BY 1`,
+          ...p2
+        )
+        return NextResponse.json(fb.map(r => r.n))
+      }
+
+      return NextResponse.json(sellers)
     }
 
     // ── fabricantes list for inventory filter — from eci.sos ─
@@ -453,6 +476,63 @@ export async function GET(req: Request) {
         seller: string; products_p1: number; products_total: number
         sos_p1: number; sos_total: number
       }[]>(sql, ...p)
+
+      // Fallback: if MV result collapses to only MARCA LOCAL, recompute from base eci.search.
+      if (rows.length > 0 && rows.every(r => r.seller === "MARCA LOCAL")) {
+        const p2: unknown[] = [startD, endD]
+        let w2 = `s.fecha >= $1 AND s.fecha <= $2`
+        if (channel) { p2.push(channel); w2 += ` AND s.retail = $${p2.length}` }
+        if (country) { p2.push(country); w2 += ` AND s.pais = $${p2.length}` }
+        if (category) {
+          p2.push(category)
+          w2 += ` AND s.categoria = $${p2.length}`
+        }
+        if (segmento || mercado) {
+          let sub = ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} IN (
+            SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
+          if (segmento) { p2.push(segmento); sub += ` AND mf2.segmento = $${p2.length}` }
+          if (mercado)  { p2.push(mercado);  sub += ` AND mf2.mercado = $${p2.length}` }
+          sub += `)`
+          w2 += sub
+        }
+        const sql2 = `
+          WITH agg AS (
+            SELECT
+              ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS fab,
+              SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
+              COUNT(*) AS products_total
+            FROM eci.search s
+            WHERE ${w2}
+            GROUP BY 1
+          ),
+          totals AS (
+            SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
+          )
+          SELECT
+            a.fab AS seller,
+            a.products_p1::int,
+            a.products_total::int,
+            ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
+            ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
+          FROM agg a, totals t
+          ORDER BY sos_p1 DESC
+          LIMIT 50
+        `
+        const rows2 = await prisma.$queryRawUnsafe<{
+          seller: string; products_p1: number; products_total: number
+          sos_p1: number; sos_total: number
+        }[]>(sql2, ...p2)
+        return NextResponse.json(rows2.map((r, i) => ({
+          seller:           r.seller,
+          sos_p1:           Number(r.sos_p1),
+          sos_total:        Number(r.sos_total),
+          products_p1:      Number(r.products_p1),
+          products_total:   Number(r.products_total),
+          color:            retailColor(r.seller, i),
+          rank:             i + 1,
+        })))
+      }
+
       return NextResponse.json(rows.map((r, i) => ({
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
