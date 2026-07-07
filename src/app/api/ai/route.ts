@@ -6,11 +6,42 @@ const ANTHROPIC_TIMEOUT_MS = 18_000
 const TOOL_TIMEOUT_MS = 10_000
 const TOTAL_REQUEST_TIMEOUT_MS = 25_000
 const MAX_TOOL_ITERATIONS = 2
+const TOOL_MAX_RETRIES = 2
+const TOOL_RETRY_BACKOFF_MS = 400
+
+const ALLOWED_ACTIONS = new Set([
+  "dates",
+  "channels",
+  "categories",
+  "bestsellers",
+  "pricing",
+  "buybox",
+  "assortment",
+  "inventory",
+  "price_index",
+])
 
 class TimeoutError extends Error {
   constructor(message: string) {
     super(message)
     this.name = "TimeoutError"
+  }
+}
+
+class InputValidationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "InputValidationError"
+  }
+}
+
+class HttpStatusError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = "HttpStatusError"
+    this.status = status
   }
 }
 
@@ -74,12 +105,64 @@ const DB_TOOL = {
 }
 
 // ─── TOOL EXECUTOR ────────────────────────────────────────────
-async function executeTool(input: Record<string, unknown>): Promise<string> {
-  const action   = String(input.action   || "dates")
-  const date     = input.date     ? String(input.date)     : undefined
-  const channel  = input.channel  ? String(input.channel)  : undefined
-  const category = input.category ? String(input.category) : undefined
-  const limit    = Math.min(input.limit ? Number(input.limit) : 30, 100)
+type ValidatedToolInput = {
+  action: string
+  date?: string
+  channel?: string
+  category?: string
+  limit: number
+}
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function validateToolInput(input: Record<string, unknown>): ValidatedToolInput {
+  const action = String(input.action || "").trim()
+  if (!ALLOWED_ACTIONS.has(action)) {
+    throw new InputValidationError(`Action inválida: ${action || "(vacía)"}`)
+  }
+
+  const dateRaw = input.date != null ? String(input.date).trim() : ""
+  if (dateRaw && !isIsoDate(dateRaw)) {
+    throw new InputValidationError("Fecha inválida. Debe tener formato YYYY-MM-DD")
+  }
+
+  const channel = input.channel != null ? String(input.channel).trim() : ""
+  if (channel.length > 120) {
+    throw new InputValidationError("Canal inválido: longitud máxima excedida")
+  }
+
+  const category = input.category != null ? String(input.category).trim() : ""
+  if (category.length > 120) {
+    throw new InputValidationError("Categoría inválida: longitud máxima excedida")
+  }
+
+  const limitRaw = input.limit != null ? Number(input.limit) : 30
+  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(Math.floor(limitRaw), 100)) : 30
+
+  return {
+    action,
+    date: dateRaw || undefined,
+    channel: channel || undefined,
+    category: category || undefined,
+    limit,
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function isRetryableToolError(e: unknown): boolean {
+  const err = e as { name?: string; status?: number }
+  if (err?.name === "AbortError" || err?.name === "TimeoutError") return true
+  if (typeof err?.status === "number") return err.status >= 500 || err.status === 429
+  return true
+}
+
+async function executeTool(input: Record<string, unknown>, requestId: string): Promise<string> {
+  const { action, date, channel, category, limit } = validateToolInput(input)
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
@@ -91,19 +174,57 @@ async function executeTool(input: Record<string, unknown>): Promise<string> {
     p.set("startDate", date); p.set("endDate", date)
   }
 
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), TOOL_TIMEOUT_MS)
-    const res  = await fetch(`${baseUrl}/api/sos?${p}`, { signal: ctrl.signal })
-    clearTimeout(timer)
-    const data = await res.json()
-    return formatToolResult(action, data)
-  } catch (e) {
-    if ((e as { name?: string })?.name === "AbortError") {
-      return "La consulta a la base demoró demasiado y fue cancelada. Probá con menos filtros o una pregunta más específica."
+  let lastError: unknown
+  for (let attempt = 1; attempt <= TOOL_MAX_RETRIES; attempt++) {
+    const toolStart = Date.now()
+    try {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), TOOL_TIMEOUT_MS)
+      const res = await fetch(`${baseUrl}/api/sos?${p}`, { signal: ctrl.signal })
+      clearTimeout(timer)
+
+      if (!res.ok) {
+        throw new HttpStatusError(res.status, `Tool HTTP ${res.status}`)
+      }
+
+      const data = await res.json()
+      const rowCount = Array.isArray(data) ? data.length : null
+
+      console.info(JSON.stringify({
+        type: "ai_tool_metric",
+        request_id: requestId,
+        action,
+        status: "ok",
+        attempt,
+        duration_ms: Date.now() - toolStart,
+        rows: rowCount,
+      }))
+
+      return formatToolResult(action, data)
+    } catch (e) {
+      lastError = e
+      const retryable = attempt < TOOL_MAX_RETRIES && isRetryableToolError(e)
+      console.warn(JSON.stringify({
+        type: "ai_tool_metric",
+        request_id: requestId,
+        action,
+        status: retryable ? "retry" : "error",
+        attempt,
+        duration_ms: Date.now() - toolStart,
+        error: String(e),
+      }))
+      if (!retryable) break
+      await sleep(TOOL_RETRY_BACKOFF_MS * attempt)
     }
-    return `Error al consultar la DB: ${String(e)}`
   }
+
+  if ((lastError as { name?: string })?.name === "AbortError") {
+    return "La consulta a la base demoró demasiado y fue cancelada. Probá con menos filtros o una pregunta más específica."
+  }
+  if ((lastError as { name?: string })?.name === "InputValidationError") {
+    return `La consulta no pudo ejecutarse por parámetros inválidos: ${String((lastError as Error).message || lastError)}`
+  }
+  return `Error al consultar la DB: ${String(lastError)}`
 }
 
 function fmt(n: number) { return n.toLocaleString("es-AR") }
@@ -338,7 +459,7 @@ export async function POST(req: Request) {
 
         ensureWithinTotalTimeout("before_tool")
         const toolStartedAt = Date.now()
-        const toolResult = await executeTool(toolBlock.input)
+        const toolResult = await executeTool(toolBlock.input, requestId)
         console.info(JSON.stringify({
           type: "ai_tool_result",
           request_id: requestId,
