@@ -1659,6 +1659,14 @@ export async function GET(req: Request) {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
 
+      // Some sources store discount as fraction (0.05) while UI expects percent (5).
+      const normalizeDiscountPercent = (raw: unknown): number => {
+        const v = Number(raw ?? 0)
+        if (!Number.isFinite(v)) return 0
+        const pct = v > 0 && v < 1 ? v * 100 : v
+        return Math.round(pct * 10) / 10
+      }
+
       // Shared row mapper — handles both MV and direct eci.sos shapes
       function mapRow(r: Record<string, unknown>) {
         const pv = Number(r.precio_venta ?? 0)
@@ -1674,7 +1682,7 @@ export async function GET(req: Request) {
           fabricante:               r.fabricante,
           precio_venta:             pv > 0 ? pv : pn,
           precio:                   Math.max(pv, pn) || null,
-          descuento:                Number(r.descuento ?? 0),
+          descuento:                normalizeDiscountPercent(r.descuento),
           cuotas_sin_interes:       null,
           tiene_cuotas_sin_interes: null,
           detalle_cuotas:           null,
