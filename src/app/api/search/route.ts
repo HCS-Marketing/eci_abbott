@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { ensureSearchMaterializedViewsFresh } from "@/lib/mv-refresh"
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +46,8 @@ export async function GET(req: Request) {
   const sosPageFilter = pageMode === "p1" ? " AND count_p1 > 0" : ""
 
   try {
+    await ensureSearchMaterializedViewsFresh(prisma)
+
     // ── helper: date params (parsed early for all actions) ──
     const startDate = searchParams.get("startDate") || ""
     const endDate   = searchParams.get("endDate") || ""

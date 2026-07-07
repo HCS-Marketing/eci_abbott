@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { ensureSosMaterializedViewsFresh } from "@/lib/mv-refresh"
 import { loadMxProviderRows, maxMxProviderDate, minMxProviderDate, toProviderSkuid } from "@/lib/mx-provider-data"
 
 export const dynamic = 'force-dynamic'
@@ -250,6 +251,9 @@ export async function GET(req: Request) {
         return NextResponse.json(sorted.slice(0, limit))
       }
     }
+
+    // Keep Prisma-backed SOS/ranking pages aligned with latest base-table data.
+    await ensureSosMaterializedViewsFresh(prisma)
 
     // ── date range (dynamic from base table eci.sos) ────
     if (action === "dates") {
