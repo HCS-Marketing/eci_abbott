@@ -2,6 +2,18 @@ import { NextResponse } from "next/server"
 import fs from "fs"
 import path from "path"
 
+const ANTHROPIC_TIMEOUT_MS = 18_000
+const TOOL_TIMEOUT_MS = 10_000
+const TOTAL_REQUEST_TIMEOUT_MS = 25_000
+const MAX_TOOL_ITERATIONS = 2
+
+class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "TimeoutError"
+  }
+}
+
 // ─── GUIDE (read once, server-side) ──────────────────────────
 const GUIDE_PATH = path.join(process.cwd(), "market_seller_guide.txt")
 let GUIDE = ""
@@ -80,10 +92,16 @@ async function executeTool(input: Record<string, unknown>): Promise<string> {
   }
 
   try {
-    const res  = await fetch(`${baseUrl}/api/sos?${p}`)
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), TOOL_TIMEOUT_MS)
+    const res  = await fetch(`${baseUrl}/api/sos?${p}`, { signal: ctrl.signal })
+    clearTimeout(timer)
     const data = await res.json()
     return formatToolResult(action, data)
   } catch (e) {
+    if ((e as { name?: string })?.name === "AbortError") {
+      return "La consulta a la base demoró demasiado y fue cancelada. Probá con menos filtros o una pregunta más específica."
+    }
     return `Error al consultar la DB: ${String(e)}`
   }
 }
@@ -222,11 +240,30 @@ type ClaudeMessage = { role: "user" | "assistant"; content: string | ContentBloc
 
 // ─── ROUTE ────────────────────────────────────────────────────
 export async function POST(req: Request) {
+  const requestId = crypto.randomUUID()
+  const startedAt = Date.now()
+
+  function elapsedMs() {
+    return Date.now() - startedAt
+  }
+
+  function ensureWithinTotalTimeout(stage: string) {
+    if (elapsedMs() > TOTAL_REQUEST_TIMEOUT_MS) {
+      throw new TimeoutError(`Timeout total excedido en etapa: ${stage}`)
+    }
+  }
+
   try {
     const { messages, pageContext } = await req.json() as {
       messages: { role: "user" | "assistant"; content: string }[]
       pageContext?: string
     }
+
+    console.info(JSON.stringify({
+      type: "ai_request_start",
+      request_id: requestId,
+      messages_count: messages?.length ?? 0,
+    }))
 
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) return NextResponse.json({ error: "ANTHROPIC_API_KEY no configurada" }, { status: 503 })
@@ -247,8 +284,12 @@ export async function POST(req: Request) {
     // Build initial messages for Anthropic
     let claudeMessages: ClaudeMessage[] = messages.map(m => ({ role: m.role, content: m.content }))
 
-    // ── Agentic loop — up to 4 tool calls ────────────────────
-    for (let iter = 0; iter < 4; iter++) {
+    // ── Agentic loop — bounded tool calls and bounded time ─────
+    for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
+      ensureWithinTotalTimeout("before_anthropic")
+
+      const anthropicCtrl = new AbortController()
+      const anthropicTimer = setTimeout(() => anthropicCtrl.abort(), ANTHROPIC_TIMEOUT_MS)
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -256,6 +297,7 @@ export async function POST(req: Request) {
           "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
         },
+        signal: anthropicCtrl.signal,
         body: JSON.stringify({
           model:      "claude-opus-4-5",
           max_tokens: 1500,
@@ -264,14 +306,29 @@ export async function POST(req: Request) {
           tools:      [DB_TOOL],
         }),
       })
+      clearTimeout(anthropicTimer)
 
       const data = await resp.json()
+
+      console.info(JSON.stringify({
+        type: "ai_anthropic_response",
+        request_id: requestId,
+        iter,
+        stop_reason: data?.stop_reason,
+        elapsed_ms: elapsedMs(),
+      }))
 
       if (data.stop_reason === "end_turn") {
         const textBlock = Array.isArray(data.content)
           ? (data.content as ContentBlock[]).find(b => b.type === "text") as TextBlock | undefined
           : undefined
         const text = textBlock?.text ?? data.error ?? "No se pudo procesar la consulta."
+        console.info(JSON.stringify({
+          type: "ai_request_end",
+          request_id: requestId,
+          status: "ok",
+          elapsed_ms: elapsedMs(),
+        }))
         return NextResponse.json({ content: [{ type: "text", text }] })
       }
 
@@ -279,7 +336,18 @@ export async function POST(req: Request) {
         const toolBlock = (data.content as ContentBlock[]).find(b => b.type === "tool_use") as ToolUseBlock | undefined
         if (!toolBlock) break
 
+        ensureWithinTotalTimeout("before_tool")
+        const toolStartedAt = Date.now()
         const toolResult = await executeTool(toolBlock.input)
+        console.info(JSON.stringify({
+          type: "ai_tool_result",
+          request_id: requestId,
+          iter,
+          tool_name: toolBlock.name,
+          action: String((toolBlock.input || {}).action || ""),
+          duration_ms: Date.now() - toolStartedAt,
+          elapsed_ms: elapsedMs(),
+        }))
 
         claudeMessages = [
           ...claudeMessages,
@@ -292,9 +360,40 @@ export async function POST(req: Request) {
       break // unexpected stop_reason
     }
 
+    console.warn(JSON.stringify({
+      type: "ai_request_end",
+      request_id: requestId,
+      status: "fallback",
+      reason: "loop_exhausted_or_unexpected_stop",
+      elapsed_ms: elapsedMs(),
+    }))
     return NextResponse.json({ content: [{ type: "text", text: "No se pudo completar el análisis. Intentá de nuevo." }] })
   } catch (e: unknown) {
+    const err = e as { name?: string; message?: string }
+    if (err?.name === "AbortError" || err?.name === "TimeoutError") {
+      console.warn(JSON.stringify({
+        type: "ai_request_end",
+        request_id: requestId,
+        status: "timeout",
+        error: err?.message || "timeout",
+        elapsed_ms: elapsedMs(),
+      }))
+      return NextResponse.json({
+        content: [{
+          type: "text",
+          text: "La consulta demoró demasiado y se canceló para evitar cuelgues. Probá con una pregunta más específica (fecha, país, retail y categoría).",
+        }],
+      }, { status: 200 })
+    }
+
     const msg = e instanceof Error ? e.message : "Error desconocido"
+    console.error(JSON.stringify({
+      type: "ai_request_end",
+      request_id: requestId,
+      status: "error",
+      error: msg,
+      elapsed_ms: elapsedMs(),
+    }))
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
