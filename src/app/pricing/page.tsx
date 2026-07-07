@@ -390,7 +390,7 @@ export default function PricingPage() {
                     onClick={() => toggleSort("descuento")}>
                     Desc% <SortIcon col="descuento" />
                   </th>
-                  <th className="px-3 py-2.5"></th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Link</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -460,6 +460,7 @@ export default function PricingPage() {
                             <ExternalLink size={8} />ver
                           </a>
                         )}
+                        {!e.url_producto && <span className="text-gray-300">—</span>}
                       </td>
                     </tr>
                   )
