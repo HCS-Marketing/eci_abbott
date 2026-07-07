@@ -375,12 +375,17 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── countries list — from mv_sos_dimensions ───────────
+    // ── countries list — dynamic from base table eci.sos ───────────
     if (action === "countries") {
       const rows = await prisma.$queryRaw<{ n: string }[]>`
-        SELECT DISTINCT pais AS n FROM eci.mv_sos_dimensions ORDER BY 1
+        SELECT DISTINCT pais AS n
+        FROM eci.sos
+        WHERE pais IS NOT NULL AND TRIM(pais) <> ''
+        ORDER BY 1
       `
-      return NextResponse.json(rows.map(r => r.n))
+      const dbCountries = rows.map(r => r.n)
+      const merged = Array.from(new Set(["MX", "CO", "PE", ...dbCountries]))
+      return NextResponse.json(merged)
     }
 
     // ── segmentos list — from marca_fabricante ────────────

@@ -40,7 +40,7 @@ export default function PriceIndexPage() {
 
   const [channel,  setChannel]  = useState("")
   const [category, setCategory] = useState("")
-  const [country,  setCountry]  = useState("")
+  const [country,  setCountry]  = useState("MX")
   const [segmento, setSegmento] = useState("")
   const [mercado,  setMercado]  = useState("")
   const [startDate, setStartDate] = useState("")
@@ -62,9 +62,12 @@ export default function PriceIndexPage() {
   // Countries
   useEffect(() => {
     fetch('/api/sos?action=countries').then(r => r.json()).then((d: string[]) => {
-      if (Array.isArray(d)) setAvailableCountries(d)
+      if (!Array.isArray(d)) return
+      const merged = Array.from(new Set(["MX", "CO", "PE", ...d]))
+      setAvailableCountries(merged)
+      if (!country || !merged.includes(country)) setCountry("MX")
     })
-  }, [])
+  }, [country])
 
   // Mercado / Segmento solo aplican a MX
   useEffect(() => {
@@ -205,7 +208,6 @@ export default function PriceIndexPage() {
           <span className="text-xs text-gray-400">País</span>
           <select value={country} onChange={e => setCountry(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
             {availableCountries.map(c => <option key={c} value={c}>{c === "MX" ? "México" : c === "CO" ? "Colombia" : c === "PE" ? "Perú" : c}</option>)}
           </select>
         </div>

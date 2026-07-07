@@ -10,17 +10,19 @@ interface FilterContextValue {
 }
 
 const FilterContext = createContext<FilterContextValue>({
-  country: "",
+  country: "MX",
   setCountry: () => {},
   countries: [],
   loadingCountries: true,
 })
 
 const STORAGE_KEY = "abbott_eci_country"
+const DEFAULT_COUNTRIES = ["MX", "CO", "PE"] as const
+const DEFAULT_COUNTRY = "MX"
 
 export function FilterProvider({ children }: { children: React.ReactNode }) {
-  const [country, setCountryState] = useState("")
-  const [countries, setCountries] = useState<string[]>([])
+  const [country, setCountryState] = useState(DEFAULT_COUNTRY)
+  const [countries, setCountries] = useState<string[]>([...DEFAULT_COUNTRIES])
   const [loadingCountries, setLoadingCountries] = useState(true)
   const [countryLock, setCountryLock] = useState<string[] | null>(null)
 
@@ -36,7 +38,9 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY)
-    if (saved) setCountryState(saved)
+    if (saved && DEFAULT_COUNTRIES.includes(saved as "MX" | "CO" | "PE")) {
+      setCountryState(saved)
+    }
   }, [])
 
   useEffect(() => {
@@ -45,9 +49,8 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
       .then(r => r.json())
       .then((data: unknown) => {
         if (cancelled) return
-        if (!Array.isArray(data) || data.length === 0) return
-        const allCountries = (data as string[]).filter(Boolean)
-        if (allCountries.length === 0) return
+        const apiCountries = Array.isArray(data) ? (data as string[]).filter(Boolean) : []
+        const allCountries = Array.from(new Set([...DEFAULT_COUNTRIES, ...apiCountries]))
 
         // Apply lock strictly: locked users must only see their allowed country.
         const effectiveList = countryLock && countryLock.length > 0
@@ -63,8 +66,7 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
             return locked
           }
           if (prev && effectiveList.includes(prev)) return prev
-          if (prev) return prev
-          const next = effectiveList[0]
+          const next = effectiveList.includes(DEFAULT_COUNTRY) ? DEFAULT_COUNTRY : effectiveList[0]
           try { window.localStorage.setItem(STORAGE_KEY, next) } catch {}
           return next
         })
@@ -79,9 +81,9 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
   const setCountry = (next: string) => {
     // Ignore if user has a country lock
     if (countryLock && countryLock.length > 0) return
+    if (!next) return
     setCountryState(next)
-    if (next) window.localStorage.setItem(STORAGE_KEY, next)
-    else window.localStorage.removeItem(STORAGE_KEY)
+    window.localStorage.setItem(STORAGE_KEY, next)
   }
 
   const value = useMemo(
