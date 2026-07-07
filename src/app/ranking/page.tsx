@@ -2,7 +2,7 @@
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import clsx from "clsx"
 import { Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
@@ -116,6 +116,11 @@ function TrendChart({ data, sellers, colors }: { data: Record<string, unknown>[]
     </div>
   )
 }
+
+const TREND_PALETTE = [
+  "#2563eb", "#dc2626", "#16a34a", "#d97706", "#0d9488", "#e11d48", "#7c3aed", "#0891b2",
+  "#4f46e5", "#65a30d", "#ea580c", "#9333ea", "#14b8a6", "#be123c", "#0284c7", "#b45309",
+]
 
 type DrillLevel = "seller" | "brand" | "titulo"
 type PageCtx    = "p1" | "total"
@@ -310,6 +315,22 @@ export default function RankingScorePage() {
   ]
   const maxScore   = Math.max(...sellerData.map(e => Number(e.score_p1)), 1)
   const maxChannel = Math.max(...channelData.map(e => Number(page === "p1" ? e.score_p1 : e.score_total)), 1)
+  const trendColors = useMemo(() => {
+    const used = new Set<string>()
+    const mapped: Record<string, string> = {}
+    selectedSellers.forEach((seller, index) => {
+      const preferred = COLORS[seller]
+      if (preferred && !used.has(preferred)) {
+        mapped[seller] = preferred
+        used.add(preferred)
+        return
+      }
+      const next = TREND_PALETTE.find(color => !used.has(color)) || TREND_PALETTE[index % TREND_PALETTE.length]
+      mapped[seller] = next
+      used.add(next)
+    })
+    return mapped
+  }, [selectedSellers, COLORS])
 
   return (
     <div className="space-y-4">
@@ -511,14 +532,14 @@ export default function RankingScorePage() {
               )}
             </div>
           </div>
-          <TrendChart data={trendData} sellers={selectedSellers} colors={COLORS} />
+          <TrendChart data={trendData} sellers={selectedSellers} colors={trendColors} />
           <div className="flex flex-wrap gap-4 mt-3">
             {selectedSellers.map(s => {
               const last    = trendData[trendData.length - 1]
               const val     = last ? Number(last[s] || 0) : 0
               return (
                 <div key={s} className="flex items-center gap-2">
-                  <span className="w-3 h-0.5 rounded" style={{ backgroundColor: COLORS[s] || "#a427ff" }} />
+                  <span className="w-3 h-0.5 rounded" style={{ backgroundColor: trendColors[s] || "#6b7280" }} />
                   <span className="text-xs text-gray-600">{s}</span>
                   <span className="text-xs font-semibold text-gray-900 font-mono">{val.toLocaleString()}</span>
                 </div>
