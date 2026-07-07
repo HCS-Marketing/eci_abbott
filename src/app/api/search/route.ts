@@ -142,11 +142,26 @@ export async function GET(req: Request) {
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       // Normalize names to SOS canonical, deduplicate
-      const seen = new Set<string>()
-      const normalized = rows
-        .map(r => RETAIL_NORMALIZE[r.n] ?? r.n)
-        .filter(n => !seen.has(n) && seen.add(n))
-        .sort()
+      const normalize = (items: { n: string }[]) => {
+        const seen = new Set<string>()
+        return items
+          .map(r => RETAIL_NORMALIZE[r.n] ?? r.n)
+          .filter(n => !seen.has(n) && seen.add(n))
+          .sort()
+      }
+      let normalized = normalize(rows)
+
+      // Fallback: if date-scoped result is empty, return channels for country/search without date constraint.
+      if (normalized.length === 0 && (startDate || endDate)) {
+        const p2: unknown[] = []
+        let sql2 = `SELECT DISTINCT retail AS n FROM eci.search WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
+        if (search)  { p2.push(search);  sql2 += ` AND search = $${p2.length}` }
+        if (country) { p2.push(country); sql2 += ` AND pais = $${p2.length}` }
+        sql2 += " ORDER BY 1"
+        const rows2 = await prisma.$queryRawUnsafe<{ n: string }[]>(sql2, ...p2)
+        normalized = normalize(rows2)
+      }
+
       return NextResponse.json(normalized)
     }
 

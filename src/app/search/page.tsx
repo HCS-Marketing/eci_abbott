@@ -313,35 +313,41 @@ export default function ShareOfShelfPage() {
   // ── Cascading: retails filtrados por categoría + país + fechas ───
   useEffect(() => {
     if (!startDate || !endDate) return
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "channels" })
     if (category)  p.set("search",  category)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     if (country)   p.set("country",  country)
-    fetch(`/api/search?${p}`)
+    fetch(`/api/search?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
         setAvailableChannels(data)
         if (channel && !data.includes(channel)) setChannel("")
       })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [category, startDate, endDate, country])
 
   // ── Cascading: búsquedas filtradas por retail + país + fechas ────
   useEffect(() => {
     if (!startDate || !endDate) return
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "searches" })
     if (channel)   p.set("channel",   channel)
     if (startDate) p.set("startDate", startDate)
     if (endDate)   p.set("endDate",   endDate)
     if (country)   p.set("country",   country)
-    fetch(`/api/search?${p}`)
+    fetch(`/api/search?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
         setAvailableCategories(data)
         if (category && !data.includes(category)) setCategory("")
       })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [channel, startDate, endDate, country])
 
   // ── Cascading: segmentos filtrados por retail + mercado ────────────
