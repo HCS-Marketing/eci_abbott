@@ -112,22 +112,30 @@ export async function GET(req: Request) {
       return sub
     }
 
-    // ── search terms list (replaces "categories") — uses MV ──
+    // ── search terms list (replaces "categories") — dynamic from base table ──
     if (action === "searches") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT search AS n FROM eci.mv_search_daily_fab WHERE search IS NOT NULL AND search != ''`
+      let sql = `SELECT DISTINCT search AS n FROM eci.search WHERE search IS NOT NULL AND TRIM(search) <> ''`
       if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
-      if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
+      if (channel) {
+        const vals = RETAIL_ALIASES[channel] || [channel]
+        if (vals.length === 1) {
+          p.push(vals[0]); sql += ` AND retail = $${p.length}`
+        } else {
+          const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", ")
+          sql += ` AND retail IN (${phs})`
+        }
+      }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => r.n))
     }
 
-    // ── channels list — uses MV ──
+    // ── channels list — dynamic from base table ──
     if (action === "channels") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT retail AS n FROM eci.mv_search_daily_fab WHERE 1=1`
+      let sql = `SELECT DISTINCT retail AS n FROM eci.search WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
       if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (search)  { p.push(search);  sql += ` AND search = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
@@ -142,12 +150,16 @@ export async function GET(req: Request) {
       return NextResponse.json(normalized)
     }
 
-    // ── countries list — uses MV ──
+    // ── countries list — dynamic from base table ──
     if (action === "countries") {
       const rows = await prisma.$queryRaw<{ n: string }[]>`
-        SELECT DISTINCT pais AS n FROM eci.mv_search_daily_fab ORDER BY 1
+        SELECT DISTINCT pais AS n
+        FROM eci.search
+        WHERE pais IS NOT NULL AND TRIM(pais) <> ''
+        ORDER BY 1
       `
-      return NextResponse.json(rows.map(r => r.n))
+      const dbCountries = rows.map(r => r.n)
+      return NextResponse.json(Array.from(new Set(["MX", "CO", "PE", ...dbCountries])))
     }
 
     // ── segmentos ──
