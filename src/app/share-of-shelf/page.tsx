@@ -309,17 +309,24 @@ export default function ShareOfShelfPage() {
     setAvailableCategories([])
   }, [country])
 
-  // ── Cargar rango de fechas disponible ─────────────────────
+  // ── Cargar rango de fechas disponible (country-aware) ─────
   useEffect(() => {
-    fetch("/api/sos?action=dates")
+    const ac = new AbortController()
+    const p = new URLSearchParams({ action: "dates" })
+    if (country) p.set("country", country)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
       .then(r => r.json())
       .then((d: { min: string; max: string }) => {
+        if (!d?.min || !d?.max) return
         const defaults = getDefaultLast7DayRange(d)
-        setMinDate(d.min); setMaxDate(d.max)
-        setStartDate(defaults.start); setEndDate(defaults.end)
+        setMinDate(d.min)
+        setMaxDate(d.max)
+        setStartDate(prev => (prev && prev >= d.min && prev <= d.max ? prev : defaults.start))
+        setEndDate(prev => (prev && prev >= d.min && prev <= d.max ? prev : defaults.end))
       })
-      .catch(() => {})
-  }, [])
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
+  }, [country])
 
   // ── Cascading: retails filtrados por país + fechas ───
   useEffect(() => {

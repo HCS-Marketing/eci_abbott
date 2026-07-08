@@ -47,14 +47,14 @@ function categorySourceSql(alias?: string): string {
 function categorySourceSqlByCountry(countryCode: string, alias?: string): string {
   const p = alias ? `${alias}.` : ""
   if (countryCode === "CO") return `NULLIF(TRIM(${p}categoria_col), '')`
-  if (countryCode === "MX") return `${p}categoria`
+  if (countryCode === "MX") return `NULLIF(TRIM(${p}categoria), '')`
   return categorySourceSql(alias)
 }
 
 function categoryFilterColumnByCountry(countryCode: string, alias?: string): string {
   const p = alias ? `${alias}.` : ""
-  if (countryCode === "CO") return `${p}categoria_col`
-  return `${p}categoria`
+  if (countryCode === "CO") return `NULLIF(TRIM(${p}categoria_col), '')`
+  return `NULLIF(TRIM(${p}categoria), '')`
 }
 
 function categoryFilterColumnForSource(
@@ -64,7 +64,7 @@ function categoryFilterColumnForSource(
 ): string {
   if (source === "mv") {
     const p = alias ? `${alias}.` : ""
-    return `${p}categoria`
+    return `NULLIF(TRIM(${p}categoria), '')`
   }
   return categoryFilterColumnByCountry(countryCode, alias)
 }
