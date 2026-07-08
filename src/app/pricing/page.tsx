@@ -188,10 +188,15 @@ export default function PricingPage() {
 
   // KPIs
   const prices        = filtered.map(e => e.precio_venta).filter(p => p > 0)
+  const discountValues = filtered
+    .map(e => Number(e.descuento))
+    .filter(d => Number.isFinite(d) && d > 0)
   const minPrice      = prices.length ? Math.min(...prices) : 0
   const maxPrice      = prices.length ? Math.max(...prices) : 0
   const avgPrice      = prices.length ? Number((prices.reduce((s, p) => s + p, 0) / prices.length).toFixed(1)) : 0
-  const avgDiscount   = filtered.length ? Number((filtered.reduce((s, e) => s + (e.descuento || 0), 0) / filtered.length).toFixed(1)) : 0
+  const avgDiscount   = discountValues.length
+    ? Number((discountValues.reduce((s, d) => s + d, 0) / discountValues.length).toFixed(1))
+    : 0
   const uniqueSellers = new Set(filtered.map(e => e.fabricante)).size
 
   function toggleSort(col: SortCol) {
