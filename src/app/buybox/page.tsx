@@ -13,6 +13,8 @@ import { downloadCSV, exportPDF } from "@/lib/export"
 interface BuyboxLostRow {
   id: string
   producto: string
+  ean: string
+  categoria: string
   plataforma: string
   estado_hoy: string
   winner_seller: string
@@ -33,12 +35,14 @@ export default function BuyboxPage() {
   }
 
   const [channel,  setChannel]  = useState("")
+  const [category, setCategory] = useState("")
   const [date,     setDate]     = useState("")
   const [minDate,  setMinDate]  = useState("")
   const [maxDate,  setMaxDate]  = useState("")
   const [search,   setSearch]   = useState("")
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [lostData, setLostData] = useState<BuyboxLostRow[]>([])
   const [loading,  setLoading]  = useState(false)
@@ -76,13 +80,14 @@ export default function BuyboxPage() {
 
   useEffect(() => {
     const effectiveDate = date || fallbackDateBounds.max
-    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
-      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
       .map(r => r.titulo)
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
 
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
+    if (category) p.set("category", category)
     if (effectiveDate) p.set("date", effectiveDate)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -95,7 +100,30 @@ export default function BuyboxPage() {
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel, fallbackDateBounds.max])
+  }, [date, channel, category, fallbackDateBounds.max])
+
+  useEffect(() => {
+    const effectiveDate = date || fallbackDateBounds.max
+    const local = Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+      .map(r => String(r.categoria || "").trim())
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+
+    const p = new URLSearchParams({ action: "categories" })
+    if (channel) p.set("channel", channel)
+    if (effectiveDate) p.set("date", effectiveDate)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        const merged = Array.from(new Set([...(Array.isArray(d) ? d : []), ...local])).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableCategories(merged)
+        if (category && !merged.includes(category)) setCategory("")
+      })
+      .catch(() => {
+        setAvailableCategories(local)
+        if (category && !local.includes(category)) setCategory("")
+      })
+  }, [date, channel, category, fallbackDateBounds.max])
 
   // Fetch buybox Newsan 7d
   const fetchData = useCallback(() => {
@@ -105,6 +133,7 @@ export default function BuyboxPage() {
     p.set("source", "provider")
     p.set("date", effectiveDate)
     if (channel)  p.set("channel",  channel)
+    if (category) p.set("category", category)
     if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
     if (country)  p.set("country",  country)
     fetch(`/api/provider?${p}`)
@@ -117,16 +146,20 @@ export default function BuyboxPage() {
 
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (channel) pRaw.set("channel", channel)
+        if (category) pRaw.set("category", category)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
-          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string }>)
+          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string; EAN?: string; ean?: string; categoria?: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .filter(r => !channel || normalizeChannel(r.retail) === channel)
+            .filter(r => !category || String(r.categoria || "") === category)
             .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map((r, i) => ({
               id: `${r.retail}|||${r.titulo}|||${i}`,
               producto: r.titulo || "",
+              ean: String(r.EAN || r.ean || "").trim(),
+              categoria: String(r.categoria || "").trim(),
               plataforma: r.retail || "",
               estado_hoy: r.disponibilidad || "NO DISPONIBLE",
               winner_seller: r.seller || "SIN INFORMACION",
@@ -135,9 +168,11 @@ export default function BuyboxPage() {
           setLostData(local)
           return
         }
-        setLostData(raw.map((r: { retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string }, i: number) => ({
+        setLostData(raw.map((r: { retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string; ean?: string; categoria?: string }, i: number) => ({
           id: `${r.retail}|||${r.titulo}|||${i}`,
           producto: r.titulo || "",
+          ean: String(r.ean || "").trim(),
+          categoria: String(r.categoria || "").trim(),
           plataforma: r.retail || "",
           estado_hoy: r.disponibilidad || "NO DISPONIBLE",
           winner_seller: r.seller || "SIN INFORMACION",
@@ -145,13 +180,16 @@ export default function BuyboxPage() {
         })))
       })
       .catch(() => {
-        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string }>)
+        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string; EAN?: string; ean?: string; categoria?: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .filter(r => !channel || normalizeChannel(r.retail) === channel)
+          .filter(r => !category || String(r.categoria || "") === category)
           .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map((r, i) => ({
             id: `${r.retail}|||${r.titulo}|||${i}`,
             producto: r.titulo || "",
+            ean: String(r.EAN || r.ean || "").trim(),
+            categoria: String(r.categoria || "").trim(),
             plataforma: r.retail || "",
             estado_hoy: r.disponibilidad || "NO DISPONIBLE",
             winner_seller: r.seller || "SIN INFORMACION",
@@ -160,20 +198,23 @@ export default function BuyboxPage() {
         setLostData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, date, fallbackDateBounds.max, selectedProducts])
+  }, [channel, category, country, date, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const lostFiltered = lostData.filter(e =>
+    (!category || e.categoria === category) &&
     (selectedProducts.length === 0 || selectedProducts.includes(e.producto)) && (
       !search ||
       e.producto?.toLowerCase().includes(search.toLowerCase()) ||
+      e.ean?.toLowerCase().includes(search.toLowerCase()) ||
+      e.categoria?.toLowerCase().includes(search.toLowerCase()) ||
       e.winner_seller?.toLowerCase().includes(search.toLowerCase()) ||
       e.plataforma?.toLowerCase().includes(search.toLowerCase())
     )
   )
-  const availableCount = lostFiltered.filter(e => e.estado_hoy === "DISPONIBLE").length
-  const unavailableCount = lostFiltered.length - availableCount
+  const buyboxLostCount = lostFiltered.filter(e => !e.winner_seller?.toUpperCase().includes("ABBOTT")).length
+  const unavailableCount = lostFiltered.filter(e => e.estado_hoy !== "DISPONIBLE").length
 
   return (
     <div className="space-y-4">
@@ -198,6 +239,15 @@ export default function BuyboxPage() {
             <option value="">Todos</option>
             <option value="AMAZON">Amazon</option>
             <option value="MERCADO LIBRE">Mercado Libre</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Categoría</span>
+          <select value={category} onChange={e => setCategory(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todas</option>
+            {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
@@ -230,10 +280,10 @@ export default function BuyboxPage() {
             sub: "productos del ultimo corte",
           },
           {
-            label: "Disponibles hoy",
-            value: String(availableCount),
-            color: "#16a34a",
-            sub: "estado DISPONIBLE",
+            label: "Buybox perdido",
+            value: String(buyboxLostCount),
+            color: buyboxLostCount > 0 ? "#dc2626" : "#16a34a",
+            sub: "winner seller distinto de Abbott",
           },
           {
             label: "No disponibles hoy",
@@ -287,6 +337,8 @@ export default function BuyboxPage() {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
                     <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoría</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado hoy (disponibilidad)</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
@@ -300,6 +352,8 @@ export default function BuyboxPage() {
                         <td className="px-4 py-3 max-w-xs">
                           <div className="font-medium text-gray-800 leading-snug mb-0.5">{e.producto}</div>
                         </td>
+                        <td className="px-3 py-3 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
+                        <td className="px-3 py-3 whitespace-nowrap text-gray-700">{e.categoria || "-"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                         </td>

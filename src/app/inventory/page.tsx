@@ -15,6 +15,8 @@ interface InventoryRow {
   id: string
   estado: "DISPONIBLE" | "NO DISPONIBLE" | string
   producto: string
+  ean: string
+  categoria: string
   canal: string
   ultimo_visto: string | null
   stock_status: "in_stock" | "break"
@@ -34,12 +36,15 @@ export default function InventoryPage() {
   }
 
   const [channel,    setChannel]    = useState("")
+  const [category,   setCategory]   = useState("")
   const [date,      setDate]      = useState("")
   const [minDate,    setMinDate]    = useState("")
   const [maxDate,    setMaxDate]    = useState("")
   const [search,     setSearch]     = useState("")
+  const [showOnlyUnavailable, setShowOnlyUnavailable] = useState(false)
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
@@ -78,13 +83,14 @@ export default function InventoryPage() {
 
   useEffect(() => {
     const effectiveDate = date || fallbackDateBounds.max
-    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string }>)
-      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
       .map(r => r.titulo)
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
 
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
+    if (category) p.set("category", category)
     if (effectiveDate) p.set("date", effectiveDate)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -97,7 +103,30 @@ export default function InventoryPage() {
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel, fallbackDateBounds.max])
+  }, [date, channel, category, fallbackDateBounds.max])
+
+  useEffect(() => {
+    const effectiveDate = date || fallbackDateBounds.max
+    const local = Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+      .map(r => String(r.categoria || "").trim())
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+
+    const p = new URLSearchParams({ action: "categories" })
+    if (channel) p.set("channel", channel)
+    if (effectiveDate) p.set("date", effectiveDate)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        const merged = Array.from(new Set([...(Array.isArray(d) ? d : []), ...local])).sort((a, b) => a.localeCompare(b, "es"))
+        setAvailableCategories(merged)
+        if (category && !merged.includes(category)) setCategory("")
+      })
+      .catch(() => {
+        setAvailableCategories(local)
+        if (category && !local.includes(category)) setCategory("")
+      })
+  }, [date, channel, category, fallbackDateBounds.max])
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -108,6 +137,7 @@ export default function InventoryPage() {
     })
     p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
+    if (category)   p.set("category",   category)
     if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
     if (country)    p.set("country",    country)
     fetch(`/api/provider?${p}`)
@@ -120,12 +150,14 @@ export default function InventoryPage() {
 
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (channel) pRaw.set("channel", channel)
+        if (category) pRaw.set("category", category)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
-          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
+          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .filter(r => !channel || normalizeChannel(r.retail) === channel)
+            .filter(r => !category || String(r.categoria || "") === category)
             .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
             .map(r => {
               const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
@@ -133,6 +165,8 @@ export default function InventoryPage() {
                 id: `${r.retail}|||${r.titulo}`,
                 estado: r.disponibilidad || "NO DISPONIBLE",
                 producto: r.titulo || "",
+                ean: String(r.EAN || r.ean || "").trim(),
+                categoria: String(r.categoria || "").trim(),
                 canal: r.retail || "",
                 ultimo_visto: r.fecha || null,
                 stock_status: status,
@@ -141,19 +175,22 @@ export default function InventoryPage() {
           setData(local)
           return
         }
-        setData(raw.map((r: { retail: string; titulo: string; fecha: string; disponibilidad: string }) => ({
+        setData(raw.map((r: { retail: string; titulo: string; fecha: string; disponibilidad: string; ean?: string; categoria?: string }) => ({
           id: `${r.retail}|||${r.titulo}`,
           estado: r.disponibilidad || "NO DISPONIBLE",
           producto: r.titulo || "",
+          ean: String(r.ean || "").trim(),
+          categoria: String(r.categoria || "").trim(),
           canal: r.retail || "",
           ultimo_visto: r.fecha || null,
           stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
         })))
       })
       .catch(() => {
-        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string }>)
+        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .filter(r => !channel || normalizeChannel(r.retail) === channel)
+          .filter(r => !category || String(r.categoria || "") === category)
           .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           .map(r => {
             const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
@@ -161,6 +198,8 @@ export default function InventoryPage() {
               id: `${r.retail}|||${r.titulo}`,
               estado: r.disponibilidad || "NO DISPONIBLE",
               producto: r.titulo || "",
+              ean: String(r.EAN || r.ean || "").trim(),
+              categoria: String(r.categoria || "").trim(),
               canal: r.retail || "",
               ultimo_visto: r.fecha || null,
               stock_status: status,
@@ -169,20 +208,24 @@ export default function InventoryPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, country, date, fallbackDateBounds.max, selectedProducts])
+  }, [channel, category, country, date, fallbackDateBounds.max, selectedProducts])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const filtered = useMemo(() =>
     data.filter(e =>
+      (!category || e.categoria === category) &&
+      (!showOnlyUnavailable || e.stock_status === "break") &&
       (selectedProducts.length === 0 || selectedProducts.includes(e.producto)) && (
         !search ||
         e.producto?.toLowerCase().includes(search.toLowerCase()) ||
+        e.ean?.toLowerCase().includes(search.toLowerCase()) ||
+        e.categoria?.toLowerCase().includes(search.toLowerCase()) ||
         e.canal?.toLowerCase().includes(search.toLowerCase()) ||
         e.estado?.toLowerCase().includes(search.toLowerCase())
       )
     )
-  , [data, search, selectedProducts])
+  , [data, search, selectedProducts, category, showOnlyUnavailable])
 
   // KPIs
   const inStock      = filtered.filter(e => e.stock_status === "in_stock").length
@@ -225,6 +268,28 @@ export default function InventoryPage() {
             <option value="MERCADO LIBRE">Mercado Libre</option>
           </select>
         </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Categoría</span>
+          <select value={category} onChange={e => setCategory(e.target.value)}
+            className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todas</option>
+            {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowOnlyUnavailable(prev => !prev)}
+          className={clsx(
+            "text-xs px-3 py-1.5 rounded-lg border transition-colors",
+            showOnlyUnavailable
+              ? "bg-red-50 text-red-700 border-red-200"
+              : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+          )}
+        >
+          Solo no disponibles
+        </button>
 
         <ProductMultiSelect
           options={availableProducts}
@@ -291,6 +356,8 @@ export default function InventoryPage() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoría</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Ultimo visto</th>
                 </tr>
@@ -320,6 +387,14 @@ export default function InventoryPage() {
                     {/* Producto */}
                     <td className="px-3 py-2.5 max-w-xs">
                       <div className="font-medium text-gray-800 leading-snug truncate">{e.producto}</div>
+                    </td>
+
+                    <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">
+                      {e.ean || "-"}
+                    </td>
+
+                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">
+                      {e.categoria || "-"}
                     </td>
 
                     {/* Canal */}

@@ -20,6 +20,7 @@ export async function GET(req: Request) {
     const endDate = searchParams.get("endDate") || ""
     const show = searchParams.get("show") || "all"
     const seller = searchParams.get("seller") || ""
+    const category = searchParams.get("category") || ""
     const products = (searchParams.get("products") || "")
       .split(",")
       .map(v => decodeURIComponent(v.trim()))
@@ -31,6 +32,7 @@ export async function GET(req: Request) {
     const rows = loadMxProviderRows()
     const channelNorm = normalizeChannel(channel)
     const rowsByChannel = channelNorm ? rows.filter(r => r.retail === channelNorm) : rows
+    const categoryNorm = category.trim().toLowerCase()
     const maxDate = maxMxProviderDate(rowsByChannel)
     const effectiveDate = date || endDate || maxDate
 
@@ -58,8 +60,18 @@ export async function GET(req: Request) {
     }
 
     if (action === "products") {
-      const scoped = rowsByChannel.filter(r => !effectiveDate || r.fecha === effectiveDate)
+      const scoped = rowsByChannel
+        .filter(r => !effectiveDate || r.fecha === effectiveDate)
+        .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
       const items = Array.from(new Set(scoped.map(r => r.titulo).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      return NextResponse.json(items)
+    }
+
+    if (action === "categories") {
+      const scoped = rowsByChannel
+        .filter(r => !effectiveDate || r.fecha === effectiveDate)
+        .filter(r => products.length === 0 || products.includes(r.titulo))
+      const items = Array.from(new Set(scoped.map(r => r.categoria).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(items)
     }
 
@@ -71,6 +83,7 @@ export async function GET(req: Request) {
     if (action === "raw") {
       const base = rowsByChannel
         .filter(r => products.length === 0 || products.includes(r.titulo))
+        .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .sort((a, b) => {
           if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha)
@@ -85,6 +98,7 @@ export async function GET(req: Request) {
 
       for (const r of rowsByChannel) {
         if (products.length > 0 && !products.includes(r.titulo)) continue
+        if (categoryNorm && r.categoria.trim().toLowerCase() !== categoryNorm) continue
         if (r.fecha > effectiveDate) continue
         const key = `${r.retail}|||${r.titulo}`
         const list = grouped.get(key) || []
@@ -100,6 +114,8 @@ export async function GET(req: Request) {
           id: key,
           estado: current?.disponibilidad || "NO DISPONIBLE",
           producto: current?.titulo || "",
+          ean: current?.ean || "",
+          categoria: current?.categoria || "",
           canal: current?.retail || "",
           ultimo_visto: lastAvailable?.fecha || null,
           stock_status: current?.disponible ? "in_stock" : "break",
@@ -124,6 +140,7 @@ export async function GET(req: Request) {
     if (action === "buybox") {
       const todays = rowsByChannel
         .filter(r => r.fecha === effectiveDate)
+        .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
         .filter(r => products.length === 0 || products.includes(r.titulo))
       const byKey = new Map<string, typeof todays[number]>()
       for (const r of todays) {
@@ -140,6 +157,8 @@ export async function GET(req: Request) {
         .map((r, idx) => ({
           id: `${r.retail}|||${r.titulo}|||${idx}`,
           producto: r.titulo,
+          ean: r.ean || "",
+          categoria: r.categoria || "",
           plataforma: r.retail,
           estado_hoy: r.disponibilidad,
           winner_seller: r.seller || "SIN INFORMACION",
@@ -153,6 +172,7 @@ export async function GET(req: Request) {
       const sellerNorm = seller.trim().toUpperCase()
       const base = rowsByChannel.filter(r => r.fecha === effectiveDate).filter(r => {
         if (products.length > 0 && !products.includes(r.titulo)) return false
+        if (categoryNorm && r.categoria.trim().toLowerCase() !== categoryNorm) return false
         if (!sellerNorm) return true
         const fab = r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller.trim().toUpperCase()
         return fab === sellerNorm || r.seller.trim().toUpperCase() === sellerNorm
@@ -167,6 +187,8 @@ export async function GET(req: Request) {
 
       const parsed = Array.from(dedup.values()).map((r, idx) => ({
         titulo: r.titulo,
+        ean: r.ean,
+        categoria: r.categoria,
         skuid: toProviderSkuid(r, idx),
         plataforma: r.retail,
         fabricante: r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller,
@@ -174,6 +196,7 @@ export async function GET(req: Request) {
         reviews: r.reviews,
         img_count: r.img_count,
         video_count: r.video_count,
+        bullet_points: r.bullet_points,
         title_count_characters: r.title_count_characters,
         count_character_desc: r.count_character_desc,
         url_producto: r.url_producto || "",

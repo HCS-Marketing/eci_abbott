@@ -17,6 +17,8 @@ export interface MxProviderRow {
   fecha: string
   retail: string
   titulo: string
+  ean: string
+  categoria: string
   posicion: number | null
   seller: string
   ventas: number
@@ -24,6 +26,7 @@ export interface MxProviderRow {
   reviews: number
   img_count: number
   video_count: number
+  bullet_points: number
   title_count_characters: number
   count_character_desc: number
   url_producto: string
@@ -110,6 +113,13 @@ function parseIntegerField(value: unknown): number {
   return Number.isFinite(n) ? Math.max(0, n) : 0
 }
 
+function readField(row: Record<string, unknown>, keys: string[]): unknown {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) return row[key]
+  }
+  return undefined
+}
+
 function normalizeDisponibilidad(value: unknown): { disponibilidad: string; disponible: boolean } {
   const raw = String(value ?? "").trim().toUpperCase()
   if (raw.includes("NO")) return { disponibilidad: "NO DISPONIBLE", disponible: false }
@@ -144,11 +154,17 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
       const titulo = String(r.titulo ?? "").trim()
       if (!fecha || !retail || !titulo) continue
 
+      const ean = String(readField(r, ["EAN", "ean", "Ean"]) ?? "").trim()
+      const categoria = String(readField(r, ["categoria", "Categoría", "CATEGORIA", "category", "Category"]) ?? "").trim()
+      const bulletPoints = parseIntegerField(readField(r, ["bullet_points", "bullet point", "bullet_points_count", "bullet_count", "bullets"]))
+
       const { disponibilidad, disponible } = normalizeDisponibilidad(r.disponibilidad)
       rows.push({
         fecha,
         retail,
         titulo,
+        ean,
+        categoria,
         posicion: parsePosicion(r.posicion),
         seller: String(r.seller ?? "").trim() || "SIN INFORMACION",
         ventas: parseVentas(r.ventas),
@@ -156,6 +172,7 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
         reviews: parseIntegerField(r.reviews),
         img_count: parseIntegerField(r.img_count),
         video_count: parseIntegerField(r.video_count),
+        bullet_points: bulletPoints,
         title_count_characters: parseIntegerField(r.title_count_characters),
         count_character_desc: parseIntegerField(r.count_character_desc),
         url_producto: String(r.url_producto ?? "").trim(),
@@ -171,7 +188,12 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 export function loadMxProviderRows(): MxProviderRow[] {
   const all = [...readExcelFilesFromDir(AMZ_DIR), ...readExcelFilesFromDir(ML_DIR)]
   const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
-  const base = all.length > 0 ? all : fallbackRows
+  const base = (all.length > 0 ? all : fallbackRows).map(r => ({
+    ...r,
+    ean: String(r.ean || "").trim(),
+    categoria: String(r.categoria || "").trim(),
+    bullet_points: Number(r.bullet_points || 0),
+  }))
   base.sort((a, b) => {
     if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha)
     if (a.retail !== b.retail) return a.retail.localeCompare(b.retail)
