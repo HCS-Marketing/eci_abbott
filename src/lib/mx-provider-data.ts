@@ -34,8 +34,48 @@ export interface MxProviderRow {
   disponible: boolean
 }
 
-const AMZ_DIR = path.join(process.cwd(), "base_prov", "amz")
-const ML_DIR = path.join(process.cwd(), "base_prov", "ml")
+function hasProviderBase(root: string): boolean {
+  return fs.existsSync(path.join(root, "base_prov", "amz")) && fs.existsSync(path.join(root, "base_prov", "ml"))
+}
+
+function candidateRoots(): string[] {
+  const c = [
+    process.cwd(),
+    process.env.INIT_CWD || "",
+    process.env.PWD || "",
+  ].filter(Boolean)
+
+  try {
+    if (typeof __dirname === "string" && __dirname) c.push(__dirname)
+  } catch {
+    // Ignore environments where __dirname is unavailable
+  }
+
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const start of c) {
+    let cur = path.resolve(start)
+    while (true) {
+      if (!seen.has(cur)) {
+        seen.add(cur)
+        out.push(cur)
+      }
+      const parent = path.dirname(cur)
+      if (parent === cur) break
+      cur = parent
+    }
+  }
+
+  return out
+}
+
+function resolveProviderBaseDir(): string {
+  for (const root of candidateRoots()) {
+    if (hasProviderBase(root)) return path.join(root, "base_prov")
+  }
+
+  return path.join(process.cwd(), "base_prov")
+}
 
 function normalizeDate(value: unknown): string | null {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -200,7 +240,11 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 }
 
 export function loadMxProviderRows(): MxProviderRow[] {
-  const all = [...readExcelFilesFromDir(AMZ_DIR), ...readExcelFilesFromDir(ML_DIR)]
+  const baseDir = resolveProviderBaseDir()
+  const all = [
+    ...readExcelFilesFromDir(path.join(baseDir, "amz")),
+    ...readExcelFilesFromDir(path.join(baseDir, "ml")),
+  ]
   const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
   const base = (all.length > 0 ? all : fallbackRows).map(r => ({
     ...r,
