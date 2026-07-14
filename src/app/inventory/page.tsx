@@ -50,7 +50,15 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(false)
 
   const fallbackDateBounds = useMemo(() => {
-    const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
+    const typed = fallbackRows as Array<{ fecha?: string; ean?: string; categoria?: string }>
+    console.log('[Inventory] Fallback rows:', typed.length)
+    if (typed.length > 0) {
+      console.log('[Inventory] Fallback sample:', typed[0])
+      const withEAN = typed.filter(r => r.ean).length
+      const withCat = typed.filter(r => r.categoria).length
+      console.log('[Inventory] Rows with EAN:', withEAN, 'with categoria:', withCat)
+    }
+    const dates = Array.from(new Set(typed.map(r => r.fecha).filter(Boolean) as string[])).sort()
     return {
       min: dates[0] || "",
       max: dates[dates.length - 1] || "",
@@ -112,17 +120,22 @@ export default function InventoryPage() {
       .map(r => String(r.categoria || "").trim())
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
 
+    console.log('[Inventory] Local categories from fallback:', local)
+
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (effectiveDate) p.set("date", effectiveDate)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then((d: string[]) => {
+        console.log('[Inventory] Categories from API:', d)
         const merged = Array.from(new Set([...(Array.isArray(d) ? d : []), ...local])).sort((a, b) => a.localeCompare(b, "es"))
+        console.log('[Inventory] Merged categories:', merged)
         setAvailableCategories(merged)
         if (category && !merged.includes(category)) setCategory("")
       })
-      .catch(() => {
+      .catch((err) => {
+        console.log('[Inventory] Failed to fetch categories from API, using local:', err)
         setAvailableCategories(local)
         if (category && !local.includes(category)) setCategory("")
       })
