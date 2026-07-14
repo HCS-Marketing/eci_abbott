@@ -30,6 +30,14 @@ export async function GET(req: Request) {
     const limit = Math.min(5000, Number.parseInt(searchParams.get("limit") || "500", 10))
 
     const rows = loadMxProviderRows()
+    console.log(`[API Provider] Loaded ${rows.length} rows`)
+    const withEAN = rows.filter(r => r.ean && r.ean.trim()).length
+    const withCat = rows.filter(r => r.categoria && r.categoria.trim()).length
+    console.log(`[API Provider] Rows with EAN: ${withEAN}, with categoria: ${withCat}`)
+    if (rows.length > 0) {
+      const sample = rows.find(r => r.ean && r.categoria) || rows[0]
+      console.log(`[API Provider] Sample row:`, { titulo: sample.titulo.substring(0, 40), ean: sample.ean, categoria: sample.categoria })
+    }
     const channelNorm = normalizeChannel(channel)
     const rowsByChannel = channelNorm ? rows.filter(r => r.retail === channelNorm) : rows
     const categoryNorm = category.trim().toLowerCase()

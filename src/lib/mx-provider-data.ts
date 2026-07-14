@@ -70,11 +70,20 @@ function candidateRoots(): string[] {
 }
 
 function resolveProviderBaseDir(): string {
-  for (const root of candidateRoots()) {
-    if (hasProviderBase(root)) return path.join(root, "base_prov")
+  const roots = candidateRoots()
+  console.log(`[loadMxProviderRows] Searching in ${roots.length} candidate roots`)
+  for (const root of roots) {
+    console.log(`[loadMxProviderRows] Checking: ${root}`)
+    if (hasProviderBase(root)) {
+      const resolved = path.join(root, "base_prov")
+      console.log(`[loadMxProviderRows] ✅ Found base_prov at: ${resolved}`)
+      return resolved
+    }
   }
 
-  return path.join(process.cwd(), "base_prov")
+  const fallback = path.join(process.cwd(), "base_prov")
+  console.log(`[loadMxProviderRows] ⚠️ No base_prov found, using fallback: ${fallback}`)
+  return fallback
 }
 
 function normalizeDate(value: unknown): string | null {
@@ -187,20 +196,27 @@ function parsePosicion(value: unknown): number | null {
 }
 
 function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
-  if (!fs.existsSync(dirPath)) return []
+  if (!fs.existsSync(dirPath)) {
+    console.log(`[readExcelFilesFromDir] ⚠️ Directory not found: ${dirPath}`)
+    return []
+  }
   const fileNames = fs.readdirSync(dirPath)
     .filter(f => f.toLowerCase().endsWith(".xlsx") && !f.startsWith("~$"))
+
+  console.log(`[readExcelFilesFromDir] Found ${fileNames.length} Excel files in ${dirPath}`)
 
   const rows: MxProviderRow[] = []
 
   for (const fileName of fileNames) {
     const fullPath = path.join(dirPath, fileName)
+    console.log(`[readExcelFilesFromDir] Reading: ${fullPath}`)
     const wb = XLSX_API.readFile(fullPath)
     const sheetName = wb.SheetNames[0]
     if (!sheetName) continue
 
     const ws = wb.Sheets[sheetName]
     const data = XLSX_API.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" })
+    console.log(`[readExcelFilesFromDir] Parsed ${data.length} rows from ${fileName}`)
 
     for (const r of data) {
       const fecha = normalizeDate(r.fecha)
@@ -235,6 +251,10 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
       })
     }
   }
+
+  const withEAN = rows.filter(r => r.ean).length
+  const withCat = rows.filter(r => r.categoria).length
+  console.log(`[readExcelFilesFromDir] Total rows: ${rows.length}, with EAN: ${withEAN}, with categoria: ${withCat}`)
 
   return rows
 }
