@@ -357,7 +357,6 @@ export default function InventoryPage() {
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoría</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Ultimo visto</th>
                 </tr>
@@ -391,10 +390,6 @@ export default function InventoryPage() {
 
                     <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">
                       {e.ean || "-"}
-                    </td>
-
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">
-                      {e.categoria || "-"}
                     </td>
 
                     {/* Canal */}

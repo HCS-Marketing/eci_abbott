@@ -422,11 +422,9 @@ export default function CatalogContentPage() {
                     <>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Titulo</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
-                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoria</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Imagenes</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Video</th>
-                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Bullets</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Caracteres titulo</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Caracteres descripcion</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Puntaje contenido</th>
@@ -453,11 +451,9 @@ export default function CatalogContentPage() {
                       <>
                         <td className="px-3 py-2.5 max-w-md"><div className="font-medium text-gray-800 truncate">{e.titulo}</div></td>
                         <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
-                        <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{e.categoria || "-"}</td>
                         <td className="px-3 py-2.5 whitespace-nowrap"><span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.canal}</span></td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.img_count}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.video_count}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.bullet_points}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.title_count_characters}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.count_character_desc}</td>
                         <td className="px-3 py-2.5 text-right font-bold text-blue-700">{e.content_score.toFixed(0)}</td>

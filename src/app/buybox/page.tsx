@@ -338,7 +338,6 @@ export default function BuyboxPage() {
                   <tr className="border-b border-gray-100 bg-gray-50 text-left">
                     <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
-                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoría</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Estado hoy (disponibilidad)</th>
                     <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">BuyBox Winner</th>
@@ -353,7 +352,6 @@ export default function BuyboxPage() {
                           <div className="font-medium text-gray-800 leading-snug mb-0.5">{e.producto}</div>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
-                        <td className="px-3 py-3 whitespace-nowrap text-gray-700">{e.categoria || "-"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">
                           <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.plataforma}</span>
                         </td>

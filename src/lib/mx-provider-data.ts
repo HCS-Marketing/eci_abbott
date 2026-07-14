@@ -113,10 +113,24 @@ function parseIntegerField(value: unknown): number {
   return Number.isFinite(n) ? Math.max(0, n) : 0
 }
 
+function normalizeHeaderKey(value: string): string {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
+
 function readField(row: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(row, key)) return row[key]
   }
+
+  const normalizedTargets = new Set(keys.map(normalizeHeaderKey))
+  for (const [rowKey, rowValue] of Object.entries(row)) {
+    if (normalizedTargets.has(normalizeHeaderKey(rowKey))) return rowValue
+  }
+
   return undefined
 }
 
@@ -156,7 +170,7 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 
       const ean = String(readField(r, ["EAN", "ean", "Ean"]) ?? "").trim()
       const categoria = String(readField(r, ["categoria", "Categoría", "CATEGORIA", "category", "Category"]) ?? "").trim()
-      const bulletPoints = parseIntegerField(readField(r, ["bullet_points", "bullet point", "bullet_points_count", "bullet_count", "bullets"]))
+      const bulletPoints = parseIntegerField(readField(r, ["bullet_points", "bullet point", "bullet_points_count", "bullet_count", "bullets", "bulletpoints"]))
 
       const { disponibilidad, disponible } = normalizeDisponibilidad(r.disponibilidad)
       rows.push({
