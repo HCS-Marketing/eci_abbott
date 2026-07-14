@@ -70,20 +70,12 @@ function candidateRoots(): string[] {
 }
 
 function resolveProviderBaseDir(): string {
-  const roots = candidateRoots()
-  console.log(`[loadMxProviderRows] Searching in ${roots.length} candidate roots`)
-  for (const root of roots) {
-    console.log(`[loadMxProviderRows] Checking: ${root}`)
+  for (const root of candidateRoots()) {
     if (hasProviderBase(root)) {
-      const resolved = path.join(root, "base_prov")
-      console.log(`[loadMxProviderRows] ✅ Found base_prov at: ${resolved}`)
-      return resolved
+      return path.join(root, "base_prov")
     }
   }
-
-  const fallback = path.join(process.cwd(), "base_prov")
-  console.log(`[loadMxProviderRows] ⚠️ No base_prov found, using fallback: ${fallback}`)
-  return fallback
+  return path.join(process.cwd(), "base_prov")
 }
 
 function normalizeDate(value: unknown): string | null {
@@ -196,27 +188,20 @@ function parsePosicion(value: unknown): number | null {
 }
 
 function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
-  if (!fs.existsSync(dirPath)) {
-    console.log(`[readExcelFilesFromDir] ⚠️ Directory not found: ${dirPath}`)
-    return []
-  }
+  if (!fs.existsSync(dirPath)) return []
   const fileNames = fs.readdirSync(dirPath)
     .filter(f => f.toLowerCase().endsWith(".xlsx") && !f.startsWith("~$"))
-
-  console.log(`[readExcelFilesFromDir] Found ${fileNames.length} Excel files in ${dirPath}`)
 
   const rows: MxProviderRow[] = []
 
   for (const fileName of fileNames) {
     const fullPath = path.join(dirPath, fileName)
-    console.log(`[readExcelFilesFromDir] Reading: ${fullPath}`)
     const wb = XLSX_API.readFile(fullPath)
     const sheetName = wb.SheetNames[0]
     if (!sheetName) continue
 
     const ws = wb.Sheets[sheetName]
     const data = XLSX_API.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" })
-    console.log(`[readExcelFilesFromDir] Parsed ${data.length} rows from ${fileName}`)
 
     for (const r of data) {
       const fecha = normalizeDate(r.fecha)
@@ -224,17 +209,13 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
       const titulo = String(r.titulo ?? "").trim()
       if (!fecha || !retail || !titulo) continue
 
-      const ean = String(readField(r, ["EAN", "ean", "Ean"]) ?? "").trim()
-      const categoria = String(readField(r, ["categoria", "Categoría", "CATEGORIA", "category", "Category"]) ?? "").trim()
-      const bulletPoints = parseIntegerField(readField(r, ["bullet_points", "bullet point", "bullet_points_count", "bullet_count", "bullets", "bulletpoints"]))
-
       const { disponibilidad, disponible } = normalizeDisponibilidad(r.disponibilidad)
       rows.push({
         fecha,
         retail,
         titulo,
-        ean,
-        categoria,
+        ean: String(r.EAN ?? "").trim(),
+        categoria: String(r.categoria ?? "").trim(),
         posicion: parsePosicion(r.posicion),
         seller: String(r.seller ?? "").trim() || "SIN INFORMACION",
         ventas: parseVentas(r.ventas),
@@ -242,7 +223,7 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
         reviews: parseIntegerField(r.reviews),
         img_count: parseIntegerField(r.img_count),
         video_count: parseIntegerField(r.video_count),
-        bullet_points: bulletPoints,
+        bullet_points: parseIntegerField(r.bullet_points),
         title_count_characters: parseIntegerField(r.title_count_characters),
         count_character_desc: parseIntegerField(r.count_character_desc),
         url_producto: String(r.url_producto ?? "").trim(),
@@ -251,10 +232,6 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
       })
     }
   }
-
-  const withEAN = rows.filter(r => r.ean).length
-  const withCat = rows.filter(r => r.categoria).length
-  console.log(`[readExcelFilesFromDir] Total rows: ${rows.length}, with EAN: ${withEAN}, with categoria: ${withCat}`)
 
   return rows
 }
