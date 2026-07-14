@@ -1,0 +1,4 @@
+# Build version
+BUILD_DATE=2026-07-14
+VERSION=2.0.0-ean-categoria
+FEATURES=EAN column, Category segmenter, Content scoring by retail
