@@ -12,7 +12,6 @@ function normalizeChannel(value: string): string {
 }
 
 export async function GET(req: Request) {
-  console.log("[API Provider] Request received for action:", new URL(req.url).searchParams.get("action"))
   try {
     const { searchParams } = new URL(req.url)
     const action = searchParams.get("action") || "health"
