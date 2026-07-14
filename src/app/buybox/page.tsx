@@ -350,6 +350,9 @@ export default function BuyboxPage() {
                       <tr key={`${e.id}-${i}`} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 max-w-xs">
                           <div className="font-medium text-gray-800 leading-snug mb-0.5">{e.producto}</div>
+                          {e.categoria && (
+                            <div className="text-[10px] text-gray-500">{e.categoria}</div>
+                          )}
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
                         <td className="px-3 py-3 whitespace-nowrap">

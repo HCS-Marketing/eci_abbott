@@ -439,7 +439,12 @@ export default function CatalogContentPage() {
                     {tableMode === "score" ? (
                       <>
                         <td className="px-3 py-2.5"><span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">#{e.rank}</span></td>
-                        <td className="px-3 py-2.5 max-w-md"><div className="font-medium text-gray-800 truncate">{e.titulo}</div></td>
+                        <td className="px-3 py-2.5 max-w-md">
+                          <div className="font-medium text-gray-800 truncate">{e.titulo}</div>
+                          {e.categoria && (
+                            <div className="text-[10px] text-gray-500 mt-0.5">{e.categoria}</div>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
                         <td className="px-3 py-2.5 whitespace-nowrap"><span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.canal}</span></td>
                         <td className="px-3 py-2.5 text-right"><span className="inline-flex items-center gap-1 text-gray-700 font-semibold"><Star size={11} className="text-amber-500" />{e.valoracion.toFixed(1)}</span></td>
@@ -449,7 +454,12 @@ export default function CatalogContentPage() {
                       </>
                     ) : (
                       <>
-                        <td className="px-3 py-2.5 max-w-md"><div className="font-medium text-gray-800 truncate">{e.titulo}</div></td>
+                        <td className="px-3 py-2.5 max-w-md">
+                          <div className="font-medium text-gray-800 truncate">{e.titulo}</div>
+                          {e.categoria && (
+                            <div className="text-[10px] text-gray-500 mt-0.5">{e.categoria}</div>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
                         <td className="px-3 py-2.5 whitespace-nowrap"><span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.canal}</span></td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.img_count}</td>

@@ -405,6 +405,9 @@ export default function InventoryPage() {
                     {/* Producto */}
                     <td className="px-3 py-2.5 max-w-xs">
                       <div className="font-medium text-gray-800 leading-snug truncate">{e.producto}</div>
+                      {e.categoria && (
+                        <div className="text-[10px] text-gray-500 mt-0.5">{e.categoria}</div>
+                      )}
                     </td>
 
                     <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">
