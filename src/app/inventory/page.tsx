@@ -50,7 +50,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(false)
 
   const fallbackDateBounds = useMemo(() => {
-    const typed = fallbackRows as Array<{ fecha?: string; ean?: string; categoria?: string }>
+    const typed = fallbackRows as Array<{ fecha?: string; ean?: string; categoria?: string; titulo?: string }>
     console.log('[Inventory] Fallback rows:', typed.length)
     if (typed.length > 0) {
       console.log('[Inventory] Fallback sample keys:', Object.keys(typed[0]))
