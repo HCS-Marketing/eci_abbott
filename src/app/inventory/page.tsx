@@ -53,7 +53,13 @@ export default function InventoryPage() {
     const typed = fallbackRows as Array<{ fecha?: string; ean?: string; categoria?: string }>
     console.log('[Inventory] Fallback rows:', typed.length)
     if (typed.length > 0) {
-      console.log('[Inventory] Fallback sample:', typed[0])
+      console.log('[Inventory] Fallback sample keys:', Object.keys(typed[0]))
+      console.log('[Inventory] Fallback sample values:', {
+        fecha: typed[0].fecha,
+        titulo: typed[0].titulo?.substring(0, 40),
+        ean: typed[0].ean,
+        categoria: typed[0].categoria
+      })
       const withEAN = typed.filter(r => r.ean).length
       const withCat = typed.filter(r => r.categoria).length
       console.log('[Inventory] Rows with EAN:', withEAN, 'with categoria:', withCat)
