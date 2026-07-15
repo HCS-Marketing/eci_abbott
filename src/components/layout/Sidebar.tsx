@@ -36,7 +36,7 @@ function SOSBrandmark({ size = 28 }: { size?: number }) {
 export default function Sidebar() {
   const pathname = usePathname()
   const { client } = useClient()
-  const { country, setCountry, countries } = useGlobalFilters()
+  const { country, setCountry, countries, countryLocked } = useGlobalFilters()
   const brandColor = client?.brand_color || "#A427FF"
   const [expanded, setExpanded] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -106,7 +106,9 @@ export default function Sidebar() {
               <select
                 value={country}
                 onChange={e => setCountry(e.target.value)}
+                disabled={countryLocked}
                 className="w-full rounded-lg border border-white/10 bg-white/5 text-[13px] text-white px-2 py-1.5 outline-none"
+                style={{ opacity: countryLocked ? 0.65 : 1, cursor: countryLocked ? "not-allowed" : "pointer" }}
               >
                 {countries.map(c => (
                   <option key={c} value={c} className="text-black">{countryLabel(c)}</option>
@@ -232,7 +234,9 @@ export default function Sidebar() {
             <select
               value={country}
               onChange={e => setCountry(e.target.value)}
+              disabled={countryLocked}
               className="w-full rounded-lg border border-white/10 bg-white/5 text-xs text-white px-2.5 py-2 outline-none"
+              style={{ opacity: countryLocked ? 0.65 : 1, cursor: countryLocked ? "not-allowed" : "pointer" }}
             >
               {countries.map(c => (
                 <option key={c} value={c} className="text-black">{countryLabel(c)}</option>

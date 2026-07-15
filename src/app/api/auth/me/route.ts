@@ -12,6 +12,13 @@ const COUNTRY_LOCK_BY_SLOT: Record<number, string[]> = {
   5: ["MX"],
   6: ["MX"],
   7: ["CO"],
+  9: ["PE"],
+  10: ["PE"],
+  11: ["PE"],
+  12: ["CO"],
+  13: ["CO"],
+  14: ["CO"],
+  15: ["CO"],
 }
 
 export async function GET() {
@@ -41,13 +48,13 @@ export async function GET() {
   }
 
   // Extract username (everything before the timestamp)
-  const username = parts.slice(0, -1).join(".")
+  const username = parts.slice(0, -1).join(".").trim().toLowerCase()
 
   // Determine country lock by matching username against configured slot(s)
   let countryLock: string[] | null = null
   for (const [slotRaw, lock] of Object.entries(COUNTRY_LOCK_BY_SLOT)) {
     const slot = Number(slotRaw)
-    const slotUser = process.env[`USER_APP${slot}`]
+    const slotUser = process.env[`USER_APP${slot}`]?.trim().toLowerCase()
     if (slotUser && slotUser === username) {
       countryLock = lock
       break

@@ -7,6 +7,7 @@ interface FilterContextValue {
   setCountry: (next: string) => void
   countries: string[]
   loadingCountries: boolean
+  countryLocked: boolean
 }
 
 const FilterContext = createContext<FilterContextValue>({
@@ -14,6 +15,7 @@ const FilterContext = createContext<FilterContextValue>({
   setCountry: () => {},
   countries: [],
   loadingCountries: true,
+  countryLocked: false,
 })
 
 const STORAGE_KEY = "abbott_eci_country"
@@ -87,8 +89,14 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
   }
 
   const value = useMemo(
-    () => ({ country, setCountry, countries, loadingCountries }),
-    [country, countries, loadingCountries]
+    () => ({
+      country,
+      setCountry,
+      countries,
+      loadingCountries,
+      countryLocked: Boolean(countryLock && countryLock.length > 0),
+    }),
+    [country, countries, loadingCountries, countryLock]
   )
 
   return <FilterContext.Provider value={value}>{children}</FilterContext.Provider>
