@@ -74,6 +74,16 @@ function categorySqlCondition(columnSql: string, params: unknown[], selectedCate
   return ` AND ${columnSql} = $${params.length}`
 }
 
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  return Array.from(
+    new Set(
+      values
+        .map(v => String(v ?? "").trim())
+        .filter(v => v.length > 0)
+    )
+  ).sort((a, b) => a.localeCompare(b, "es"))
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const action   = searchParams.get("action") || "sellers"
@@ -128,7 +138,7 @@ export async function GET(req: Request) {
       if (action === "channels") {
         const endDateParam = searchParams.get("endDate") || ""
         const filtered = endDateParam ? rows.filter(r => r.fecha <= endDateParam) : rows
-        const channels = Array.from(new Set(filtered.map(r => r.retail))).sort((a, b) => a.localeCompare(b, "es"))
+        const channels = uniqueNonEmpty(filtered.map(r => r.retail))
         return NextResponse.json(channels)
       }
 
@@ -137,7 +147,7 @@ export async function GET(req: Request) {
       }
 
       if (action === "fabricantes_inv") {
-        const sellers = Array.from(new Set(rowsByChannel.map(r => r.seller))).sort((a, b) => a.localeCompare(b, "es"))
+        const sellers = uniqueNonEmpty(rowsByChannel.map(r => r.seller))
         return NextResponse.json(sellers)
       }
 
@@ -317,7 +327,7 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_sos_daily_fab WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      const sellers = rows.map(r => r.n)
+      const sellers = uniqueNonEmpty(rows.map(r => r.n))
 
       // Fallback: some MVs can lag or keep fabricante collapsed as only MARCA LOCAL.
       // In that case, derive sellers dynamically from base table eci.search.
@@ -337,7 +347,7 @@ export async function GET(req: Request) {
            ORDER BY 1`,
           ...p2
         )
-        return NextResponse.json(fb.map(r => r.n))
+        return NextResponse.json(uniqueNonEmpty(fb.map(r => r.n)))
       }
 
       return NextResponse.json(sellers)
@@ -352,7 +362,7 @@ export async function GET(req: Request) {
       if (category) { sql += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
 
     // ── categories list — from mv_sos_dimensions ──────────
@@ -368,7 +378,7 @@ export async function GET(req: Request) {
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      const unique = Array.from(new Set(rows.map(r => r.n))).sort((a, b) => a.localeCompare(b, "es"))
+      const unique = uniqueNonEmpty(rows.map(r => r.n))
       return NextResponse.json(unique)
     }
 
@@ -384,7 +394,7 @@ export async function GET(req: Request) {
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
 
     // ── countries list — dynamic from base table eci.sos ───────────
@@ -395,8 +405,8 @@ export async function GET(req: Request) {
         WHERE pais IS NOT NULL AND TRIM(pais) <> ''
         ORDER BY 1
       `
-      const dbCountries = rows.map(r => r.n)
-      const merged = Array.from(new Set(["MX", "CO", "PE", ...dbCountries]))
+      const dbCountries = uniqueNonEmpty(rows.map(r => r.n))
+      const merged = uniqueNonEmpty(["MX", "CO", "PE", ...dbCountries])
       return NextResponse.json(merged)
     }
 
@@ -404,7 +414,7 @@ export async function GET(req: Request) {
     // Combine channel + country filters via a fabricante sub-query against mv_sos_daily_fab.
     if (action === "segmentos") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND fabricante != 'MARCA LOCAL'`
+      let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND TRIM(segmento) <> '' AND fabricante != 'MARCA LOCAL'`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       if (channel || country) {
         const sub: string[] = []
@@ -414,14 +424,14 @@ export async function GET(req: Request) {
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
 
     // ── mercados list — from marca_fabricante ─────────────
     // Combine channel + country filters via a fabricante sub-query against mv_sos_daily_fab.
     if (action === "mercados") {
       const p: unknown[] = []
-      let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND fabricante != 'MARCA LOCAL'`
+      let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND TRIM(mercado) <> '' AND fabricante != 'MARCA LOCAL'`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
       if (channel || country) {
         const sub: string[] = []
@@ -431,7 +441,7 @@ export async function GET(req: Request) {
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
-      return NextResponse.json(rows.map(r => r.n))
+      return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
 
     // Helper: build segmento/mercado filter for queries with a table alias.
