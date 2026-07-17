@@ -104,6 +104,29 @@ function categorySqlCondition(columnSql: string, params: unknown[], selectedCate
   return ` AND ${columnSql} = $${params.length}`
 }
 
+function mvCategorySqlCondition(params: unknown[], selectedCategory: string, countryCode: string): string {
+  if (!selectedCategory) return ""
+  params.push(selectedCategory)
+  const idx = params.length
+
+  if (isColombiaCountry(countryCode)) {
+    return ` AND (
+      NULLIF(TRIM(categoria), '') = $${idx}
+      OR EXISTS (
+        SELECT 1
+        FROM eci.sos s
+        WHERE s.fecha = d.fecha
+          AND s.retail = d.retail
+          AND UPPER(TRIM(s.pais)) = UPPER(TRIM(d.pais))
+          AND NULLIF(TRIM(s.categoria_col), '') = $${idx}
+        LIMIT 1
+      )
+    )`
+  }
+
+  return ` AND NULLIF(TRIM(categoria), '') = $${idx}`
+}
+
 function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return Array.from(
     new Set(
@@ -349,7 +372,7 @@ export async function GET(req: Request) {
         w += ` AND retail = $${params.length}`
       }
       if (opts.category !== false && category) {
-        w += categorySqlCondition(categoryFilterColumnForSource(country, "mv"), params, category)
+        w += mvCategorySqlCondition(params, category, country)
       }
       if (opts.country !== false) w += countrySqlCondition(params, country)
       return w
@@ -544,16 +567,13 @@ export async function GET(req: Request) {
         sos_p1: number; sos_total: number
       }[]>(sql, ...p)
 
-      // Fallback: if MV result collapses to only MARCA LOCAL, recompute from base eci.search.
-      if (rows.length > 0 && rows.every(r => r.seller === "MARCA LOCAL")) {
+      // Fallback: if MV result is empty or collapses to only MARCA LOCAL, recompute from base eci.sos.
+      if (rows.length === 0 || rows.every(r => r.seller === "MARCA LOCAL")) {
         const p2: unknown[] = [startD, endD]
         let w2 = `s.fecha >= $1 AND s.fecha <= $2`
         if (channel) { p2.push(channel); w2 += ` AND s.retail = $${p2.length}` }
-        if (country) { p2.push(country); w2 += ` AND s.pais = $${p2.length}` }
-        if (category) {
-          p2.push(category)
-          w2 += ` AND s.categoria = $${p2.length}`
-        }
+        w2 += countrySqlCondition(p2, country, "s.pais")
+        if (category) { w2 += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p2, category) }
         if (segmento || mercado) {
           let sub = ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} IN (
             SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
@@ -568,7 +588,7 @@ export async function GET(req: Request) {
               ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS fab,
               SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
               COUNT(*) AS products_total
-            FROM eci.search s
+            FROM eci.sos s
             WHERE ${w2}
             GROUP BY 1
           ),
