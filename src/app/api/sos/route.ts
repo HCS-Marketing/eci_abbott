@@ -44,16 +44,26 @@ function categorySourceSql(alias?: string): string {
   return `COALESCE(NULLIF(TRIM(${p}subcategoria), ''), NULLIF(TRIM(${p}categoria), ''))`
 }
 
+function isColombiaCountry(countryCode: string): boolean {
+  const normalized = String(countryCode || "").trim().toUpperCase()
+  return normalized === "CO" || normalized === "COL" || normalized === "COLOMBIA"
+}
+
+function isMexicoCountry(countryCode: string): boolean {
+  const normalized = String(countryCode || "").trim().toUpperCase()
+  return normalized === "MX" || normalized === "MEX" || normalized === "MEXICO" || normalized === "MÉXICO"
+}
+
 function categorySourceSqlByCountry(countryCode: string, alias?: string): string {
   const p = alias ? `${alias}.` : ""
-  if (countryCode === "CO") return `NULLIF(TRIM(${p}categoria_col), '')`
-  if (countryCode === "MX") return `NULLIF(TRIM(${p}categoria), '')`
+  if (isColombiaCountry(countryCode)) return `NULLIF(TRIM(${p}categoria_col), '')`
+  if (isMexicoCountry(countryCode)) return `NULLIF(TRIM(${p}categoria), '')`
   return categorySourceSql(alias)
 }
 
 function categoryFilterColumnByCountry(countryCode: string, alias?: string): string {
   const p = alias ? `${alias}.` : ""
-  if (countryCode === "CO") return `NULLIF(TRIM(${p}categoria_col), '')`
+  if (isColombiaCountry(countryCode)) return `NULLIF(TRIM(${p}categoria_col), '')`
   return `NULLIF(TRIM(${p}categoria), '')`
 }
 
