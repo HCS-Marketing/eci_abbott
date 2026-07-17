@@ -1833,6 +1833,23 @@ export async function GET(req: Request) {
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error"
     console.error("API Error:", message)
+
+    const safeArrayActions = new Set([
+      "sellers_list", "fabricantes_inv", "categories", "channels", "countries",
+      "segmentos", "mercados", "sellers", "brands", "titulos", "trend", "by_channel",
+      "rank_sellers", "rank_brands", "rank_titulos", "rank_trend", "rank_by_channel",
+      "ranking", "bestsellers", "inventory", "catalog_content", "assortment", "buybox",
+      "buybox_lost", "price_index", "pricing",
+    ])
+
+    if (action === "dates") {
+      return NextResponse.json({ min: "", max: "" })
+    }
+
+    if (safeArrayActions.has(action)) {
+      return NextResponse.json([])
+    }
+
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
