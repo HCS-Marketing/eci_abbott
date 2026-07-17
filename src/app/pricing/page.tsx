@@ -140,15 +140,23 @@ export default function PricingPage() {
 
   // Cascading categories
   useEffect(() => {
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (country) p.set("country", country)
     if (endDate) { p.set("startDate", endDate); p.set("endDate", endDate) }
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((d: string[]) => {
-      if (!Array.isArray(d)) return
-      setAvailableCategories(d)
-      if (category && !d.includes(category)) setCategory("")
-    })
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
+      .then(async r => {
+        if (!r.ok) return null
+        return r.json()
+      })
+      .then((d: string[] | null) => {
+        if (!Array.isArray(d)) return
+        setAvailableCategories(d)
+        if (category && !d.includes(category)) setCategory("")
+      })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [channel, country, endDate])
 
   // Fetch pricing

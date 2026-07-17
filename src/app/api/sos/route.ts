@@ -1864,7 +1864,7 @@ export async function GET(req: Request) {
     console.error("API Error:", message)
 
     const safeArrayActions = new Set([
-      "sellers_list", "fabricantes_inv", "categories", "channels", "countries",
+      "sellers_list", "fabricantes_inv", "channels", "countries",
       "segmentos", "mercados", "sellers", "brands", "titulos", "trend", "by_channel",
       "rank_sellers", "rank_brands", "rank_titulos", "rank_trend", "rank_by_channel",
       "ranking", "bestsellers", "inventory", "catalog_content", "assortment", "buybox",

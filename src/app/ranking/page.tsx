@@ -219,13 +219,22 @@ export default function RankingScorePage() {
   }, [country, startDate, endDate])
 
   useEffect(() => {
+    const ac = new AbortController()
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel); if (country) p.set("country", country)
     if (startDate) p.set("startDate", startDate); if (endDate) p.set("endDate", endDate)
-    fetch(`/api/sos?${p}`).then(r => r.json()).then((data: string[]) => {
-      if (!Array.isArray(data)) return; setAvailableCategories(data)
-      if (category && !data.includes(category)) setCategory("")
-    })
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
+      .then(async r => {
+        if (!r.ok) return null
+        return r.json()
+      })
+      .then((data: string[] | null) => {
+        if (!Array.isArray(data)) return
+        setAvailableCategories(data)
+        if (category && !data.includes(category)) setCategory("")
+      })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
   }, [channel, country, startDate, endDate])
 
   useEffect(() => {
