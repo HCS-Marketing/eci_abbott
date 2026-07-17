@@ -90,7 +90,11 @@ export async function GET(req: Request) {
   const channel  = searchParams.get("channel") || ""
   const category = searchParams.get("category") || ""
   const seller   = searchParams.get("seller") || ""
-  const sellersParam = searchParams.get("sellers")?.split(",").filter(Boolean) || []
+  const sellersParam = searchParams
+    .get("sellers")
+    ?.split(",")
+    .map(s => s.trim())
+    .filter(Boolean) || []
   const country  = searchParams.get("country") || ""
   const source   = searchParams.get("source") || ""
   const segmento = searchParams.get("segmento") || ""
@@ -274,8 +278,11 @@ export async function GET(req: Request) {
       }
     }
 
-    // Keep Prisma-backed SOS/ranking pages aligned with latest base-table data.
-    await ensureSosMaterializedViewsFresh(prisma)
+    // Keep MVs fresh, but never block user-facing requests.
+    void ensureSosMaterializedViewsFresh(prisma).catch((e: unknown) => {
+      const msg = e instanceof Error ? e.message : String(e)
+      console.warn("[api/sos] MV refresh skipped:", msg)
+    })
 
     // ── date range (dynamic from base table eci.sos) ────
     if (action === "dates") {
@@ -873,13 +880,28 @@ export async function GET(req: Request) {
         GROUP BY fecha, fabricante
         ORDER BY fecha, fabricante
       `
-      const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; score_p1: number; score_total: number }[]>(sql, ...p)
-      const dayMap = new Map<string, Record<string, unknown>>()
-      rows.forEach(r => {
-        if (!dayMap.has(r.day)) dayMap.set(r.day, { week: r.day })
-        dayMap.get(r.day)![r.seller] = page === "p1" ? Math.round(Number(r.score_p1)) : Math.round(Number(r.score_total))
-      })
-      return NextResponse.json(Array.from(dayMap.values()))
+      try {
+        const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; score_p1: number; score_total: number }[]>(sql, ...p)
+        const dayMap = new Map<string, Record<string, unknown>>()
+        rows.forEach(r => {
+          if (!dayMap.has(r.day)) dayMap.set(r.day, { week: r.day })
+          dayMap.get(r.day)![r.seller] = page === "p1" ? Math.round(Number(r.score_p1)) : Math.round(Number(r.score_total))
+        })
+        return NextResponse.json(Array.from(dayMap.values()))
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        console.error("[api/sos] rank_trend failed", {
+          error: msg,
+          country,
+          channel,
+          category,
+          startDate,
+          endDate,
+          sellers: sellerList,
+          table,
+        })
+        return NextResponse.json([])
+      }
     }
 
     // ── rank_by_channel — SUM(ranking) per retail for one seller ──
