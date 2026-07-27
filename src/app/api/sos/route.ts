@@ -1892,11 +1892,11 @@ export async function GET(req: Request) {
     ])
 
     if (action === "dates") {
-      return NextResponse.json({ min: "", max: "" })
+      return NextResponse.json({ min: "", max: "" }, { status: 503 })
     }
 
     if (safeArrayActions.has(action)) {
-      return NextResponse.json([])
+      return NextResponse.json([], { status: 503 })
     }
 
     return NextResponse.json({ error: message }, { status: 500 })
