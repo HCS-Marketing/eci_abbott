@@ -110,17 +110,15 @@ function mvCategorySqlCondition(params: unknown[], selectedCategory: string, cou
   const idx = params.length
 
   if (isColombiaCountry(countryCode)) {
-    return ` AND (
-      NULLIF(TRIM(categoria), '') = $${idx}
-      OR EXISTS (
-        SELECT 1
-        FROM eci.sos s
-        WHERE s.fecha = d.fecha
-          AND s.retail = d.retail
-          AND UPPER(TRIM(s.pais)) = UPPER(TRIM(d.pais))
-          AND NULLIF(TRIM(s.categoria_col), '') = $${idx}
-        LIMIT 1
-      )
+    return ` AND EXISTS (
+      SELECT 1
+      FROM eci.sos s
+      WHERE s.fecha = d.fecha
+        AND s.retail = d.retail
+        AND UPPER(TRIM(s.pais)) = UPPER(TRIM(d.pais))
+        AND COALESCE(NULLIF(TRIM(s.fabricante), ''), 'MARCA LOCAL') = COALESCE(NULLIF(TRIM(d.fabricante), ''), 'MARCA LOCAL')
+        AND NULLIF(TRIM(s.categoria_col), '') = $${idx}
+      LIMIT 1
     )`
   }
 
@@ -382,7 +380,7 @@ export async function GET(req: Request) {
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_sos_daily_fab WHERE ${w} ORDER BY 1`
+      const sql = `SELECT DISTINCT d.fabricante AS n FROM eci.mv_sos_daily_fab d WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       const sellers = uniqueNonEmpty(rows.map(r => r.n))
 
@@ -394,8 +392,7 @@ export async function GET(req: Request) {
         if (channel) { p2.push(channel); w2 += ` AND retail = $${p2.length}` }
         w2 += countrySqlCondition(p2, country)
         if (category) {
-          p2.push(category)
-          w2 += ` AND categoria = $${p2.length}`
+          w2 += categorySqlCondition(categoryFilterColumnByCountry(country), p2, category)
         }
         const fb = await prisma.$queryRawUnsafe<{ n: string }[]>(
           `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n
