@@ -21,6 +21,11 @@ const COUNTRY_LOCK_BY_SLOT: Record<number, string[]> = {
   15: ["CO"],
 }
 
+// User-specific overrides for multi-country access.
+const COUNTRY_LOCK_BY_USER: Record<string, string[]> = {
+  "laura.jimenez1@abbott.com": ["MX", "CO"],
+}
+
 export async function GET() {
   const cookieStore = await cookies()
   const token = cookieStore.get("auth-token")?.value
@@ -50,14 +55,16 @@ export async function GET() {
   // Extract username (everything before the timestamp)
   const username = parts.slice(0, -1).join(".").trim().toLowerCase()
 
-  // Determine country lock by matching username against configured slot(s)
-  let countryLock: string[] | null = null
-  for (const [slotRaw, lock] of Object.entries(COUNTRY_LOCK_BY_SLOT)) {
-    const slot = Number(slotRaw)
-    const slotUser = process.env[`USER_APP${slot}`]?.trim().toLowerCase()
-    if (slotUser && slotUser === username) {
-      countryLock = lock
-      break
+  // Determine country lock by username override first, then slot mapping.
+  let countryLock: string[] | null = COUNTRY_LOCK_BY_USER[username] ?? null
+  if (!countryLock) {
+    for (const [slotRaw, lock] of Object.entries(COUNTRY_LOCK_BY_SLOT)) {
+      const slot = Number(slotRaw)
+      const slotUser = process.env[`USER_APP${slot}`]?.trim().toLowerCase()
+      if (slotUser && slotUser === username) {
+        countryLock = lock
+        break
+      }
     }
   }
 

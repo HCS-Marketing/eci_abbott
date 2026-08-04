@@ -3,28 +3,35 @@ import { NextRequest, NextResponse } from "next/server"
 const PUBLIC_PATHS = ["/login", "/api/auth"]
 
 // Slot-based country lock. Keep aligned with /api/auth/me.
-const COUNTRY_LOCK_BY_SLOT: Record<number, string> = {
-  2: "MX",
-  3: "MX",
-  4: "MX",
-  5: "MX",
-  6: "MX",
-  7: "CO",
-  9: "PE",
-  10: "PE",
-  11: "PE",
-  12: "CO",
-  13: "CO",
-  14: "CO",
-  15: "CO",
+const COUNTRY_LOCK_BY_SLOT: Record<number, string[]> = {
+  2: ["MX"],
+  3: ["MX"],
+  4: ["MX"],
+  5: ["MX"],
+  6: ["MX"],
+  7: ["CO"],
+  9: ["PE"],
+  10: ["PE"],
+  11: ["PE"],
+  12: ["CO"],
+  13: ["CO"],
+  14: ["CO"],
+  15: ["CO"],
 }
 
-function getCountryLockForUsername(username: string): string | null {
+const COUNTRY_LOCK_BY_USER: Record<string, string[]> = {
+  "laura.jimenez1@abbott.com": ["MX", "CO"],
+}
+
+function getCountryLockForUsername(username: string): string[] | null {
   const normalized = username.trim().toLowerCase()
-  for (const [slotRaw, country] of Object.entries(COUNTRY_LOCK_BY_SLOT)) {
+  const userLock = COUNTRY_LOCK_BY_USER[normalized]
+  if (userLock && userLock.length > 0) return userLock
+
+  for (const [slotRaw, countries] of Object.entries(COUNTRY_LOCK_BY_SLOT)) {
     const slot = Number(slotRaw)
     const slotUser = process.env[`USER_APP${slot}`]?.trim().toLowerCase()
-    if (slotUser && slotUser === normalized) return country
+    if (slotUser && slotUser === normalized) return countries
   }
   return null
 }
@@ -100,9 +107,14 @@ export async function middleware(req: NextRequest) {
 
   // Enforce country lock server-side for data APIs, even if query params are tampered.
   const countryLock = auth.username ? getCountryLockForUsername(auth.username) : null
-  if (countryLock && (pathname.startsWith("/api/sos") || pathname.startsWith("/api/search"))) {
+  if (countryLock && countryLock.length > 0 && (pathname.startsWith("/api/sos") || pathname.startsWith("/api/search"))) {
     const rewritten = req.nextUrl.clone()
-    rewritten.searchParams.set("country", countryLock)
+    const requestedCountry = (req.nextUrl.searchParams.get("country") || "").trim().toUpperCase()
+    const allowedCountries = countryLock.map(c => c.trim().toUpperCase())
+    const effectiveCountry = allowedCountries.includes(requestedCountry)
+      ? requestedCountry
+      : allowedCountries[0]
+    rewritten.searchParams.set("country", effectiveCountry)
     return NextResponse.rewrite(rewritten)
   }
 

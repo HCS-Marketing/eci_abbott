@@ -61,8 +61,8 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
 
         setCountries(effectiveList)
         setCountryState(prev => {
-          // If user is locked, always force to the locked country
-          if (countryLock && countryLock.length > 0) {
+          // Single-country lock: force selection. Multi-country lock: keep selection within allowed values.
+          if (countryLock && countryLock.length === 1) {
             const locked = countryLock[0]
             try { window.localStorage.setItem(STORAGE_KEY, locked) } catch {}
             return locked
@@ -81,9 +81,10 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
   }, [countryLock]) // re-run when lock is known
 
   const setCountry = (next: string) => {
-    // Ignore if user has a country lock
-    if (countryLock && countryLock.length > 0) return
+    // Ignore manual changes only for strict single-country lock.
+    if (countryLock && countryLock.length === 1) return
     if (!next) return
+    if (!countries.includes(next)) return
     setCountryState(next)
     window.localStorage.setItem(STORAGE_KEY, next)
   }
@@ -94,7 +95,7 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
       setCountry,
       countries,
       loadingCountries,
-      countryLocked: Boolean(countryLock && countryLock.length > 0),
+      countryLocked: Boolean(countryLock && countryLock.length === 1),
     }),
     [country, countries, loadingCountries, countryLock]
   )
