@@ -9,6 +9,7 @@ import { Download, FileText } from "lucide-react"
 import { exportPDF } from "@/lib/export"
 import { getRetailColor, fmtDateDMY } from "@/lib/format"
 import { getDefaultLast7DayRange } from "@/lib/date-range"
+import { classifySearch, getAllBrands, getSearchTypes, type SearchType } from "@/lib/search-classification"
 
 // ── helpers ──────────────────────────────────────────────────
 
@@ -224,6 +225,8 @@ export default function ShareOfShelfPage() {
   const [category,   setCategory]   = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
+  const [searchType, setSearchType] = useState<SearchType | "">("")  // BRANDED, GENERIC, o vacío
+  const [searchBrand, setSearchBrand] = useState("")  // Marca específica
   const [startDate,  setStartDate]  = useState("")
   const [endDate,    setEndDate]    = useState("")
   const [minDate,    setMinDate]    = useState("")
@@ -234,6 +237,8 @@ export default function ShareOfShelfPage() {
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
   const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
   const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
+  const [availableBrands,      setAvailableBrands]      = useState<string[]>([])
+  const [availableSearchTypes,  setAvailableSearchTypes] = useState<SearchType[]>([])
   const [selectedSeller,  setSelectedSeller]  = useState("")
   const [selectedSellers, setSelectedSellers] = useState<string[]>([])
   const [page,  setPage]  = useState<PageCtx>("p1")
@@ -296,6 +301,8 @@ export default function ShareOfShelfPage() {
     }
     setCategory("")
     setAvailableCategories([])
+    setSearchType("")
+    setSearchBrand("")
   }, [country])
 
   // ── Cargar rango de fechas disponible ─────────────────────
@@ -309,6 +316,18 @@ export default function ShareOfShelfPage() {
       })
       .catch(() => {})
   }, [])
+
+  // ── Inicializar tipos y marcas disponibles (solo para MX) ────────
+  useEffect(() => {
+    if (country !== "MX") {
+      setAvailableSearchTypes([])
+      setAvailableBrands([])
+      return
+    }
+    // Obtener tipos y marcas disponibles
+    setAvailableSearchTypes(getSearchTypes())
+    setAvailableBrands(getAllBrands())
+  }, [country])
 
   // ── Cascading: retails filtrados por categoría + país + fechas ───
   useEffect(() => {
@@ -330,7 +349,7 @@ export default function ShareOfShelfPage() {
     return () => ac.abort()
   }, [category, startDate, endDate, country])
 
-  // ── Cascading: búsquedas filtradas por retail + país + fechas ────
+  // ── Cascading: búsquedas filtradas por retail + país + fechas + tipo + marca ────
   useEffect(() => {
     if (!startDate || !endDate) return
     const ac = new AbortController()
@@ -343,12 +362,22 @@ export default function ShareOfShelfPage() {
       .then(r => r.json())
       .then((data: string[]) => {
         if (!Array.isArray(data)) return
-        setAvailableCategories(data)
-        if (category && !data.includes(category)) setCategory("")
+        // Filtrar por tipo y marca si es MX
+        let filtered = data
+        if (country === "MX" && (searchType || searchBrand)) {
+          filtered = data.filter(term => {
+            const classification = classifySearch(term)
+            if (searchType && classification.type !== searchType) return false
+            if (searchBrand && classification.brand !== searchBrand) return false
+            return true
+          })
+        }
+        setAvailableCategories(filtered)
+        if (category && !filtered.includes(category)) setCategory("")
       })
       .catch(e => { if (e?.name !== "AbortError") throw e })
     return () => ac.abort()
-  }, [channel, startDate, endDate, country])
+  }, [channel, startDate, endDate, country, searchType, searchBrand])
 
   // ── Cascading: segmentos filtrados por retail + mercado ────────────
   useEffect(() => {
@@ -583,6 +612,34 @@ export default function ShareOfShelfPage() {
               >
                 <option value="">Todos</option>
                 {availableSegmentos.map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+            {/* Tipo de Búsqueda */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Tipo</span>
+              <select
+                value={searchType}
+                onChange={e => { setSearchType((e.target.value as SearchType) || ""); setCategory("") }}
+                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[120px]"
+              >
+                <option value="">Todos</option>
+                {availableSearchTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+
+            {/* Marca */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Marca</span>
+              <select
+                value={searchBrand}
+                onChange={e => { setSearchBrand(e.target.value); setCategory("") }}
+                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[140px]"
+              >
+                <option value="">Todas</option>
+                {availableBrands.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
           </>
