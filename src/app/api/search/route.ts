@@ -65,21 +65,19 @@ export async function GET(req: Request) {
     if (searchBrand && classification.brand !== searchBrand) validSearch = false
   }
   
-  // Pre-calculate valid search terms if MX + type/brand filters are applied
-  // This avoids filtering individual results later
-  let validSearchTerms: Set<string> | null = null
-  if (country === "MX" && (searchType || searchBrand)) {
-    // Import all classified terms and filter them
+  // Pre-calculate valid search terms if MX + type/brand filters are applied (but NO specific search selected)
+  // When user selects BRANDED/GENERIC/Brand but not a specific search term, show data from ALL matching terms
+  let validSearchTerms: string[] | null = null
+  if (country === "MX" && (searchType || searchBrand) && !search) {
+    // Only pre-filter if NO specific search term is selected
     const { SEARCH_CLASSIFICATIONS } = await import("@/lib/search-classification")
-    validSearchTerms = new Set(
-      SEARCH_CLASSIFICATIONS
-        .filter(c => {
-          if (searchType && c.type !== searchType) return false
-          if (searchBrand && c.brand !== searchBrand) return false
-          return true
-        })
-        .map(c => c.search.toUpperCase())
-    )
+    validSearchTerms = SEARCH_CLASSIFICATIONS
+      .filter(c => {
+        if (searchType && c.type !== searchType) return false
+        if (searchBrand && c.brand !== searchBrand) return false
+        return true
+      })
+      .map(c => c.search)
   }
   
   const sosPageFilter = pageMode === "p1" ? " AND count_p1 > 0" : ""
@@ -136,11 +134,12 @@ export async function GET(req: Request) {
           w += ` AND retail IN (${phs})`
         }
       }
+      // If specific search term selected, filter by it
       if (search)  { params.push(search);  w += ` AND search = $${params.length}` }
-      // If there are valid search terms (MX + type/brand filter), ensure search is in that list
-      if (validSearchTerms && validSearchTerms.size > 0) {
-        const phs = Array.from(validSearchTerms).map(t => { params.push(t); return `$${params.length}` }).join(", ")
-        w += ` AND UPPER(search) IN (${phs})`
+      // If NO specific search but have type/brand filters, filter by all matching terms
+      else if (validSearchTerms && validSearchTerms.length > 0) {
+        const phs = validSearchTerms.map(t => { params.push(t); return `$${params.length}` }).join(", ")
+        w += ` AND search IN (${phs})`
       }
       if (country) { params.push(country); w += ` AND pais = $${params.length}` }
       return w
