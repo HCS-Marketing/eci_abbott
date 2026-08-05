@@ -324,10 +324,22 @@ export default function ShareOfShelfPage() {
       setAvailableBrands([])
       return
     }
-    // Obtener tipos y marcas disponibles
+    // Obtener tipos disponibles
     setAvailableSearchTypes(getSearchTypes())
-    setAvailableBrands(getAllBrands())
-  }, [country])
+    
+    // Filtrar marcas según el tipo seleccionado
+    let brands = getAllBrands()
+    if (searchType === "GENERIC") {
+      // Si es GENERIC, solo mostrar "N/A"
+      brands = ["N/A"]
+    } else if (searchType === "BRANDED") {
+      // Si es BRANDED, filtrar solo marcas BRANDED
+      brands = brands.filter(b => b !== "N/A")
+    }
+    // Si no hay tipo seleccionado, mostrar todas las marcas
+    
+    setAvailableBrands(brands)
+  }, [country, searchType])
 
   // ── Cascading: retails filtrados por categoría + país + fechas ───
   useEffect(() => {
@@ -622,7 +634,16 @@ export default function ShareOfShelfPage() {
               <span className="text-xs text-gray-400">Tipo</span>
               <select
                 value={searchType}
-                onChange={e => { setSearchType((e.target.value as SearchType) || ""); setCategory("") }}
+                onChange={e => { 
+                  const newType = (e.target.value as SearchType) || ""
+                  setSearchType(newType)
+                  // Si cambia de GENERIC a BRANDED, resetear la marca
+                  // Si cambia a GENERIC, resetear la marca (GENERIC solo tiene N/A)
+                  if (newType === "GENERIC") {
+                    setSearchBrand("")
+                  }
+                  setCategory("")
+                }}
                 className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[120px]"
               >
                 <option value="">Todos</option>
@@ -630,18 +651,28 @@ export default function ShareOfShelfPage() {
               </select>
             </div>
 
-            {/* Marca */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Marca</span>
-              <select
-                value={searchBrand}
-                onChange={e => { setSearchBrand(e.target.value); setCategory("") }}
-                className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[140px]"
-              >
-                <option value="">Todas</option>
-                {availableBrands.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-            </div>
+            {/* Marca — solo mostrar si es BRANDED o sin filtro de tipo */}
+            {searchType !== "GENERIC" && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Marca</span>
+                <select
+                  value={searchBrand}
+                  onChange={e => { 
+                    const newBrand = e.target.value
+                    setSearchBrand(newBrand)
+                    // Si selecciona una marca específica, establecer tipo a BRANDED
+                    if (newBrand && newBrand !== "N/A") {
+                      setSearchType("BRANDED")
+                    }
+                    setCategory("")
+                  }}
+                  className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[140px]"
+                >
+                  <option value="">Todas</option>
+                  {availableBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+            )}
           </>
         )}
 
