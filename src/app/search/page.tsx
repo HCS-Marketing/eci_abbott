@@ -434,11 +434,13 @@ export default function ShareOfShelfPage() {
         `&page=${page}` +
         `&country=${encodeURIComponent(country)}` +
         (startDate ? `&startDate=${startDate}` : "") +
-        (endDate   ? `&endDate=${endDate}`     : "")
+        (endDate   ? `&endDate=${endDate}`     : "") +
+        (searchType && country === "MX" ? `&searchType=${encodeURIComponent(searchType)}` : "") +
+        (searchBrand && country === "MX" ? `&searchBrand=${encodeURIComponent(searchBrand)}` : "")
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, segmento, mercado, selectedSeller, page, country, startDate, endDate]
+    [channel, category, segmento, mercado, selectedSeller, page, country, startDate, endDate, searchType, searchBrand]
   )
 
   useEffect(() => {
@@ -477,13 +479,15 @@ export default function ShareOfShelfPage() {
       (category  ? `&search=${encodeURIComponent(category)}`   : "") +
       (segmento  ? `&segmento=${encodeURIComponent(segmento)}` : "") +
       (mercado   ? `&mercado=${encodeURIComponent(mercado)}`   : "") +
+      (searchType && country === "MX" ? `&searchType=${encodeURIComponent(searchType)}` : "") +
+      (searchBrand && country === "MX" ? `&searchBrand=${encodeURIComponent(searchBrand)}` : "") +
       `&page=${page}`
     )
       .then(r => r.json())
       .then(d => { if (id === trendFetchIdRef.current && Array.isArray(d)) setTrendData(d) })
       .catch(() => {})
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSellers.join(","), startDate, endDate, country, channel, category, segmento, mercado, page])
+  }, [selectedSellers.join(","), startDate, endDate, country, channel, category, segmento, mercado, page, searchType, searchBrand])
 
   function downloadCSV() {
     const datePart = startDate && endDate ? `${startDate}_${endDate}` : "todas-las-fechas"

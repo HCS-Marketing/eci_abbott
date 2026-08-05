@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { ensureSearchMaterializedViewsFresh } from "@/lib/mv-refresh"
+import { classifySearch } from "@/lib/search-classification"
 
 export const dynamic = 'force-dynamic'
 
@@ -51,8 +52,36 @@ export async function GET(req: Request) {
   const country = searchParams.get("country") || ""
   const segmento = searchParams.get("segmento") || ""
   const mercado  = searchParams.get("mercado") || ""
+  const searchType = searchParams.get("searchType") || ""   // BRANDED or GENERIC (MX only)
+  const searchBrand = searchParams.get("searchBrand") || ""  // specific brand filter (MX only)
   const pageMode = (searchParams.get("page") || "p1") === "p1" ? "p1" : "total"
   // When page=p1, skip rows with no page-1 appearances (perf optimization).
+  
+  // Validate search term matches searchType/searchBrand filters (MX only)
+  let validSearch = true
+  if (country === "MX" && search && (searchType || searchBrand)) {
+    const classification = classifySearch(search)
+    if (searchType && classification.type !== searchType) validSearch = false
+    if (searchBrand && classification.brand !== searchBrand) validSearch = false
+  }
+  
+  // Pre-calculate valid search terms if MX + type/brand filters are applied
+  // This avoids filtering individual results later
+  let validSearchTerms: Set<string> | null = null
+  if (country === "MX" && (searchType || searchBrand)) {
+    // Import all classified terms and filter them
+    const { SEARCH_CLASSIFICATIONS } = await import("@/lib/search-classification")
+    validSearchTerms = new Set(
+      SEARCH_CLASSIFICATIONS
+        .filter(c => {
+          if (searchType && c.type !== searchType) return false
+          if (searchBrand && c.brand !== searchBrand) return false
+          return true
+        })
+        .map(c => c.search.toUpperCase())
+    )
+  }
+  
   const sosPageFilter = pageMode === "p1" ? " AND count_p1 > 0" : ""
 
   try {
@@ -108,6 +137,11 @@ export async function GET(req: Request) {
         }
       }
       if (search)  { params.push(search);  w += ` AND search = $${params.length}` }
+      // If there are valid search terms (MX + type/brand filter), ensure search is in that list
+      if (validSearchTerms && validSearchTerms.size > 0) {
+        const phs = Array.from(validSearchTerms).map(t => { params.push(t); return `$${params.length}` }).join(", ")
+        w += ` AND UPPER(search) IN (${phs})`
+      }
       if (country) { params.push(country); w += ` AND pais = $${params.length}` }
       return w
     }
@@ -138,7 +172,18 @@ export async function GET(req: Request) {
       }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
       sql += " ORDER BY 1"
-      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      let rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      
+      // Filter by searchType/searchBrand (MX only)
+      if (country === "MX" && (searchType || searchBrand)) {
+        rows = rows.filter(r => {
+          const classification = classifySearch(r.n)
+          if (searchType && classification.type !== searchType) return false
+          if (searchBrand && classification.brand !== searchBrand) return false
+          return true
+        })
+      }
+      
       return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
 
