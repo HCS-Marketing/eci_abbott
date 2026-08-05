@@ -192,17 +192,18 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT segmento AS n FROM eci.marca_fabricante WHERE segmento IS NOT NULL AND TRIM(segmento) <> '' AND fabricante != 'MARCA LOCAL'`
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
+      // Si hay channel/country, usar EXISTS en lugar de IN con subquery
       if (channel || country) {
-        const conds: string[] = []
+        let subquery = `EXISTS (SELECT 1 FROM eci.mv_search_daily_fab mf WHERE mf.fabricante = eci.marca_fabricante.fabricante`
         if (channel) {
           const vals = RETAIL_ALIASES[channel] || [channel]
-          if (vals.length === 1) { p.push(vals[0]); conds.push(`retail = $${p.length}`) }
-          else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); conds.push(`retail IN (${phs})`) }
+          if (vals.length === 1) { p.push(vals[0]); subquery += ` AND mf.retail = $${p.length}` }
+          else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); subquery += ` AND mf.retail IN (${phs})` }
         }
-        if (country) { p.push(country); conds.push(`pais = $${p.length}`) }
-        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_search_daily_fab WHERE ${conds.join(" AND ")})`
+        if (country) { p.push(country); subquery += ` AND mf.pais = $${p.length}` }
+        sql += ` AND ${subquery})`
       }
-      sql += " ORDER BY 1"
+      sql += " ORDER BY 1 LIMIT 100"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
@@ -212,17 +213,18 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT mercado AS n FROM eci.marca_fabricante WHERE mercado IS NOT NULL AND TRIM(mercado) <> '' AND fabricante != 'MARCA LOCAL'`
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
+      // Si hay channel/country, usar EXISTS en lugar de IN con subquery
       if (channel || country) {
-        const conds: string[] = []
+        let subquery = `EXISTS (SELECT 1 FROM eci.mv_search_daily_fab mf WHERE mf.fabricante = eci.marca_fabricante.fabricante`
         if (channel) {
           const vals = RETAIL_ALIASES[channel] || [channel]
-          if (vals.length === 1) { p.push(vals[0]); conds.push(`retail = $${p.length}`) }
-          else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); conds.push(`retail IN (${phs})`) }
+          if (vals.length === 1) { p.push(vals[0]); subquery += ` AND mf.retail = $${p.length}` }
+          else { const phs = vals.map(v => { p.push(v); return `$${p.length}` }).join(", "); subquery += ` AND mf.retail IN (${phs})` }
         }
-        if (country) { p.push(country); conds.push(`pais = $${p.length}`) }
-        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_search_daily_fab WHERE ${conds.join(" AND ")})`
+        if (country) { p.push(country); subquery += ` AND mf.pais = $${p.length}` }
+        sql += ` AND ${subquery})`
       }
-      sql += " ORDER BY 1"
+      sql += " ORDER BY 1 LIMIT 100"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
@@ -463,7 +465,19 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (err: unknown) {
-    console.error("[api/search] Error:", err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    const errorMsg = String(err)
+    const isTimeout = errorMsg.includes("timed out") || errorMsg.includes("timeout") || errorMsg.includes("FATAL")
+    const statusCode = isTimeout ? 503 : 500
+    console.error(`[api/search] Error (${statusCode}):`, err)
+    
+    // Vercel timeout error format
+    if (isTimeout) {
+      return NextResponse.json(
+        { error: "Database query timeout - please try again" },
+        { status: statusCode, headers: { "Retry-After": "60" } }
+      )
+    }
+    
+    return NextResponse.json({ error: "Database error" }, { status: statusCode })
   }
 }

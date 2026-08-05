@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "env": {
+    "PRISMA_CONNECTION_LIMIT": "15",
+    "PRISMA_POOL_TIMEOUT": "15"
+  },
+  "functions": {
+    "src/app/api/**": {
+      "maxDuration": 60
+    }
+  }
+}

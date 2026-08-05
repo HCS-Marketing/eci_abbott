@@ -13,7 +13,7 @@ type RefreshState = {
   refreshing?: Promise<void>
 }
 
-const DEFAULT_INTERVAL_MS = 5 * 60 * 1000
+const DEFAULT_INTERVAL_MS = 30 * 60 * 1000 // 30 minutos en lugar de 5
 
 const globalState = globalThis as unknown as {
   __mvRefreshState?: Record<string, RefreshState>
@@ -40,12 +40,14 @@ export async function ensureMaterializedViewsFresh(prisma: PrismaClient, cfg: Re
   const st = stateByKey[cfg.cacheKey] ?? { checkedAt: 0 }
   stateByKey[cfg.cacheKey] = st
 
+  // Si ya está refrescando, no esperes (para no bloquear el request)
   if (st.refreshing) {
-    await st.refreshing
     return
   }
+  // Si hace poco se refresheó, no hagas nada
   if (now - st.checkedAt < minInterval) return
 
+  // Inicia el refresh en background sin bloquear
   st.refreshing = (async () => {
     try {
       const [baseMax, mvMax] = await Promise.all([
@@ -55,19 +57,30 @@ export async function ensureMaterializedViewsFresh(prisma: PrismaClient, cfg: Re
 
       if (baseMax && (!mvMax || mvMax < baseMax)) {
         for (const mv of cfg.refreshViews) {
-          await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW ${mv}`)
+          try {
+            await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${mv}`)
+          } catch (err) {
+            // Si falla CONCURRENTLY, intenta sin CONCURRENTLY
+            try {
+              await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW ${mv}`)
+            } catch {
+              // Continúa con el siguiente view
+              console.error(`Failed to refresh ${mv}`)
+            }
+          }
         }
       }
       st.checkedAt = Date.now()
-    } catch {
+    } catch (err) {
       // Keep APIs resilient; next requests will retry after interval.
+      console.error("MV refresh error:", err)
       st.checkedAt = Date.now()
     } finally {
       st.refreshing = undefined
     }
   })()
 
-  await st.refreshing
+  // No esperes el resultado - deja que continue en background
 }
 
 export async function ensureSosMaterializedViewsFresh(prisma: PrismaClient): Promise<void> {

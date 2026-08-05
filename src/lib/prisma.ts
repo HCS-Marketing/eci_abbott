@@ -2,8 +2,8 @@ import { PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
-const DEFAULT_CONNECTION_LIMIT = process.env.PRISMA_CONNECTION_LIMIT || "5"
-const DEFAULT_POOL_TIMEOUT = process.env.PRISMA_POOL_TIMEOUT || "30"
+const DEFAULT_CONNECTION_LIMIT = process.env.PRISMA_CONNECTION_LIMIT || "15"
+const DEFAULT_POOL_TIMEOUT = process.env.PRISMA_POOL_TIMEOUT || "15"
 
 function withServerlessPoolParams(rawUrl: string | undefined): string | undefined {
   if (!rawUrl) return rawUrl
@@ -45,6 +45,8 @@ export const prisma =
     return globalForPrisma.prisma ??
       new PrismaClient({
         log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+        // Vercel serverless timeout es 300s por defecto, set Prisma timeouts
+        errorFormat: "pretty",
       })
   })()
 

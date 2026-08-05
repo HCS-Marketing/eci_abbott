@@ -1881,7 +1881,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error"
-    console.error("API Error:", message)
+    const isTimeout = message.includes("timed out") || message.includes("timeout") || message.includes("FATAL") || message.includes("too many")
+    console.error(`[api/sos] Error (${isTimeout ? "timeout" : "error"}):`, message)
 
     const safeArrayActions = new Set([
       "sellers_list", "fabricantes_inv", "channels", "countries",
@@ -1892,13 +1893,13 @@ export async function GET(req: Request) {
     ])
 
     if (action === "dates") {
-      return NextResponse.json({ min: "", max: "" }, { status: 503 })
+      return NextResponse.json({ min: "", max: "" }, { status: 503, headers: isTimeout ? { "Retry-After": "60" } : {} })
     }
 
     if (safeArrayActions.has(action)) {
-      return NextResponse.json([], { status: 503 })
+      return NextResponse.json([], { status: 503, headers: isTimeout ? { "Retry-After": "60" } : {} })
     }
 
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: isTimeout ? "Database unavailable - retry in 60 seconds" : message }, { status: isTimeout ? 503 : 500 })
   }
 }
