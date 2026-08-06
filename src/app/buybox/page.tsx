@@ -150,7 +150,7 @@ export default function BuyboxPage() {
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
-          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string; EAN?: string; ean?: string; categoria?: string }>)
+          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; seller: string; url_producto?: string; EAN?: string; ean?: string; categoria?: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .filter(r => !channel || normalizeChannel(r.retail) === channel)
             .filter(r => !category || String(r.categoria || "") === category)
@@ -163,7 +163,7 @@ export default function BuyboxPage() {
               plataforma: r.retail || "",
               estado_hoy: r.disponibilidad || "NO DISPONIBLE",
               winner_seller: r.seller || "SIN INFORMACION",
-              url_producto: "",
+              url_producto: String(r.url_producto || "").trim(),
             }))
           setLostData(local)
           return
