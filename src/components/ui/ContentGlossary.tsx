@@ -26,7 +26,7 @@ export default function ContentGlossary() {
         {
           name: "Amazon",
           criteria: [
-            "Título entre 70-120 caracteres: +25 puntos",
+            "Título entre 150-195 caracteres: +25 puntos",
             "Mínimo 5 imágenes: +20 puntos",
             "Mínimo 1 video: +15 puntos",
             "Descripción entre 1,200-1,500 caracteres: +25 puntos",

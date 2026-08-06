@@ -49,7 +49,7 @@ function calculateContentScore(row: {
 
   if (isAmazon) {
     let score = 0
-    if (inRange(row.title_count_characters, 70, 120)) score += 25
+    if (inRange(row.title_count_characters, 150, 195)) score += 25
     if (row.img_count >= 5) score += 20
     if (row.video_count >= 1) score += 15
     if (inRange(row.count_character_desc, 1200, 1500)) score += 25
