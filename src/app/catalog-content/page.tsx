@@ -5,6 +5,7 @@ import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
+import ContentGlossary from "@/components/ui/ContentGlossary"
 import fallbackRows from "@/data/mx-provider-rows.json"
 import { Search, Download, FileText, Star } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -477,6 +478,9 @@ export default function CatalogContentPage() {
           </div>
         )}
       </div>
+
+      {/* ── Glosario ────────────────────────────────────────── */}
+      <ContentGlossary />
     </div>
   )
 }
