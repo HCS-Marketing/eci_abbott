@@ -536,6 +536,13 @@ export async function GET(req: Request) {
       return sub
     }
 
+    // Filter by selected seller (fabricante) if provided
+    function sellerFilterSQL(params: unknown[], tableAlias: string, sellerParam: string): string {
+      if (!sellerParam) return ""
+      params.push(sellerParam)
+      return ` AND ${tableAlias}.fabricante = $${params.length}`
+    }
+
     // ── sellers (fabricante) SOS overview ──────────────────
     if (action === "sellers") {
       const p: unknown[] = []
@@ -636,6 +643,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const w = buildWhere(p)
       const mf = marcaFilterSQL(p, "d")
+      const sf = sellerFilterSQL(p, "d", seller)
       const sql = `
         WITH agg AS (
           SELECT marca,
@@ -643,7 +651,7 @@ export async function GET(req: Request) {
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
           FROM eci.mv_sos_daily_marca d
-          WHERE ${w}${mf}${sosPageFilter}
+          WHERE ${w}${mf}${sf}${sosPageFilter}
             AND marca IS NOT NULL AND TRIM(marca) <> ''
             AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
           GROUP BY marca, fabricante
@@ -678,6 +686,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const w = buildWhere(p)
       const mf = fabricanteFilterSQL(p, "d")
+      const sf = sellerFilterSQL(p, "d", seller)
       const sql = `
         WITH agg AS (
           SELECT COALESCE(producto_id::text, titulo) AS titulo_id,
@@ -687,7 +696,7 @@ export async function GET(req: Request) {
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
           FROM eci.mv_sos_daily_titulo d
-          WHERE ${w}${mf}${sosPageFilter}
+          WHERE ${w}${mf}${sf}${sosPageFilter}
           GROUP BY COALESCE(producto_id::text, titulo), fabricante
         ),
         totals AS (
