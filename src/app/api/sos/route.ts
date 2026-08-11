@@ -642,8 +642,10 @@ export async function GET(req: Request) {
     if (action === "brands") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const mf = marcaFilterSQL(p, "d")
+      // If a specific seller is selected, don't also filter by marca_fabricante (mf)
+      // because seller filter is already specific. Only apply mf if no seller is selected.
       const sf = sellerFilterSQL(p, "d", seller)
+      const mf = seller ? "" : marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT marca,
@@ -685,8 +687,10 @@ export async function GET(req: Request) {
     if (action === "titulos") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const mf = fabricanteFilterSQL(p, "d")
+      // If a specific seller is selected, don't also filter by marca_fabricante (mf)
+      // because seller filter is already specific. Only apply mf if no seller is selected.
       const sf = sellerFilterSQL(p, "d", seller)
+      const mf = seller ? "" : fabricanteFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT COALESCE(producto_id::text, titulo) AS titulo_id,
