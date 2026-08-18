@@ -19,6 +19,7 @@ const COUNTRY_LOCK_BY_SLOT: Record<number, string[]> = {
   13: ["CO"],
   14: ["CO"],
   15: ["CO"],
+  16: ["PE"],
 }
 
 // User-specific overrides for multi-country access.

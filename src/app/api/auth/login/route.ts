@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Check all configured user slots (USER_APP1 … USER_APP15)
-  const slots = Array.from({ length: 15 }, (_, i) => ({
+  // Check all configured user slots (USER_APP1 … USER_APP16)
+  const slots = Array.from({ length: 16 }, (_, i) => ({
     user: process.env[`USER_APP${i + 1}`],
     pass: process.env[`PASS_APP${i + 1}`],
   }))
