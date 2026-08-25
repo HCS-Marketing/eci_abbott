@@ -378,6 +378,8 @@ export async function GET(req: Request) {
       return w
     }
 
+    const useColombiaCategoryBase = isColombiaCountry(country) && Boolean(category)
+
     // ── sellers list (fabricantes unified) — from MV ──────
     if (action === "sellers_list") {
       const p: unknown[] = []
@@ -575,7 +577,7 @@ export async function GET(req: Request) {
       }[]>(sql, ...p)
 
       // Fallback: if MV result is empty or collapses to only MARCA LOCAL, recompute from base eci.sos.
-      if (rows.length === 0 || rows.every(r => r.seller === "MARCA LOCAL")) {
+      if (useColombiaCategoryBase || rows.length === 0 || rows.every(r => r.seller === "MARCA LOCAL")) {
         const p2: unknown[] = [startD, endD]
         let w2 = `s.fecha >= $1 AND s.fecha <= $2`
         if (channel) { p2.push(channel); w2 += ` AND s.retail = $${p2.length}` }
@@ -640,6 +642,54 @@ export async function GET(req: Request) {
 
     // ── brand-level breakdown — from mv_sos_daily_marca ────
     if (action === "brands") {
+      if (useColombiaCategoryBase) {
+        const p: unknown[] = [startD, endD]
+        let w = `s.fecha >= $1 AND s.fecha <= $2`
+        if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
+        w += countrySqlCondition(p, country, "s.pais")
+        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        if (seller) { p.push(seller); w += ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length}` }
+
+        const rows = await prisma.$queryRawUnsafe<{
+          brand: string; seller: string; products_p1: number; products_total: number
+          sos_p1: number; sos_total: number
+        }[]>(`
+          WITH agg AS (
+            SELECT
+              s.marca AS brand,
+              ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS seller,
+              SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
+              COUNT(*) AS products_total
+            FROM eci.sos s
+            WHERE ${w}
+              AND s.marca IS NOT NULL AND TRIM(s.marca) <> ''
+              AND NOT (LOWER(TRIM(s.marca)) = 'nan' AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} <> 'NESTLE')
+            GROUP BY s.marca, ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")}
+          ),
+          totals AS (
+            SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
+          )
+          SELECT
+            a.brand,
+            a.seller,
+            a.products_p1::int,
+            a.products_total::int,
+            ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
+            ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
+          FROM agg a, totals t
+          ORDER BY sos_p1 DESC
+          LIMIT 500
+        `, ...p)
+
+        return NextResponse.json(rows.map(r => ({
+          brand:            r.brand,
+          seller:           r.seller,
+          sos_p1:           Number(r.sos_p1),
+          sos_total:        Number(r.sos_total),
+          products_p1:      Number(r.products_p1),
+        })))
+      }
+
       const p: unknown[] = []
       const w = buildWhere(p)
       // If a specific seller is selected, don't also filter by marca_fabricante (mf)
@@ -668,7 +718,7 @@ export async function GET(req: Request) {
           ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total
         FROM agg a, totals t
         ORDER BY sos_p1 DESC
-        LIMIT 50
+        LIMIT 500
       `
       const rows = await prisma.$queryRawUnsafe<{
         brand: string; seller: string; products_p1: number; products_total: number
@@ -685,6 +735,65 @@ export async function GET(req: Request) {
 
     // ── título breakdown (by fabricante) ────────────────────
     if (action === "titulos") {
+      if (useColombiaCategoryBase) {
+        const p: unknown[] = [startD, endD]
+        let w = `s.fecha >= $1 AND s.fecha <= $2`
+        if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
+        w += countrySqlCondition(p, country, "s.pais")
+        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        if (seller) { p.push(seller); w += ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length}` }
+
+        const rows = await prisma.$queryRawUnsafe<{
+          titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
+          best_ranking: number; sos_p1: number; sos_total: number
+          ean: string | null; local_sku: string | null; asin: string | null
+          meli_id: string | null; sap_sku: string | null
+        }[]>(`
+          WITH agg AS (
+            SELECT
+              COALESCE(s.id::text, s.titulo) AS titulo_id,
+              MAX(s.titulo) AS titulo,
+              ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS seller,
+              MAX(s.ean) AS ean,
+              SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
+              COUNT(*) AS products_total,
+              MIN(s.ranking) AS best_ranking
+            FROM eci.sos s
+            WHERE ${w}
+              AND s.titulo IS NOT NULL AND TRIM(s.titulo) <> ''
+            GROUP BY COALESCE(s.id::text, s.titulo), ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")}
+          ),
+          totals AS (
+            SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
+          )
+          SELECT a.titulo_id, a.titulo, a.seller,
+            a.products_p1::int, a.products_total::int,
+            a.best_ranking::int,
+            ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
+            ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total,
+            COALESCE(a.ean, pm.ean) AS ean,
+            pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+          FROM agg a
+          CROSS JOIN totals t
+          LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(a.ean, a.titulo_id)
+          ORDER BY sos_p1 DESC LIMIT 500
+        `, ...p)
+
+        return NextResponse.json(rows.map(r => ({
+          titulo_id:        r.titulo_id,
+          titulo:           r.titulo,
+          seller:           r.seller,
+          sos_p1:           Number(r.sos_p1),
+          sos_total:        Number(r.sos_total),
+          ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
+          products_p1:      Number(r.products_p1),
+          ean:              r.ean,
+          sku:              r.local_sku || r.sap_sku,
+          meli_id:          r.meli_id,
+          asin:             r.asin,
+        })))
+      }
+
       const p: unknown[] = []
       const w = buildWhere(p)
       // If a specific seller is selected, don't also filter by marca_fabricante (mf)
@@ -723,7 +832,7 @@ export async function GET(req: Request) {
         CROSS JOIN totals t
         LEFT JOIN ean_map em ON em.pid = a.titulo_id
         LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.titulo_id)
-        ORDER BY sos_p1 DESC LIMIT 30
+        ORDER BY sos_p1 DESC LIMIT 500
       `
       const rows = await prisma.$queryRawUnsafe<{
         titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
@@ -751,6 +860,49 @@ export async function GET(req: Request) {
       const sellerList = sellersParam.length ? sellersParam : []
       if (sellerList.length === 0) return NextResponse.json([])
       const page = searchParams.get("page") || "p1"
+
+      if (useColombiaCategoryBase) {
+        const p: unknown[] = [startD, endD]
+        let w = `s.fecha >= $1 AND s.fecha <= $2`
+        if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
+        w += countrySqlCondition(p, country, "s.pais")
+        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
+        sellerList.forEach(s => p.push(s))
+
+        const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; sos_p1: number; sos_total: number }[]>(`
+          WITH daily_total AS (
+            SELECT s.fecha::date AS day,
+              SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS total_p1,
+              COUNT(*) AS total_all
+            FROM eci.sos s
+            WHERE ${w}
+            GROUP BY s.fecha::date
+          ),
+          seller_daily AS (
+            SELECT s.fecha::date AS day,
+              ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS fab,
+              SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
+              COUNT(*) AS products_total
+            FROM eci.sos s
+            WHERE ${w} AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} IN (${sellerPlaceholders})
+            GROUP BY s.fecha::date, ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")}
+          )
+          SELECT sd.day::text, sd.fab AS seller,
+            ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1,
+            ROUND(sd.products_total * 100.0 / NULLIF(dt.total_all, 0), 2) AS sos_total
+          FROM seller_daily sd
+          JOIN daily_total dt ON sd.day = dt.day
+          ORDER BY sd.day, sd.fab
+        `, ...p)
+        const dayMap = new Map<string, Record<string, unknown>>()
+        rows.forEach(r => {
+          if (!dayMap.has(r.day)) dayMap.set(r.day, { week: r.day })
+          dayMap.get(r.day)![r.seller] = page === "p1" ? Number(r.sos_p1) : Number(r.sos_total)
+        })
+        return NextResponse.json(Array.from(dayMap.values()))
+      }
+
       const p: unknown[] = []
       const w = buildWhere(p)
       const mf = marcaFilterSQL(p, "d")
@@ -788,6 +940,39 @@ export async function GET(req: Request) {
     // ── SOS by channel — from mv_sos_daily_fab ───────────
     if (action === "by_channel") {
       if (!seller) return NextResponse.json([])
+
+      if (useColombiaCategoryBase) {
+        const p: unknown[] = [startD, endD]
+        let w = `s.fecha >= $1 AND s.fecha <= $2`
+        w += countrySqlCondition(p, country, "s.pais")
+        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        p.push(seller)
+
+        const rows = await prisma.$queryRawUnsafe<{ channel: string; sos_p1: number; sos_total: number }[]>(`
+          WITH per_retail AS (
+            SELECT s.retail,
+              SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS total_p1,
+              COUNT(*) AS total_all,
+              SUM(CASE WHEN ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length} AND s.pagina = 1 THEN 1 ELSE 0 END) AS seller_p1,
+              SUM(CASE WHEN ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length} THEN 1 ELSE 0 END) AS seller_all
+            FROM eci.sos s
+            WHERE ${w}
+            GROUP BY s.retail
+          )
+          SELECT retail AS channel,
+            ROUND(seller_p1 * 100.0 / NULLIF(total_p1, 0), 2) AS sos_p1,
+            ROUND(seller_all * 100.0 / NULLIF(total_all, 0), 2) AS sos_total
+          FROM per_retail
+          WHERE seller_p1 > 0
+          ORDER BY sos_p1 DESC
+        `, ...p)
+        return NextResponse.json(rows.map(r => ({
+          channel:          r.channel,
+          sos_p1:           Number(r.sos_p1),
+          sos_total:        Number(r.sos_total),
+        })))
+      }
+
       const p: unknown[] = []
       const w = buildWhere(p, { channel: false, category: true, country: true })
       const mf = marcaFilterSQL(p, "d")
