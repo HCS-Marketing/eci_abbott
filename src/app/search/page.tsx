@@ -447,12 +447,13 @@ export default function ShareOfShelfPage() {
     if (!startDate || !endDate) return          // wait until dates are loaded
     const id = ++fetchIdRef.current
     setLoading(true)
-    Promise.all([
-      api("sellers"),
-      api("brands"),
-      api("titulos"),
-      api("by_channel"),
-    ]).then(([sellers, brands, titulos, channels]) => {
+    ;(async () => {
+      const sellers = await api("sellers")
+      const brands = await api("brands")
+      const titulos = await api("titulos")
+      const channels = await api("by_channel")
+      return [sellers, brands, titulos, channels]
+    })().then(([sellers, brands, titulos, channels]) => {
       if (id !== fetchIdRef.current) return
       setSellerData(sellers)
       setBrandData(brands)

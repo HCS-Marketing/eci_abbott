@@ -11,9 +11,9 @@ ninguna credencial hardcodeada en el código.
 ### Archivo clave: `src/lib/prisma.ts`
 
 ```ts
-new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL + "&connection_limit=5&pool_timeout=10" } }
-})
+// src/lib/prisma.ts agrega connection_limit=1 y pool_timeout=15
+// si DATABASE_URL no los trae definidos.
+new PrismaClient()
 ```
 
 ### Archivo clave: `prisma/schema.prisma`

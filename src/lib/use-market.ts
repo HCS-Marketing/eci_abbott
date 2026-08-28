@@ -24,15 +24,14 @@ export function useMarket(): MarketContext {
     let cancelled = false
     async function load() {
       try {
-        const [sRes, catRes, chanRes, sellersDataRes] = await Promise.all([
-          fetch("/api/sos?action=sellers_list"),
-          fetch("/api/sos?action=categories"),
-          fetch("/api/sos?action=channels"),
-          fetch("/api/sos?action=sellers"),
-        ])
-        const [s, cats, chans, sellersData] = await Promise.all([
-          sRes.json(), catRes.json(), chanRes.json(), sellersDataRes.json(),
-        ])
+        const sRes = await fetch("/api/sos?action=sellers_list")
+        const s = await sRes.json()
+        const catRes = await fetch("/api/sos?action=categories")
+        const cats = await catRes.json()
+        const chanRes = await fetch("/api/sos?action=channels")
+        const chans = await chanRes.json()
+        const sellersDataRes = await fetch("/api/sos?action=sellers")
+        const sellersData = await sellersDataRes.json()
         if (cancelled) return
         setSellers(s as string[])
         setCategories(cats as string[])

@@ -277,9 +277,14 @@ export default function RankingScorePage() {
     if (!startDate || !endDate) return
     const id = ++fetchIdRef.current
     setLoading(true)
-    Promise.all([
-      api("rank_sellers"), api("rank_brands"), api("rank_titulos"), api("rank_trend"), api("rank_by_channel"),
-    ]).then(([sellers, brands, titulos, trend, channels]) => {
+    ;(async () => {
+      const sellers = await api("rank_sellers")
+      const brands = await api("rank_brands")
+      const titulos = await api("rank_titulos")
+      const trend = await api("rank_trend")
+      const channels = await api("rank_by_channel")
+      return [sellers, brands, titulos, trend, channels]
+    })().then(([sellers, brands, titulos, trend, channels]) => {
       if (id !== fetchIdRef.current) return
       setSellerData(sellers); setBrandData(brands); setTituloData(titulos); setTrendData(trend); setChannelData(channels)
     }).finally(() => { if (id === fetchIdRef.current) setLoading(false) })

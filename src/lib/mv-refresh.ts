@@ -22,6 +22,8 @@ const globalState = globalThis as unknown as {
 const stateByKey: Record<string, RefreshState> = globalState.__mvRefreshState ?? {}
 globalState.__mvRefreshState = stateByKey
 
+const AUTO_REFRESH_ENABLED = process.env.AUTO_REFRESH_MVS === "true" || process.env.NODE_ENV !== "production"
+
 function toIsoDate(v: unknown): string | null {
   if (!v) return null
   if (v instanceof Date) return v.toISOString().slice(0, 10)
@@ -35,6 +37,8 @@ async function queryMaxDate(prisma: PrismaClient, sql: string): Promise<string |
 }
 
 export async function ensureMaterializedViewsFresh(prisma: PrismaClient, cfg: RefreshConfig): Promise<void> {
+  if (!AUTO_REFRESH_ENABLED) return
+
   const now = Date.now()
   const minInterval = cfg.minCheckIntervalMs ?? DEFAULT_INTERVAL_MS
   const st = stateByKey[cfg.cacheKey] ?? { checkedAt: 0 }

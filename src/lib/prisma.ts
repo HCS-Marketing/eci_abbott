@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
-const DEFAULT_CONNECTION_LIMIT = process.env.PRISMA_CONNECTION_LIMIT || "15"
+const DEFAULT_CONNECTION_LIMIT = process.env.PRISMA_CONNECTION_LIMIT || "1"
 const DEFAULT_POOL_TIMEOUT = process.env.PRISMA_POOL_TIMEOUT || "15"
 
 function withServerlessPoolParams(rawUrl: string | undefined): string | undefined {
