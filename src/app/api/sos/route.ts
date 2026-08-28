@@ -871,7 +871,10 @@ export async function GET(req: Request) {
         sellerList.forEach(s => p.push(s))
 
         const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; sos_p1: number; sos_total: number }[]>(`
-          WITH daily_total AS (
+          WITH selected_sellers AS (
+            SELECT unnest(ARRAY[${sellerPlaceholders}]::text[]) AS seller
+          ),
+          daily_total AS (
             SELECT s.fecha::date AS day,
               SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS total_p1,
               COUNT(*) AS total_all
@@ -879,7 +882,7 @@ export async function GET(req: Request) {
             WHERE ${w}
             GROUP BY s.fecha::date
           ),
-          seller_daily AS (
+          seller_daily_raw AS (
             SELECT s.fecha::date AS day,
               ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS fab,
               SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
@@ -887,13 +890,33 @@ export async function GET(req: Request) {
             FROM eci.sos s
             WHERE ${w} AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} IN (${sellerPlaceholders})
             GROUP BY s.fecha::date, ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")}
+          ),
+          seller_daily AS (
+            SELECT dt.day, ss.seller AS fab,
+              COALESCE(sdr.products_p1, 0) AS products_p1,
+              COALESCE(sdr.products_total, 0) AS products_total
+            FROM daily_total dt
+            CROSS JOIN selected_sellers ss
+            LEFT JOIN seller_daily_raw sdr ON sdr.day = dt.day AND sdr.fab = ss.seller
+          ),
+          daily_cume AS (
+            SELECT day,
+              SUM(total_p1) OVER (ORDER BY day) AS total_p1,
+              SUM(total_all) OVER (ORDER BY day) AS total_all
+            FROM daily_total
+          ),
+          seller_cume AS (
+            SELECT day, fab,
+              SUM(products_p1) OVER (PARTITION BY fab ORDER BY day) AS products_p1,
+              SUM(products_total) OVER (PARTITION BY fab ORDER BY day) AS products_total
+            FROM seller_daily
           )
-          SELECT sd.day::text, sd.fab AS seller,
-            ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1,
-            ROUND(sd.products_total * 100.0 / NULLIF(dt.total_all, 0), 2) AS sos_total
-          FROM seller_daily sd
-          JOIN daily_total dt ON sd.day = dt.day
-          ORDER BY sd.day, sd.fab
+          SELECT sc.day::text, sc.fab AS seller,
+            ROUND(sc.products_p1 * 100.0 / NULLIF(dc.total_p1, 0), 2) AS sos_p1,
+            ROUND(sc.products_total * 100.0 / NULLIF(dc.total_all, 0), 2) AS sos_total
+          FROM seller_cume sc
+          JOIN daily_cume dc ON sc.day = dc.day
+          ORDER BY sc.day, sc.fab
         `, ...p)
         const dayMap = new Map<string, Record<string, unknown>>()
         rows.forEach(r => {
@@ -910,23 +933,46 @@ export async function GET(req: Request) {
       sellerList.forEach(s => p.push(s))
       const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
       const sql = `
-        WITH daily_total AS (
+        WITH selected_sellers AS (
+          SELECT unnest(ARRAY[${sellerPlaceholders}]::text[]) AS seller
+        ),
+        daily_total AS (
           SELECT fecha AS day, SUM(count_p1) AS total_p1, SUM(count_total) AS total_all
           FROM ${table} d WHERE ${w}${mf}${sosPageFilter}
           GROUP BY fecha
         ),
-        seller_daily AS (
+        seller_daily_raw AS (
           SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1, SUM(count_total) AS products_total
           FROM ${table} d
           WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})${sosPageFilter}
           GROUP BY fecha, fabricante
+        ),
+        seller_daily AS (
+          SELECT dt.day, ss.seller AS fab,
+            COALESCE(sdr.products_p1, 0) AS products_p1,
+            COALESCE(sdr.products_total, 0) AS products_total
+          FROM daily_total dt
+          CROSS JOIN selected_sellers ss
+          LEFT JOIN seller_daily_raw sdr ON sdr.day = dt.day AND sdr.fab = ss.seller
+        ),
+        daily_cume AS (
+          SELECT day,
+            SUM(total_p1) OVER (ORDER BY day) AS total_p1,
+            SUM(total_all) OVER (ORDER BY day) AS total_all
+          FROM daily_total
+        ),
+        seller_cume AS (
+          SELECT day, fab,
+            SUM(products_p1) OVER (PARTITION BY fab ORDER BY day) AS products_p1,
+            SUM(products_total) OVER (PARTITION BY fab ORDER BY day) AS products_total
+          FROM seller_daily
         )
-        SELECT sd.day::text, sd.fab AS seller,
-          ROUND(sd.products_p1 * 100.0 / NULLIF(dt.total_p1, 0), 2) AS sos_p1,
-          ROUND(sd.products_total * 100.0 / NULLIF(dt.total_all, 0), 2) AS sos_total
-        FROM seller_daily sd
-        JOIN daily_total dt ON sd.day = dt.day
-        ORDER BY sd.day, sd.fab
+        SELECT sc.day::text, sc.fab AS seller,
+          ROUND(sc.products_p1 * 100.0 / NULLIF(dc.total_p1, 0), 2) AS sos_p1,
+          ROUND(sc.products_total * 100.0 / NULLIF(dc.total_all, 0), 2) AS sos_total
+        FROM seller_cume sc
+        JOIN daily_cume dc ON sc.day = dc.day
+        ORDER BY sc.day, sc.fab
       `
       const rows = await prisma.$queryRawUnsafe<{ day: string; seller: string; sos_p1: number; sos_total: number }[]>(sql, ...p)
       const dayMap = new Map<string, Record<string, unknown>>()
