@@ -21,6 +21,10 @@ function retailColor(name: string, fallbackIdx: number): string {
 const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END`
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
 
+function fabricanteNotMarcaLocalSql(columnSql = "fabricante"): string {
+  return ` AND COALESCE(UPPER(TRIM(${columnSql})), '') <> 'MARCA LOCAL'`
+}
+
 // Retail name normalization — maps search table names to canonical SOS names
 const RETAIL_NORMALIZE: Record<string, string> = {
   "FARMACIAS BENAVIDES": "BENAVIDES",
@@ -93,6 +97,7 @@ export async function GET(req: Request) {
     if (action === "dates") {
       const p: unknown[] = []
       let w = `search IS NOT NULL AND TRIM(search) <> ''`
+      w += fabricanteNotMarcaLocalSql()
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
         if (vals.length === 1) {
@@ -125,6 +130,7 @@ export async function GET(req: Request) {
     function buildWhere(params: unknown[]) {
       params.push(startD, endD)
       let w = `fecha >= $${params.length - 1} AND fecha <= $${params.length}`
+      w += fabricanteNotMarcaLocalSql()
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
         if (vals.length === 1) {
@@ -159,6 +165,7 @@ export async function GET(req: Request) {
     if (action === "searches") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT search AS n FROM eci.search WHERE search IS NOT NULL AND TRIM(search) <> ''`
+      sql += fabricanteNotMarcaLocalSql()
       if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
@@ -190,6 +197,7 @@ export async function GET(req: Request) {
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.search WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
+      sql += fabricanteNotMarcaLocalSql()
       if (startDate || endDate) { p.push(startD, endD); sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}` }
       if (search)  { p.push(search);  sql += ` AND search = $${p.length}` }
       if (country) { p.push(country); sql += ` AND pais = $${p.length}` }
@@ -209,6 +217,7 @@ export async function GET(req: Request) {
       if (normalized.length === 0 && (startDate || endDate)) {
         const p2: unknown[] = []
         let sql2 = `SELECT DISTINCT retail AS n FROM eci.search WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
+        sql2 += fabricanteNotMarcaLocalSql()
         if (search)  { p2.push(search);  sql2 += ` AND search = $${p2.length}` }
         if (country) { p2.push(country); sql2 += ` AND pais = $${p2.length}` }
         sql2 += " ORDER BY 1"
@@ -225,6 +234,7 @@ export async function GET(req: Request) {
         SELECT DISTINCT pais AS n
         FROM eci.search
         WHERE pais IS NOT NULL AND TRIM(pais) <> ''
+          AND COALESCE(UPPER(TRIM(fabricante)), '') <> 'MARCA LOCAL'
         ORDER BY 1
       `
       const dbCountries = rows.map(r => r.n)
@@ -425,6 +435,7 @@ export async function GET(req: Request) {
       const page = searchParams.get("page") || "p1"
       const p: unknown[] = [startD, endD]
       let w = `fecha >= $1 AND fecha <= $2`
+      w += fabricanteNotMarcaLocalSql()
       if (channel) {
         const vals = RETAIL_ALIASES[channel] || [channel]
         if (vals.length === 1) { p.push(vals[0]); w += ` AND retail = $${p.length}` }
@@ -468,6 +479,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       p.push(startD, endD)
       let w = `fecha >= $${p.length - 1} AND fecha <= $${p.length}`
+      w += fabricanteNotMarcaLocalSql()
       if (search)  { p.push(search);  w += ` AND search = $${p.length}` }
       if (country) { p.push(country); w += ` AND pais = $${p.length}` }
       const mf = marcaFilter(p)

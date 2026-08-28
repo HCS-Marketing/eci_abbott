@@ -39,6 +39,10 @@ const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABB
 // Abbott fabricante identifiers
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
 
+function fabricanteNotMarcaLocalSql(columnSql = "fabricante"): string {
+  return ` AND COALESCE(UPPER(TRIM(${columnSql})), '') <> 'MARCA LOCAL'`
+}
+
 function categorySourceSql(alias?: string): string {
   const p = alias ? `${alias}.` : ""
   return `COALESCE(NULLIF(TRIM(${p}subcategoria), ''), NULLIF(TRIM(${p}categoria), ''))`
@@ -118,6 +122,7 @@ function mvCategorySqlCondition(params: unknown[], selectedCategory: string, cou
         WHERE s.fecha = d.fecha
           AND s.retail = d.retail
           AND UPPER(TRIM(s.pais)) = UPPER(TRIM(d.pais))
+          AND COALESCE(UPPER(TRIM(s.fabricante)), '') <> 'MARCA LOCAL'
           AND NULLIF(TRIM(s.categoria_col), '') = $${idx}
         LIMIT 1
       )
@@ -341,6 +346,7 @@ export async function GET(req: Request) {
     if (action === "dates") {
       const p: unknown[] = []
       let w = "1=1"
+      w += fabricanteNotMarcaLocalSql()
       if (channel) { p.push(channel); w += ` AND retail = $${p.length}` }
       w += countrySqlCondition(p, country)
 
@@ -367,6 +373,7 @@ export async function GET(req: Request) {
     ) {
       params.push(startD, endD)
       let w = `fecha >= $${params.length - 1} AND fecha <= $${params.length}`
+      w += fabricanteNotMarcaLocalSql()
       if (opts.channel !== false && channel) {
         params.push(channel)
         w += ` AND retail = $${params.length}`
@@ -393,6 +400,7 @@ export async function GET(req: Request) {
       if (sellers.length === 0 || (sellers.length === 1 && sellers[0] === "MARCA LOCAL")) {
         const p2: unknown[] = [startD, endD]
         let w2 = `fecha >= $1 AND fecha <= $2`
+        w2 += fabricanteNotMarcaLocalSql()
         if (channel) { p2.push(channel); w2 += ` AND retail = $${p2.length}` }
         w2 += countrySqlCondition(p2, country)
         if (category) {
@@ -416,6 +424,7 @@ export async function GET(req: Request) {
     if (action === "fabricantes_inv") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n FROM eci.search WHERE fabricante IS NOT NULL`
+      sql += fabricanteNotMarcaLocalSql()
       sql += countrySqlCondition(p, country)
       if (channel)  { p.push(channel);  sql += ` AND retail = $${p.length}` }
       if (category) { sql += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
@@ -429,6 +438,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const src = categorySourceSqlByCountry(country)
       let sql = `SELECT DISTINCT ${src} AS n FROM eci.sos WHERE ${src} IS NOT NULL`
+      sql += fabricanteNotMarcaLocalSql()
       sql += countrySqlCondition(p, country)
       if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
       if (startDate || endDate) {
@@ -445,6 +455,7 @@ export async function GET(req: Request) {
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.sos WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
+      sql += fabricanteNotMarcaLocalSql()
       if (category) { sql += categorySqlCondition(categorySourceSqlByCountry(country), p, category) }
       sql += countrySqlCondition(p, country)
       if (startDate || endDate) {
@@ -462,6 +473,7 @@ export async function GET(req: Request) {
         SELECT DISTINCT pais AS n
         FROM eci.sos
         WHERE pais IS NOT NULL AND TRIM(pais) <> ''
+          AND COALESCE(UPPER(TRIM(fabricante)), '') <> 'MARCA LOCAL'
         ORDER BY 1
       `
       const dbCountries = uniqueNonEmpty(rows.map(r => r.n))
@@ -580,6 +592,7 @@ export async function GET(req: Request) {
       if (useColombiaCategoryBase || rows.length === 0 || rows.every(r => r.seller === "MARCA LOCAL")) {
         const p2: unknown[] = [startD, endD]
         let w2 = `s.fecha >= $1 AND s.fecha <= $2`
+        w2 += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p2.push(channel); w2 += ` AND s.retail = $${p2.length}` }
         w2 += countrySqlCondition(p2, country, "s.pais")
         if (category) { w2 += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p2, category) }
@@ -645,6 +658,7 @@ export async function GET(req: Request) {
       if (useColombiaCategoryBase) {
         const p: unknown[] = [startD, endD]
         let w = `s.fecha >= $1 AND s.fecha <= $2`
+        w += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
         w += countrySqlCondition(p, country, "s.pais")
         w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
@@ -738,6 +752,7 @@ export async function GET(req: Request) {
       if (useColombiaCategoryBase) {
         const p: unknown[] = [startD, endD]
         let w = `s.fecha >= $1 AND s.fecha <= $2`
+        w += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
         w += countrySqlCondition(p, country, "s.pais")
         w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
@@ -864,6 +879,7 @@ export async function GET(req: Request) {
       if (useColombiaCategoryBase) {
         const p: unknown[] = [startD, endD]
         let w = `s.fecha >= $1 AND s.fecha <= $2`
+        w += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
         w += countrySqlCondition(p, country, "s.pais")
         w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
@@ -990,6 +1006,7 @@ export async function GET(req: Request) {
       if (useColombiaCategoryBase) {
         const p: unknown[] = [startD, endD]
         let w = `s.fecha >= $1 AND s.fecha <= $2`
+        w += fabricanteNotMarcaLocalSql("s.fabricante")
         w += countrySqlCondition(p, country, "s.pais")
         w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
         p.push(seller)
@@ -1346,6 +1363,7 @@ export async function GET(req: Request) {
       const show       = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let wSos = `DATE(s.fecha) = $1::date`
+      wSos += fabricanteNotMarcaLocalSql("s.fabricante")
       wSos += countrySqlCondition(p, country, "s.pais")
       if (category) { wSos += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
 
@@ -1467,6 +1485,7 @@ export async function GET(req: Request) {
 
       const p: unknown[] = [dateParam]
       let w = `DATE(s.fecha) = $1::date AND s.skuid IS NOT NULL AND TRIM(s.skuid) <> ''`
+      w += fabricanteNotMarcaLocalSql("s.fabricante")
       // Module is MX-only. If country is not set by UI for any reason, default to MX.
       if (country) { w += countrySqlCondition(p, country, "s.pais") }
       else { w += countrySqlCondition(p, "MX", "s.pais") }
@@ -1586,6 +1605,7 @@ export async function GET(req: Request) {
       const show     = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND titulo IS NOT NULL AND precio_venta IS NOT NULL`
+      w += fabricanteNotMarcaLocalSql()
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
       w += countrySqlCondition(p, country)
@@ -1659,6 +1679,7 @@ export async function GET(req: Request) {
       const show = searchParams.get("show") || "all"
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND ranking IS NOT NULL AND id IS NOT NULL AND precio_venta IS NOT NULL`
+      w += fabricanteNotMarcaLocalSql()
       w += ` AND (retail ILIKE '%MERCADO LIBRE%' OR retail ILIKE '%AMAZON%')`
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
@@ -1774,6 +1795,7 @@ export async function GET(req: Request) {
           SELECT MAX(DATE(s.fecha)) AS max_date
           FROM eci.sos s
           WHERE s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
+            ${fabricanteNotMarcaLocalSql("s.fabricante")}
             ${buyboxRetailSql} ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         abbott_present_7d AS (
@@ -1783,6 +1805,7 @@ export async function GET(req: Request) {
             AND s.fecha < latest_date.max_date + INTERVAL '1 day'
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
             AND ${ABBOTT_LIKE.replace('fabricante', 's.fabricante')}
+            ${fabricanteNotMarcaLocalSql("s.fabricante")}
             ${buyboxRetailSql} ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         raw_latest AS (
@@ -1798,6 +1821,7 @@ export async function GET(req: Request) {
           FROM eci.sos s, latest_date
           WHERE DATE(s.fecha) = latest_date.max_date
             AND s.id IS NOT NULL AND s.precio_venta IS NOT NULL AND s.ranking IS NOT NULL
+            ${fabricanteNotMarcaLocalSql("s.fabricante")}
             ${buyboxRetailSql} ${channelSql} ${categorySql} ${countrySql} ${mfBuybox}
         ),
         latest_winners AS (
@@ -1863,6 +1887,7 @@ export async function GET(req: Request) {
       const show     = searchParams.get("show") || "newsan"
       const p: unknown[] = [dateParam]
       let w = `DATE(fecha) = $1::date AND precio_venta IS NOT NULL AND id IS NOT NULL`
+      w += fabricanteNotMarcaLocalSql()
       if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
       if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
       w += countrySqlCondition(p, country)
@@ -2026,6 +2051,7 @@ export async function GET(req: Request) {
       try {
         const p: unknown[] = [dateParam]
         let w = `fecha = $1::date`
+        w += fabricanteNotMarcaLocalSql()
         if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
         if (category) { w += categorySqlCondition(categoryFilterColumnForSource(country, "mv"), p, category) }
         w += countrySqlCondition(p, country)
@@ -2055,6 +2081,7 @@ export async function GET(req: Request) {
       // ── 2. Fallback: query eci.sos directly ──────────────
       const p2: unknown[] = [dateParam]
       let w2 = `fecha::date = $1::date AND id IS NOT NULL`
+      w2 += fabricanteNotMarcaLocalSql()
       if (channel)  { p2.push(channel);  w2 += ` AND retail = $${p2.length}` }
       if (category) { w2 += categorySqlCondition(categoryFilterColumnForSource(country, "base"), p2, category) }
       w2 += countrySqlCondition(p2, country)
