@@ -29,6 +29,21 @@
 - Se puede ejecutar desde proceso controlado/cron configurando AUTO_REFRESH_MVS=true
 - Mejor manejo de errores
 
+### 2.b ✅ Refresh controlado de Materialized Views
+Endpoint protegido:
+```bash
+curl -X POST "https://<dominio>/api/admin/refresh-mvs?module=all" \
+  -H "Authorization: Bearer <REFRESH_MVS_TOKEN>"
+```
+
+Opciones:
+- `module=sos` refresca solo vistas SOS
+- `module=search` refresca solo vistas Search
+- `module=all` refresca ambas
+- `force=true` fuerza el refresh aunque las fechas parezcan alineadas
+
+En producción debe existir `REFRESH_MVS_TOKEN` o `CRON_SECRET` en Vercel. Esto permite actualizar las MVs después de cargar datos sin ejecutar refresh pesado en cada request de usuario.
+
 ### 3. ✅ Optimizar Queries Lentas (src/app/api/search/route.ts)
 ```
 Queries de segmentos/mercados:

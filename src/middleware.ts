@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const PUBLIC_PATHS = ["/login", "/api/auth"]
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/admin/refresh-mvs"]
 
 // Slot-based country lock. Keep aligned with /api/auth/me.
 const COUNTRY_LOCK_BY_SLOT: Record<number, string[]> = {

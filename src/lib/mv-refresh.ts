@@ -8,6 +8,13 @@ type RefreshConfig = {
   minCheckIntervalMs?: number
 }
 
+export type MaterializedViewRefreshResult = {
+  view: string
+  refreshed: boolean
+  method?: "concurrently" | "standard"
+  error?: string
+}
+
 type RefreshState = {
   checkedAt: number
   refreshing?: Promise<void>
@@ -36,6 +43,46 @@ async function queryMaxDate(prisma: PrismaClient, sql: string): Promise<string |
   return toIsoDate(rows?.[0]?.max_d)
 }
 
+async function refreshViews(prisma: PrismaClient, views: string[]): Promise<MaterializedViewRefreshResult[]> {
+  const results: MaterializedViewRefreshResult[] = []
+
+  for (const mv of views) {
+    try {
+      await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${mv}`)
+      results.push({ view: mv, refreshed: true, method: "concurrently" })
+    } catch (err) {
+      try {
+        await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW ${mv}`)
+        results.push({ view: mv, refreshed: true, method: "standard" })
+      } catch (fallbackErr) {
+        const error = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
+        console.error(`Failed to refresh ${mv}`, err)
+        results.push({ view: mv, refreshed: false, error })
+      }
+    }
+  }
+
+  return results
+}
+
+export async function refreshMaterializedViewsNow(
+  prisma: PrismaClient,
+  cfg: RefreshConfig,
+  opts: { force?: boolean } = {}
+): Promise<{ baseMax: string | null; mvMax: string | null; skipped: boolean; results: MaterializedViewRefreshResult[] }> {
+  const [baseMax, mvMax] = await Promise.all([
+    queryMaxDate(prisma, cfg.baseMaxDateSql),
+    queryMaxDate(prisma, cfg.mvMaxDateSql),
+  ])
+
+  if (!opts.force && (!baseMax || (mvMax && mvMax >= baseMax))) {
+    return { baseMax, mvMax, skipped: true, results: [] }
+  }
+
+  const results = await refreshViews(prisma, cfg.refreshViews)
+  return { baseMax, mvMax, skipped: false, results }
+}
+
 export async function ensureMaterializedViewsFresh(prisma: PrismaClient, cfg: RefreshConfig): Promise<void> {
   if (!AUTO_REFRESH_ENABLED) return
 
@@ -60,19 +107,7 @@ export async function ensureMaterializedViewsFresh(prisma: PrismaClient, cfg: Re
       ])
 
       if (baseMax && (!mvMax || mvMax < baseMax)) {
-        for (const mv of cfg.refreshViews) {
-          try {
-            await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW CONCURRENTLY ${mv}`)
-          } catch (err) {
-            // Si falla CONCURRENTLY, intenta sin CONCURRENTLY
-            try {
-              await prisma.$executeRawUnsafe(`REFRESH MATERIALIZED VIEW ${mv}`)
-            } catch {
-              // Continúa con el siguiente view
-              console.error(`Failed to refresh ${mv}`)
-            }
-          }
-        }
+        await refreshViews(prisma, cfg.refreshViews)
       }
       st.checkedAt = Date.now()
     } catch (err) {
@@ -88,31 +123,35 @@ export async function ensureMaterializedViewsFresh(prisma: PrismaClient, cfg: Re
 }
 
 export async function ensureSosMaterializedViewsFresh(prisma: PrismaClient): Promise<void> {
-  await ensureMaterializedViewsFresh(prisma, {
-    cacheKey: "sos",
-    baseMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.sos`,
-    mvMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.mv_sos_daily_fab`,
-    refreshViews: [
-      "eci.mv_sos_daily_fab",
-      "eci.mv_sos_daily_marca",
-      "eci.mv_sos_daily_titulo",
-      "eci.mv_ranking_daily_fab",
-      "eci.mv_ranking_daily_marca",
-      "eci.mv_ranking_daily_titulo",
-      "eci.mv_sos_dimensions",
-      "eci.mv_sos_product_latest",
-    ],
-  })
+  await ensureMaterializedViewsFresh(prisma, SOS_MV_REFRESH_CONFIG)
+}
+
+export const SOS_MV_REFRESH_CONFIG: RefreshConfig = {
+  cacheKey: "sos",
+  baseMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.sos`,
+  mvMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.mv_sos_daily_fab`,
+  refreshViews: [
+    "eci.mv_sos_daily_fab",
+    "eci.mv_sos_daily_marca",
+    "eci.mv_sos_daily_titulo",
+    "eci.mv_ranking_daily_fab",
+    "eci.mv_ranking_daily_marca",
+    "eci.mv_ranking_daily_titulo",
+    "eci.mv_sos_dimensions",
+    "eci.mv_sos_product_latest",
+  ],
 }
 
 export async function ensureSearchMaterializedViewsFresh(prisma: PrismaClient): Promise<void> {
-  await ensureMaterializedViewsFresh(prisma, {
-    cacheKey: "search",
-    baseMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.search WHERE search IS NOT NULL AND TRIM(search) <> ''`,
-    mvMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.mv_search_daily_fab`,
-    refreshViews: [
-      "eci.mv_search_daily_fab",
-      "eci.mv_search_daily_marca",
-    ],
-  })
+  await ensureMaterializedViewsFresh(prisma, SEARCH_MV_REFRESH_CONFIG)
+}
+
+export const SEARCH_MV_REFRESH_CONFIG: RefreshConfig = {
+  cacheKey: "search",
+  baseMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.search WHERE search IS NOT NULL AND TRIM(search) <> ''`,
+  mvMaxDateSql: `SELECT MAX(fecha) AS max_d FROM eci.mv_search_daily_fab`,
+  refreshViews: [
+    "eci.mv_search_daily_fab",
+    "eci.mv_search_daily_marca",
+  ],
 }
