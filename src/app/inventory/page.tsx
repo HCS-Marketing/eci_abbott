@@ -32,6 +32,8 @@ export default function InventoryPage() {
     if (!v) return ""
     if (v === "ML" || v.includes("MERCADO")) return "MERCADO LIBRE"
     if (v.includes("AMAZON")) return "AMAZON"
+    if (v === "SAMS" || v.includes("SAM'S") || v.includes("SAMS CLUB")) return "SAMS CLUB"
+    if (v === "HEB" || v.includes("H-E-B")) return "HEB"
     return v
   }
 
@@ -256,12 +258,12 @@ export default function InventoryPage() {
     <div className="space-y-4">
       <PageHeader
         title="Inventario"
-        subtitle="Estado diario de productos desde archivos base_prov (Amazon y Mercado Libre)"
+        subtitle="Estado diario de productos desde archivos base_prov"
       />
 
       {/* ── Nota lógica ──────────────────────────────── */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
-        <span className="font-semibold">Lógica de inventario:</span> se unifican todos los Excel diarios de <span className="font-semibold">base_prov/amz</span> y <span className="font-semibold">base_prov/ml</span>. El estado se toma de la columna <span className="font-semibold">disponibilidad</span> y <span className="font-semibold">Ultimo visto</span> muestra la fecha más reciente con disponibilidad.
+        <span className="font-semibold">Lógica de inventario:</span> se unifican todos los Excel diarios de <span className="font-semibold">base_prov/amz</span>, <span className="font-semibold">base_prov/ml</span>, <span className="font-semibold">base_prov/heb</span> y <span className="font-semibold">base_prov/sams</span>. El estado se toma de la columna <span className="font-semibold">disponibilidad</span> y <span className="font-semibold">Ultimo visto</span> muestra la fecha más reciente con disponibilidad.
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -285,6 +287,8 @@ export default function InventoryPage() {
             <option value="">Todos</option>
             <option value="AMAZON">Amazon</option>
             <option value="MERCADO LIBRE">Mercado Libre</option>
+            <option value="HEB">HEB</option>
+            <option value="SAMS CLUB">Sams Club</option>
           </select>
         </div>
 

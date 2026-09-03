@@ -122,6 +122,8 @@ export default function CatalogContentPage() {
     if (!v) return ""
     if (v === "ML" || v.includes("MERCADO")) return "MERCADO LIBRE"
     if (v.includes("AMAZON")) return "AMAZON"
+    if (v === "SAMS" || v.includes("SAM'S") || v.includes("SAMS CLUB")) return "SAMS CLUB"
+    if (v === "HEB" || v.includes("H-E-B")) return "HEB"
     return v
   }
 
@@ -328,7 +330,7 @@ export default function CatalogContentPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Contenido de catalogo" subtitle="Calidad de catalogo por producto en Amazon y Mercado Libre" />
+      <PageHeader title="Contenido de catalogo" subtitle="Calidad de catalogo por producto desde archivos base_prov" />
 
       <div className="items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl flex">
         <div className="flex items-center gap-2">
@@ -345,6 +347,8 @@ export default function CatalogContentPage() {
             <option value="">Todos</option>
             <option value="AMAZON">Amazon</option>
             <option value="MERCADO LIBRE">Mercado Libre</option>
+            <option value="HEB">HEB</option>
+            <option value="SAMS CLUB">Sams Club</option>
           </select>
         </div>
 

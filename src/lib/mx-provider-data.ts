@@ -3,6 +3,8 @@ import path from "node:path"
 import * as XLSX from "xlsx"
 import fallbackRowsJson from "@/data/mx-provider-rows.json"
 
+const PROVIDER_DIRS = ["amz", "ml", "heb", "sams"]
+
 const XLSX_API: {
   readFile: (path: string) => { SheetNames: string[]; Sheets: Record<string, unknown> }
   utils: { sheet_to_json: <T>(sheet: unknown, opts?: Record<string, unknown>) => T[] }
@@ -35,7 +37,7 @@ export interface MxProviderRow {
 }
 
 function hasProviderBase(root: string): boolean {
-  return fs.existsSync(path.join(root, "base_prov", "amz")) && fs.existsSync(path.join(root, "base_prov", "ml"))
+  return PROVIDER_DIRS.some(dir => fs.existsSync(path.join(root, "base_prov", dir)))
 }
 
 function candidateRoots(): string[] {
@@ -113,6 +115,8 @@ function normalizeRetail(value: unknown): string {
   if (!raw) return ""
   if (raw === "ML" || raw.includes("MERCADO")) return "MERCADO LIBRE"
   if (raw.includes("AMAZON")) return "AMAZON"
+  if (raw === "SAMS" || raw.includes("SAM'S") || raw.includes("SAMS CLUB")) return "SAMS CLUB"
+  if (raw === "HEB" || raw.includes("H-E-B")) return "HEB"
   return raw
 }
 
@@ -238,10 +242,7 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 
 export function loadMxProviderRows(): MxProviderRow[] {
   const baseDir = resolveProviderBaseDir()
-  const all = [
-    ...readExcelFilesFromDir(path.join(baseDir, "amz")),
-    ...readExcelFilesFromDir(path.join(baseDir, "ml")),
-  ]
+  const all = PROVIDER_DIRS.flatMap(dir => readExcelFilesFromDir(path.join(baseDir, dir)))
   const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
   const base = (all.length > 0 ? all : fallbackRows).map(r => ({
     ...r,

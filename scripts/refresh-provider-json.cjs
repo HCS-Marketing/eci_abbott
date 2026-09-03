@@ -3,8 +3,7 @@ const path = require("node:path")
 const XLSX = require("xlsx")
 
 const ROOT = process.cwd()
-const AMZ_DIR = path.join(ROOT, "base_prov", "amz")
-const ML_DIR = path.join(ROOT, "base_prov", "ml")
+const PROVIDER_DIRS = ["amz", "ml", "heb", "sams"]
 const OUTPUT_FILE = path.join(ROOT, "src", "data", "mx-provider-rows.json")
 
 function normalizeDate(value) {
@@ -42,6 +41,8 @@ function normalizeRetail(value) {
   if (!raw) return ""
   if (raw === "ML" || raw.includes("MERCADO")) return "MERCADO LIBRE"
   if (raw.includes("AMAZON")) return "AMAZON"
+  if (raw === "SAMS" || raw.includes("SAM'S") || raw.includes("SAMS CLUB")) return "SAMS CLUB"
+  if (raw === "HEB" || raw.includes("H-E-B")) return "HEB"
   return raw
 }
 
@@ -146,10 +147,7 @@ function readExcelFilesFromDir(dirPath) {
 }
 
 function main() {
-  const rows = [
-    ...readExcelFilesFromDir(AMZ_DIR),
-    ...readExcelFilesFromDir(ML_DIR),
-  ]
+  const rows = PROVIDER_DIRS.flatMap(dir => readExcelFilesFromDir(path.join(ROOT, "base_prov", dir)))
 
   if (rows.length === 0) {
     console.warn("[refresh-provider-json] No se encontraron filas válidas en Excel. Se conserva el JSON actual.")
