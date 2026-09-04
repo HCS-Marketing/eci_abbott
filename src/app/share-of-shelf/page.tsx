@@ -222,6 +222,7 @@ export default function ShareOfShelfPage() {
   // Filtros
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
+  const [subcategory, setSubcategory] = useState("")
   const [segmento,   setSegmento]   = useState("")
   const [mercado,    setMercado]    = useState("")
   const [startDate,  setStartDate]  = useState("")
@@ -232,6 +233,7 @@ export default function ShareOfShelfPage() {
   // Opciones dinámicas de los selects
   const [availableChannels,    setAvailableChannels]    = useState<string[]>([])
   const [availableCategories,  setAvailableCategories]  = useState<string[]>([])
+  const [availableSubcategories, setAvailableSubcategories] = useState<string[]>([])
   const [availableSegmentos,   setAvailableSegmentos]   = useState<string[]>([])
   const [availableMercados,    setAvailableMercados]    = useState<string[]>([])
   const [selectedSeller,  setSelectedSeller]  = useState(SELLERS[0] || "ABBOTT")
@@ -307,6 +309,8 @@ export default function ShareOfShelfPage() {
     }
     setCategory("")
     setAvailableCategories([])
+    setSubcategory("")
+    setAvailableSubcategories([])
   }, [country])
 
   // ── Cargar rango de fechas disponible (country-aware) ─────
@@ -365,6 +369,31 @@ export default function ShareOfShelfPage() {
     return () => ac.abort()
   }, [channel, country, startDate, endDate])
 
+  // ── Colombia: subcategorías filtradas por categoría + retail + fechas ──
+  useEffect(() => {
+    if (country !== "CO") {
+      setSubcategory("")
+      setAvailableSubcategories([])
+      return
+    }
+    const ac = new AbortController()
+    const p = new URLSearchParams({ action: "subcategories" })
+    if (channel)   p.set("channel", channel)
+    if (category)  p.set("category", category)
+    if (country)   p.set("country", country)
+    if (startDate) p.set("startDate", startDate)
+    if (endDate)   p.set("endDate", endDate)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
+      .then(r => r.json())
+      .then((data: string[]) => {
+        if (!Array.isArray(data)) return
+        setAvailableSubcategories(data)
+        setSubcategory(current => current && !data.includes(current) ? "" : current)
+      })
+      .catch(e => { if (e?.name !== "AbortError") throw e })
+    return () => ac.abort()
+  }, [channel, category, country, startDate, endDate])
+
   // ── Cascading: segmentos filtrados por retail + país + mercado ───────────────
   useEffect(() => {
     const ac = new AbortController()
@@ -407,6 +436,7 @@ export default function ShareOfShelfPage() {
         `/api/sos?action=${action}` +
         `&channel=${encodeURIComponent(channel)}` +
         `&category=${encodeURIComponent(category)}` +
+        `&subcategory=${encodeURIComponent(subcategory)}` +
         `&country=${encodeURIComponent(country)}` +
         `&segmento=${encodeURIComponent(segmento)}` +
         `&mercado=${encodeURIComponent(mercado)}` +
@@ -418,7 +448,7 @@ export default function ShareOfShelfPage() {
       )
         .then(r => r.json())
         .then(d => (Array.isArray(d) ? d : [])),
-    [channel, category, country, segmento, mercado, selectedSeller, page, startDate, endDate, selectedSellers]
+    [channel, category, subcategory, country, segmento, mercado, selectedSeller, page, startDate, endDate, selectedSellers]
   )
 
   useEffect(() => {
@@ -655,6 +685,20 @@ export default function ShareOfShelfPage() {
             {availableCategories.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
+
+        {country === "CO" && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Subcategoría</span>
+            <select
+              value={subcategory}
+              onChange={e => setSubcategory(e.target.value)}
+              className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white w-[150px]"
+            >
+              <option value="">Todas las subcategorías</option>
+              {availableSubcategories.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
 
         <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
           {(["p1", "total"] as PageCtx[]).map(p => (
