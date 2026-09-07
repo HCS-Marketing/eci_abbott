@@ -108,6 +108,12 @@ function categorySqlCondition(columnSql: string, params: unknown[], selectedCate
   return ` AND ${columnSql} = $${params.length}`
 }
 
+function subcategoryFilterColumnByCountry(countryCode: string, alias?: string): string {
+  const p = alias ? `${alias}.` : ""
+  if (isColombiaCountry(countryCode)) return `NULLIF(TRIM(${p}subcategoria_col), '')`
+  return `NULLIF(TRIM(${p}subcategoria), '')`
+}
+
 function mvCategorySqlCondition(params: unknown[], selectedCategory: string, countryCode: string): string {
   if (!selectedCategory) return ""
   params.push(selectedCategory)
@@ -147,6 +153,7 @@ export async function GET(req: Request) {
   const action   = searchParams.get("action") || "sellers"
   const channel  = searchParams.get("channel") || ""
   const category = searchParams.get("category") || ""
+  const subcategory = searchParams.get("subcategory") || ""
   const seller   = searchParams.get("seller") || ""
   const sellersParam = searchParams
     .get("sellers")
@@ -385,7 +392,7 @@ export async function GET(req: Request) {
       return w
     }
 
-    const useColombiaCategoryBase = isColombiaCountry(country) && Boolean(category)
+    const useColombiaCategoryBase = isColombiaCountry(country) && Boolean(category || subcategory)
 
     // ── sellers list (fabricantes unified) — from MV ──────
     if (action === "sellers_list") {
@@ -404,9 +411,9 @@ export async function GET(req: Request) {
         if (channel) { p2.push(channel); w2 += ` AND retail = $${p2.length}` }
         w2 += countrySqlCondition(p2, country)
         if (category) {
-          p2.push(category)
-          w2 += ` AND categoria = $${p2.length}`
+          w2 += categorySqlCondition(categoryFilterColumnByCountry(country), p2, category)
         }
+        if (subcategory) { w2 += categorySqlCondition(subcategoryFilterColumnByCountry(country), p2, subcategory) }
         const fb = await prisma.$queryRawUnsafe<{ n: string }[]>(
           `SELECT DISTINCT ${FABRICANTE_UNIFIED} AS n
            FROM eci.search
@@ -428,6 +435,7 @@ export async function GET(req: Request) {
       sql += countrySqlCondition(p, country)
       if (channel)  { p.push(channel);  sql += ` AND retail = $${p.length}` }
       if (category) { sql += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
+      if (subcategory) { sql += categorySqlCondition(subcategoryFilterColumnByCountry(country), p, subcategory) }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
@@ -451,12 +459,32 @@ export async function GET(req: Request) {
       return NextResponse.json(unique)
     }
 
+    // ── Colombia subcategories, cascaded by category and current filters ──
+    if (action === "subcategories") {
+      if (!isColombiaCountry(country)) return NextResponse.json([])
+      const p: unknown[] = []
+      const src = subcategoryFilterColumnByCountry(country)
+      let sql = `SELECT DISTINCT ${src} AS n FROM eci.sos WHERE ${src} IS NOT NULL`
+      sql += fabricanteNotMarcaLocalSql()
+      sql += countrySqlCondition(p, country)
+      if (channel) { p.push(channel); sql += ` AND retail = $${p.length}` }
+      if (category) { sql += categorySqlCondition(categoryFilterColumnByCountry(country), p, category) }
+      if (startDate || endDate) {
+        p.push(startD, endD)
+        sql += ` AND fecha >= $${p.length - 1} AND fecha <= $${p.length}`
+      }
+      sql += " ORDER BY 1"
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
+      return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
+    }
+
     // ── channels list (retailers) — category-aware via subcategoria/categoria source ─
     if (action === "channels") {
       const p: unknown[] = []
       let sql = `SELECT DISTINCT retail AS n FROM eci.sos WHERE retail IS NOT NULL AND TRIM(retail) <> ''`
       sql += fabricanteNotMarcaLocalSql()
       if (category) { sql += categorySqlCondition(categorySourceSqlByCountry(country), p, category) }
+      if (subcategory) { sql += categorySqlCondition(subcategoryFilterColumnByCountry(country), p, subcategory) }
       sql += countrySqlCondition(p, country)
       if (startDate || endDate) {
         p.push(startD, endD)
@@ -596,6 +624,7 @@ export async function GET(req: Request) {
         if (channel) { p2.push(channel); w2 += ` AND s.retail = $${p2.length}` }
         w2 += countrySqlCondition(p2, country, "s.pais")
         if (category) { w2 += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p2, category) }
+        if (subcategory) { w2 += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p2, subcategory) }
         if (segmento || mercado) {
           let sub = ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} IN (
             SELECT DISTINCT mf2.fabricante FROM eci.marca_fabricante mf2 WHERE 1=1`
@@ -661,7 +690,8 @@ export async function GET(req: Request) {
         w += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
         w += countrySqlCondition(p, country, "s.pais")
-        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
+        if (subcategory) { w += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p, subcategory) }
         if (seller) { p.push(seller); w += ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length}` }
 
         const rows = await prisma.$queryRawUnsafe<{
@@ -755,7 +785,8 @@ export async function GET(req: Request) {
         w += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
         w += countrySqlCondition(p, country, "s.pais")
-        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
+        if (subcategory) { w += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p, subcategory) }
         if (seller) { p.push(seller); w += ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length}` }
 
         const rows = await prisma.$queryRawUnsafe<{
@@ -882,7 +913,8 @@ export async function GET(req: Request) {
         w += fabricanteNotMarcaLocalSql("s.fabricante")
         if (channel) { p.push(channel); w += ` AND s.retail = $${p.length}` }
         w += countrySqlCondition(p, country, "s.pais")
-        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
+        if (subcategory) { w += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p, subcategory) }
         const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
         sellerList.forEach(s => p.push(s))
 
@@ -1008,7 +1040,8 @@ export async function GET(req: Request) {
         let w = `s.fecha >= $1 AND s.fecha <= $2`
         w += fabricanteNotMarcaLocalSql("s.fabricante")
         w += countrySqlCondition(p, country, "s.pais")
-        w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category)
+        if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
+        if (subcategory) { w += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p, subcategory) }
         p.push(seller)
 
         const rows = await prisma.$queryRawUnsafe<{ channel: string; sos_p1: number; sos_total: number }[]>(`
