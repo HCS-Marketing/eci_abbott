@@ -2,16 +2,16 @@ import { PrismaClient } from "@prisma/client"
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
-const DEFAULT_CONNECTION_LIMIT = process.env.PRISMA_CONNECTION_LIMIT || "1"
-const DEFAULT_POOL_TIMEOUT = process.env.PRISMA_POOL_TIMEOUT || "15"
+const DEFAULT_CONNECTION_LIMIT = process.env.PRISMA_CONNECTION_LIMIT || "5"
+const DEFAULT_POOL_TIMEOUT = process.env.PRISMA_POOL_TIMEOUT || "30"
 
 function withServerlessPoolParams(rawUrl: string | undefined): string | undefined {
   if (!rawUrl) return rawUrl
 
   try {
     const url = new URL(rawUrl)
-    // In Vercel/serverless each instance can open its own pool; keep it tiny to avoid
-    // hitting Postgres max connections when many lambdas run at once.
+    // In Vercel/serverless each instance opens a small pool; direct base-table
+    // queries need enough room for the UI's parallel API requests.
     if (!url.searchParams.has("connection_limit")) {
       url.searchParams.set("connection_limit", DEFAULT_CONNECTION_LIMIT)
     }

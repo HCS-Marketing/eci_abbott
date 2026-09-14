@@ -2,8 +2,8 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "env": {
-    "PRISMA_CONNECTION_LIMIT": "1",
-    "PRISMA_POOL_TIMEOUT": "15",
+    "PRISMA_CONNECTION_LIMIT": "5",
+    "PRISMA_POOL_TIMEOUT": "30",
     "AUTO_REFRESH_MVS": "false"
   },
   "functions": {

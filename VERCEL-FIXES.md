@@ -15,9 +15,9 @@
 ### 1. ✅ Limitar Connection Pool (src/lib/prisma.ts)
 ```
 - Anterior: connection_limit=15, pool_timeout=15s
-- Ahora:   connection_limit=1, pool_timeout=15s
+- Ahora:   connection_limit=5, pool_timeout=30s
 ```
-**Por qué**: En Vercel cada instancia serverless puede crear su propio pool. Un pool alto por instancia satura rápido el límite de Prisma Postgres cuando la UI dispara varias funciones a la vez.
+**Por qué**: En Vercel cada instancia serverless puede crear su propio pool. El modo directo sobre `eci.sos` y `eci.search` necesita absorber varias llamadas paralelas de la UI sin agotar el pool local de Prisma, pero manteniendo un límite moderado por instancia.
 
 ### 2. ✅ Optimizar Refresh de Materialized Views (src/lib/mv-refresh.ts)
 ```

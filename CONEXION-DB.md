@@ -11,7 +11,7 @@ ninguna credencial hardcodeada en el código.
 ### Archivo clave: `src/lib/prisma.ts`
 
 ```ts
-// src/lib/prisma.ts agrega connection_limit=1 y pool_timeout=15
+// src/lib/prisma.ts agrega connection_limit=5 y pool_timeout=30
 // si DATABASE_URL no los trae definidos.
 new PrismaClient()
 ```
