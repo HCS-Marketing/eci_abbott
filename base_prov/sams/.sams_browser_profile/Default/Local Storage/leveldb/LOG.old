@@ -1,7 +1,18 @@
-2026/09/09-11:12:56.898 4aec Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/09-11:12:57.074 4aec Recovering log #11
-2026/09/09-11:12:57.079 4aec Level-0 table #14: started
-2026/09/09-11:12:57.104 4aec Level-0 table #14: 107996 bytes OK
-2026/09/09-11:12:57.115 4aec Recovering log #13
-2026/09/09-11:12:57.123 4aec Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000013.log 
-2026/09/09-11:12:57.128 4aec Delete type=0 #11
+2026/09/11-09:36:00.141 8afc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/11-09:36:00.163 8afc Recovering log #13
+2026/09/11-09:36:00.209 8afc Level-0 table #16: started
+2026/09/11-09:36:00.274 8afc Level-0 table #16: 107527 bytes OK
+2026/09/11-09:36:00.295 8afc Recovering log #15
+2026/09/11-09:36:00.303 8afc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000015.log 
+2026/09/11-09:36:00.319 8afc Delete type=0 #13
+2026/09/11-09:36:00.325 4e28 Compacting 4@0 + 1@1 files
+2026/09/11-09:36:00.373 4e28 Generated table #17@0: 16 keys, 107053 bytes
+2026/09/11-09:36:00.374 4e28 Compacted 4@0 + 1@1 files => 107053 bytes
+2026/09/11-09:36:00.375 4e28 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/09/11-09:36:00.377 4e28 Delete type=2 #8
+2026/09/11-09:36:00.377 4e28 Delete type=2 #10
+2026/09/11-09:36:00.377 4e28 Delete type=2 #12
+2026/09/11-09:36:00.377 4e28 Delete type=2 #14
+2026/09/11-09:36:00.377 4e28 Delete type=2 #16
+2026/09/11-09:37:45.453 8afc Level-0 table #19: started
+2026/09/11-09:37:45.511 8afc Level-0 table #19: 106808 bytes OK
