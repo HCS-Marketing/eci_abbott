@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { ensureSosMaterializedViewsFresh } from "@/lib/mv-refresh"
 import { loadMxProviderRows, maxMxProviderDate, minMxProviderDate, toProviderSkuid } from "@/lib/mx-provider-data"
 
 export const dynamic = 'force-dynamic'
@@ -38,6 +37,123 @@ const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABB
 
 // Abbott fabricante identifiers
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
+
+const SOS_DAILY_FAB_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    COUNT(*) FILTER (WHERE pagina = 1) AS count_p1,
+    COUNT(*) AS count_total
+  FROM eci.sos
+  WHERE fabricante IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, ${FABRICANTE_UNIFIED}
+)`
+
+const SOS_DAILY_MARCA_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    marca,
+    COUNT(*) FILTER (WHERE pagina = 1) AS count_p1,
+    COUNT(*) AS count_total
+  FROM eci.sos
+  WHERE fabricante IS NOT NULL AND marca IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, ${FABRICANTE_UNIFIED}, marca
+)`
+
+const SOS_DAILY_TITULO_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    id AS producto_id,
+    MAX(titulo) AS titulo,
+    MIN(ranking) AS best_ranking,
+    COUNT(*) FILTER (WHERE pagina = 1) AS count_p1,
+    COUNT(*) AS count_total
+  FROM eci.sos
+  WHERE fabricante IS NOT NULL AND titulo IS NOT NULL AND id IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, ${FABRICANTE_UNIFIED}, id
+)`
+
+const RANKING_DAILY_FAB_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    SUM(CASE WHEN pagina = 1 THEN ranking::numeric ELSE 0 END) AS sum_ranking_p1,
+    SUM(ranking::numeric) AS sum_ranking_total
+  FROM eci.sos
+  WHERE ranking IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, ${FABRICANTE_UNIFIED}
+)`
+
+const RANKING_DAILY_MARCA_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    marca,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    SUM(CASE WHEN pagina = 1 THEN ranking::numeric ELSE 0 END) AS sum_ranking_p1,
+    SUM(ranking::numeric) AS sum_ranking_total
+  FROM eci.sos
+  WHERE ranking IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, marca, ${FABRICANTE_UNIFIED}
+)`
+
+const RANKING_DAILY_TITULO_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    id AS titulo_id,
+    MAX(titulo) AS titulo,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    SUM(CASE WHEN pagina = 1 THEN ranking::numeric ELSE 0 END) AS sum_ranking_p1,
+    SUM(ranking::numeric) AS sum_ranking_total
+  FROM eci.sos
+  WHERE ranking IS NOT NULL AND id IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, id, ${FABRICANTE_UNIFIED}
+)`
+
+const SOS_PRODUCT_LATEST_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    retail,
+    pais,
+    categoria,
+    id AS producto_id,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    MAX(titulo) AS titulo,
+    MAX(marca) AS marca,
+    ROUND(AVG(precio_venta::numeric), 0) AS precio_venta,
+    ROUND(AVG(precio_neto::numeric), 0) AS precio_neto,
+    ROUND(AVG(descuento::numeric), 1) AS descuento,
+    MIN(ranking::numeric) AS best_ranking,
+    MAX(pagina) AS max_pagina,
+    COUNT(*) FILTER (WHERE pagina = 1) AS appearances_p1,
+    COUNT(*) AS appearances_total,
+    MAX(url_producto) AS url_producto,
+    MAX(presentacion) AS presentacion,
+    MAX(promocion) AS promocion,
+    BOOL_OR(en_stock::boolean) AS en_stock
+  FROM eci.sos
+  WHERE id IS NOT NULL AND precio_venta IS NOT NULL
+  GROUP BY fecha::date, retail, pais, categoria, id, ${FABRICANTE_UNIFIED}
+)`
 
 function fabricanteNotMarcaLocalSql(columnSql = "fabricante"): string {
   return ` AND COALESCE(UPPER(TRIM(${columnSql})), '') <> 'MARCA LOCAL'`
@@ -343,12 +459,6 @@ export async function GET(req: Request) {
       }
     }
 
-    // Keep MVs fresh, but never block user-facing requests.
-    void ensureSosMaterializedViewsFresh(prisma).catch((e: unknown) => {
-      const msg = e instanceof Error ? e.message : String(e)
-      console.warn("[api/sos] MV refresh skipped:", msg)
-    })
-
     // ── date range (dynamic from base table eci.sos) ────
     if (action === "dates") {
       const p: unknown[] = []
@@ -398,7 +508,7 @@ export async function GET(req: Request) {
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_sos_daily_fab WHERE ${w} ORDER BY 1`
+      const sql = `SELECT DISTINCT fabricante AS n FROM ${SOS_DAILY_FAB_SOURCE} d WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       const sellers = uniqueNonEmpty(rows.map(r => r.n))
 
@@ -520,7 +630,7 @@ export async function GET(req: Request) {
         if (channel) { p.push(channel); sub.push(`retail = $${p.length}`) }
         const countrySub = countrySqlCondition(p, country).trim()
         if (countrySub) sub.push(countrySub.replace(/^AND\s+/i, ""))
-        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE ${sub.join(" AND ")})`
+        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM ${SOS_DAILY_FAB_SOURCE} d WHERE ${sub.join(" AND ")})`
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -538,7 +648,7 @@ export async function GET(req: Request) {
         if (channel) { p.push(channel); sub.push(`retail = $${p.length}`) }
         const countrySub = countrySqlCondition(p, country).trim()
         if (countrySub) sub.push(countrySub.replace(/^AND\s+/i, ""))
-        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM eci.mv_sos_daily_fab WHERE ${sub.join(" AND ")})`
+        sql += ` AND fabricante IN (SELECT DISTINCT fabricante FROM ${SOS_DAILY_FAB_SOURCE} d WHERE ${sub.join(" AND ")})`
       }
       sql += " ORDER BY 1"
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
@@ -591,7 +701,7 @@ export async function GET(req: Request) {
       const w = buildWhere(p)
       const mf = marcaFilterSQL(p, "d")
       // When segmento/mercado is active, use mv_sos_daily_marca (has marca column)
-      const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
+      const table = (segmento || mercado) ? SOS_DAILY_MARCA_SOURCE : SOS_DAILY_FAB_SOURCE
       const sql = `
         WITH agg AS (
           SELECT fabricante AS fab,
@@ -746,7 +856,7 @@ export async function GET(req: Request) {
             fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
-          FROM eci.mv_sos_daily_marca d
+          FROM ${SOS_DAILY_MARCA_SOURCE} d
           WHERE ${w}${mf}${sf}${sosPageFilter}
             AND marca IS NOT NULL AND TRIM(marca) <> ''
             AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
@@ -854,7 +964,7 @@ export async function GET(req: Request) {
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total,
             MIN(best_ranking) AS best_ranking
-          FROM eci.mv_sos_daily_titulo d
+          FROM ${SOS_DAILY_TITULO_SOURCE} d
           WHERE ${w}${mf}${sf}${sosPageFilter}
           GROUP BY COALESCE(producto_id::text, titulo), fabricante
         ),
@@ -979,7 +1089,7 @@ export async function GET(req: Request) {
       const mf = marcaFilterSQL(p, "d")
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
-      const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
+      const table = (segmento || mercado) ? SOS_DAILY_MARCA_SOURCE : SOS_DAILY_FAB_SOURCE
       const sql = `
         WITH selected_sellers AS (
           SELECT unnest(ARRAY[${sellerPlaceholders}]::text[]) AS seller
@@ -1073,7 +1183,7 @@ export async function GET(req: Request) {
       const w = buildWhere(p, { channel: false, category: true, country: true })
       const mf = marcaFilterSQL(p, "d")
       p.push(seller)
-      const table = (segmento || mercado) ? "eci.mv_sos_daily_marca" : "eci.mv_sos_daily_fab"
+      const table = (segmento || mercado) ? SOS_DAILY_MARCA_SOURCE : SOS_DAILY_FAB_SOURCE
       const sql = `
         WITH per_retail AS (
           SELECT retail,
@@ -1104,7 +1214,7 @@ export async function GET(req: Request) {
       const p: unknown[] = []
       const w = buildWhere(p)
       const mf = marcaFilterSQL(p, "d")
-      const table = (segmento || mercado) ? "eci.mv_ranking_daily_marca" : "eci.mv_ranking_daily_fab"
+      const table = (segmento || mercado) ? RANKING_DAILY_MARCA_SOURCE : RANKING_DAILY_FAB_SOURCE
       const sql = `
         SELECT
           fabricante AS seller,
@@ -1136,7 +1246,7 @@ export async function GET(req: Request) {
           fabricante AS seller,
           SUM(sum_ranking_p1)    AS score_p1,
           SUM(sum_ranking_total) AS score_total
-        FROM eci.mv_ranking_daily_marca d
+        FROM ${RANKING_DAILY_MARCA_SOURCE} d
         WHERE ${w}${mf}${rankPageFilter}
           AND marca IS NOT NULL AND TRIM(marca) <> ''
           AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
@@ -1166,7 +1276,7 @@ export async function GET(req: Request) {
             fabricante             AS seller,
             SUM(sum_ranking_p1)    AS score_p1,
             SUM(sum_ranking_total) AS score_total
-          FROM eci.mv_ranking_daily_titulo d
+          FROM ${RANKING_DAILY_TITULO_SOURCE} d
           WHERE ${w}${mf}${rankPageFilter}
           GROUP BY titulo_id, fabricante
         ),
@@ -1213,7 +1323,7 @@ export async function GET(req: Request) {
       const mf = marcaFilterSQL(p, "d")
       const sellerPlaceholders = sellerList.map((_, i) => `$${p.length + i + 1}`).join(", ")
       sellerList.forEach(s => p.push(s))
-      const table = (segmento || mercado) ? "eci.mv_ranking_daily_marca" : "eci.mv_ranking_daily_fab"
+      const table = (segmento || mercado) ? RANKING_DAILY_MARCA_SOURCE : RANKING_DAILY_FAB_SOURCE
       const sql = `
         SELECT fecha::text AS day, fabricante AS seller,
           SUM(sum_ranking_p1) AS score_p1,
@@ -1254,7 +1364,7 @@ export async function GET(req: Request) {
       const w = buildWhere(p, { channel: false, category: true, country: true })
       const mf = marcaFilterSQL(p, "d")
       p.push(seller)
-      const table = (segmento || mercado) ? "eci.mv_ranking_daily_marca" : "eci.mv_ranking_daily_fab"
+      const table = (segmento || mercado) ? RANKING_DAILY_MARCA_SOURCE : RANKING_DAILY_FAB_SOURCE
       const sql = `
         SELECT retail AS channel,
           SUM(CASE WHEN fabricante = $${p.length} THEN sum_ranking_p1    ELSE 0 END) AS seller_p1,
@@ -1294,7 +1404,7 @@ export async function GET(req: Request) {
           MIN(best_ranking) AS best_ranking,
           SUM(appearances_p1)::int AS appearances_p1,
           SUM(appearances_total)::int AS appearances_total
-        FROM eci.mv_sos_product_latest
+        FROM ${SOS_PRODUCT_LATEST_SOURCE} d
         WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}${mfRank}
         GROUP BY producto_id
         ORDER BY best_ranking ASC
@@ -1350,7 +1460,7 @@ export async function GET(req: Request) {
           best_ranking,
           appearances_p1::int AS appearances_p1,
           appearances_total::int AS appearances_total
-        FROM eci.mv_sos_product_latest
+        FROM ${SOS_PRODUCT_LATEST_SOURCE} d
         WHERE ${w} ${pageClause} AND producto_id IS NOT NULL AND best_ranking IS NOT NULL ${sellerCond}${mfBest}
         ORDER BY best_ranking ASC
         LIMIT ${limit}
@@ -1988,30 +2098,6 @@ export async function GET(req: Request) {
       const dateParam = searchParams.get("date") || new Date().toISOString().split("T")[0]
       const info: Record<string, unknown> = { date_queried: dateParam }
 
-      // Does the MV exist?
-      const mvExistsRow = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
-        `SELECT EXISTS (
-           SELECT 1 FROM information_schema.tables
-           WHERE table_schema='eci' AND table_name='mv_sos_product_latest'
-         ) AS exists`
-      )
-      info.mv_exists = mvExistsRow[0]?.exists
-      if (info.mv_exists) {
-        const mvStats = await prisma.$queryRawUnsafe<{ total: number; date_match: number; with_price: number }[]>(
-          `SELECT COUNT(*)::int AS total,
-             COUNT(*) FILTER (WHERE fecha = $1::date)::int AS date_match,
-             COUNT(*) FILTER (WHERE fecha = $1::date
-               AND (COALESCE(precio_venta,0)>0 OR COALESCE(precio_neto,0)>0))::int AS with_price
-           FROM eci.mv_sos_product_latest`,
-          dateParam
-        )
-        info.mv_stats = mvStats[0]
-        const mvDates = await prisma.$queryRawUnsafe<{ min_f: string; max_f: string }[]>(
-          `SELECT MIN(fecha)::text AS min_f, MAX(fecha)::text AS max_f FROM eci.mv_sos_product_latest`
-        )
-        info.mv_date_range = mvDates[0]
-      }
-
       // Real eci.sos columns and stats
       const sosCols = await prisma.$queryRawUnsafe<{ column_name: string }[]>(
         `SELECT column_name FROM information_schema.columns
@@ -2050,7 +2136,7 @@ export async function GET(req: Request) {
         return Math.round(pct * 10) / 10
       }
 
-      // Shared row mapper — handles both MV and direct eci.sos shapes
+      // Shared row mapper for direct eci.sos rows
       function mapRow(r: Record<string, unknown>) {
         const pv = Number(r.precio_venta ?? 0)
         const pn = Number(r.precio_neto ?? r.precio ?? 0)
@@ -2080,38 +2166,6 @@ export async function GET(req: Request) {
         }
       }
 
-      // ── 1. Try materialized view first ───────────────────
-      try {
-        const p: unknown[] = [dateParam]
-        let w = `fecha = $1::date`
-        w += fabricanteNotMarcaLocalSql()
-        if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
-        if (category) { w += categorySqlCondition(categoryFilterColumnForSource(country, "mv"), p, category) }
-        w += countrySqlCondition(p, country)
-        const mfCond = marcaFilter(p)
-        let sellerCond = ""
-        if (seller) { p.push(seller); sellerCond = ` AND fabricante = $${p.length}` }
-        const sqlMV = `
-          SELECT
-            producto_id AS id, titulo AS producto, marca, pais,
-            retail AS seller, retail AS plataforma, categoria AS subcategoria, fabricante,
-            COALESCE(precio_venta,0)::numeric AS precio_venta,
-            COALESCE(precio_neto, 0)::numeric AS precio_neto,
-            COALESCE(descuento,   0)::numeric AS descuento,
-            promocion, presentacion, url_producto
-          FROM eci.mv_sos_product_latest
-          WHERE ${w} AND producto_id IS NOT NULL ${sellerCond}${mfCond}
-          ORDER BY GREATEST(COALESCE(precio_venta,0), COALESCE(precio_neto,0)) DESC
-          LIMIT ${limit}
-        `
-        const rowsMV = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(sqlMV, ...p)
-        if (rowsMV.length > 0) return NextResponse.json(rowsMV.map(mapRow))
-        // MV returned 0 rows — fall through to direct query
-      } catch {
-        // MV doesn't exist or errored — fall through to direct query
-      }
-
-      // ── 2. Fallback: query eci.sos directly ──────────────
       const p2: unknown[] = [dateParam]
       let w2 = `fecha::date = $1::date AND id IS NOT NULL`
       w2 += fabricanteNotMarcaLocalSql()

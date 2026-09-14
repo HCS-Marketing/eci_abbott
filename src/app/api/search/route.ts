@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { ensureSearchMaterializedViewsFresh } from "@/lib/mv-refresh"
 import { classifySearch } from "@/lib/search-classification"
 
 export const dynamic = 'force-dynamic'
@@ -20,6 +19,38 @@ function retailColor(name: string, fallbackIdx: number): string {
 
 const FABRICANTE_UNIFIED = `CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante, 'MARCA LOCAL') END`
 const ABBOTT_LIKE = `UPPER(fabricante) LIKE '%ABBOT%'`
+
+const SEARCH_DAILY_FAB_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    pais,
+    retail,
+    search,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    COUNT(*) FILTER (WHERE pagina = 1) AS count_p1,
+    COUNT(*) AS count_total
+  FROM eci.search
+  WHERE search IS NOT NULL AND TRIM(search) <> ''
+    AND fabricante IS NOT NULL
+  GROUP BY fecha::date, pais, retail, search, ${FABRICANTE_UNIFIED}
+)`
+
+const SEARCH_DAILY_MARCA_SOURCE = `(
+  SELECT
+    fecha::date AS fecha,
+    pais,
+    retail,
+    search,
+    marca,
+    ${FABRICANTE_UNIFIED} AS fabricante,
+    COUNT(*) FILTER (WHERE pagina = 1) AS count_p1,
+    COUNT(*) AS count_total
+  FROM eci.search
+  WHERE search IS NOT NULL AND TRIM(search) <> ''
+    AND fabricante IS NOT NULL
+    AND marca IS NOT NULL
+  GROUP BY fecha::date, pais, retail, search, marca, ${FABRICANTE_UNIFIED}
+)`
 
 function fabricanteNotMarcaLocalSql(columnSql = "fabricante"): string {
   return ` AND COALESCE(UPPER(TRIM(${columnSql})), '') <> 'MARCA LOCAL'`
@@ -87,8 +118,6 @@ export async function GET(req: Request) {
   const sosPageFilter = pageMode === "p1" ? " AND count_p1 > 0" : ""
 
   try {
-    await ensureSearchMaterializedViewsFresh(prisma)
-
     // ── helper: date params (parsed early for all actions) ──
     const startDate = searchParams.get("startDate") || ""
     const endDate   = searchParams.get("endDate") || ""
@@ -248,7 +277,7 @@ export async function GET(req: Request) {
       if (mercado) { p.push(mercado); sql += ` AND mercado = $${p.length}` }
       // Si hay channel/country, usar EXISTS en lugar de IN con subquery
       if (channel || country) {
-        let subquery = `EXISTS (SELECT 1 FROM eci.mv_search_daily_fab mf WHERE mf.fabricante = eci.marca_fabricante.fabricante`
+        let subquery = `EXISTS (SELECT 1 FROM ${SEARCH_DAILY_FAB_SOURCE} mf WHERE mf.fabricante = eci.marca_fabricante.fabricante`
         if (channel) {
           const vals = RETAIL_ALIASES[channel] || [channel]
           if (vals.length === 1) { p.push(vals[0]); subquery += ` AND mf.retail = $${p.length}` }
@@ -269,7 +298,7 @@ export async function GET(req: Request) {
       if (segmento) { p.push(segmento); sql += ` AND segmento = $${p.length}` }
       // Si hay channel/country, usar EXISTS en lugar de IN con subquery
       if (channel || country) {
-        let subquery = `EXISTS (SELECT 1 FROM eci.mv_search_daily_fab mf WHERE mf.fabricante = eci.marca_fabricante.fabricante`
+        let subquery = `EXISTS (SELECT 1 FROM ${SEARCH_DAILY_FAB_SOURCE} mf WHERE mf.fabricante = eci.marca_fabricante.fabricante`
         if (channel) {
           const vals = RETAIL_ALIASES[channel] || [channel]
           if (vals.length === 1) { p.push(vals[0]); subquery += ` AND mf.retail = $${p.length}` }
@@ -287,7 +316,7 @@ export async function GET(req: Request) {
     if (action === "sellers_list") {
       const p: unknown[] = []
       const w = buildWhere(p)
-      const sql = `SELECT DISTINCT fabricante AS n FROM eci.mv_search_daily_fab WHERE ${w} ORDER BY 1`
+      const sql = `SELECT DISTINCT fabricante AS n FROM ${SEARCH_DAILY_FAB_SOURCE} d WHERE ${w} ORDER BY 1`
       const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...p)
       return NextResponse.json(uniqueNonEmpty(rows.map(r => r.n)))
     }
@@ -302,7 +331,7 @@ export async function GET(req: Request) {
           SELECT fabricante AS fab,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
-          FROM eci.mv_search_daily_fab
+          FROM ${SEARCH_DAILY_FAB_SOURCE} d
           WHERE ${w}${mf}${sosPageFilter}
           GROUP BY fabricante
         ),
@@ -343,7 +372,7 @@ export async function GET(req: Request) {
             fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total
-          FROM eci.mv_search_daily_marca
+          FROM ${SEARCH_DAILY_MARCA_SOURCE} d
           WHERE ${w}${mf}${sosPageFilter}
             AND marca IS NOT NULL AND TRIM(marca) <> ''
             AND NOT (LOWER(TRIM(marca)) = 'nan' AND fabricante <> 'NESTLE')
@@ -449,12 +478,12 @@ export async function GET(req: Request) {
       const sql = `
         WITH daily_total AS (
           SELECT fecha AS day, SUM(count_p1) AS total_p1, SUM(count_total) AS total_all
-          FROM eci.mv_search_daily_fab WHERE ${w}${mf}${sosPageFilter}
+          FROM ${SEARCH_DAILY_FAB_SOURCE} d WHERE ${w}${mf}${sosPageFilter}
           GROUP BY fecha
         ),
         seller_daily AS (
           SELECT fecha AS day, fabricante AS fab, SUM(count_p1) AS products_p1, SUM(count_total) AS products_total
-          FROM eci.mv_search_daily_fab WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})${sosPageFilter}
+          FROM ${SEARCH_DAILY_FAB_SOURCE} d WHERE ${w}${mf} AND fabricante IN (${sellerPlaceholders})${sosPageFilter}
           GROUP BY fecha, fabricante
         )
         SELECT sd.day::text, sd.fab AS seller,
@@ -493,7 +522,7 @@ export async function GET(req: Request) {
       const sql = `
         WITH norm AS (
           SELECT ${normExpr} AS retail_norm, fabricante, count_p1, count_total
-          FROM eci.mv_search_daily_fab WHERE ${w}${mf}${sosPageFilter}
+          FROM ${SEARCH_DAILY_FAB_SOURCE} d WHERE ${w}${mf}${sosPageFilter}
         ),
         per_retail AS (
           SELECT retail_norm AS retail,
