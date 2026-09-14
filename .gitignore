@@ -61,3 +61,4 @@ scripts/read-*.cjs
 scripts/create-*.cjs
 marca y fabricante.xlsx
 Catalogo Final*.xlsx
+.vercel
