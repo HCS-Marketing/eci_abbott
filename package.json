@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:etl": "tsx prisma/etl-from-eci.ts",
+    "db:indexes:base": "node scripts/base-indexes.cjs",
     "db:studio": "prisma studio"
   },
   "prisma": {

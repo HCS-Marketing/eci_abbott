@@ -60,6 +60,12 @@ PRISMA_DATABASE_URL="postgres://<user>:<password>@db.prisma.io:5432/postgres?ssl
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
+4. Para optimizar el modo directo sobre `eci.sos` y `eci.search`, crear los índices base:
+
+```bash
+npm run db:indexes:base
+```
+
 2. Correr el servidor local:
 
 ```bash
