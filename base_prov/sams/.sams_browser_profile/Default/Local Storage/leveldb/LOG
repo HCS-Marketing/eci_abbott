@@ -1,10 +1,5 @@
-2026/09/14-09:42:02.668 6c80 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/14-09:42:02.682 6c80 Recovering log #15
-2026/09/14-09:42:02.684 6c80 Level-0 table #19: started
-2026/09/14-09:42:02.693 6c80 Level-0 table #19: 106808 bytes OK
-2026/09/14-09:42:02.702 6c80 Recovering log #18
-2026/09/14-09:42:02.706 6c80 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000018.log 
-2026/09/14-09:42:02.709 6c80 Delete type=0 #15
-2026/09/14-09:43:20.844 6c80 Level-0 table #21: started
-2026/09/14-09:43:20.860 6c80 Level-0 table #21: 106809 bytes OK
-2026/09/14-09:43:20.881 6c80 Delete type=0 #18
+2026/09/16-09:57:50.506 19d8 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/16-09:57:50.560 19d8 Recovering log #20
+2026/09/16-09:57:50.566 19d8 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000020.log 
+2026/09/16-09:59:22.821 1ae4 Level-0 table #24: started
+2026/09/16-09:59:22.855 1ae4 Level-0 table #24: 106841 bytes OK
