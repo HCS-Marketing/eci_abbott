@@ -1,5 +1,20 @@
-2026/09/16-09:57:50.671 1ae4 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/09/16-09:57:50.690 1ae4 Recovering log #13
-2026/09/16-09:57:50.693 1ae4 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000013.log 
-2026/09/16-09:59:22.820 1390 Level-0 table #17: started
-2026/09/16-09:59:22.850 1390 Level-0 table #17: 14419 bytes OK
+2026/09/17-12:19:05.698 5fcc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/09/17-12:19:05.750 5fcc Recovering log #13
+2026/09/17-12:19:05.751 5fcc Level-0 table #16: started
+2026/09/17-12:19:05.772 5fcc Level-0 table #16: 14419 bytes OK
+2026/09/17-12:19:05.791 5fcc Recovering log #16
+2026/09/17-12:19:05.801 5fcc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000016.log 
+2026/09/17-12:19:05.820 5fcc Delete type=0 #13
+2026/09/17-12:19:05.821 5fcc Delete type=2 #17
+2026/09/17-12:21:10.018 5fcc Level-0 table #18: started
+2026/09/17-12:21:10.038 5fcc Level-0 table #18: 17437 bytes OK
+2026/09/17-12:21:10.043 5fcc Delete type=0 #16
+2026/09/17-12:21:10.044 5fcc Compacting 4@0 + 1@1 files
+2026/09/17-12:21:10.076 5fcc Generated table #19@0: 586 keys, 17175 bytes
+2026/09/17-12:21:10.076 5fcc Compacted 4@0 + 1@1 files => 17175 bytes
+2026/09/17-12:21:10.078 5fcc compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/09/17-12:21:10.080 5fcc Delete type=2 #8
+2026/09/17-12:21:10.081 5fcc Delete type=2 #10
+2026/09/17-12:21:10.081 5fcc Delete type=2 #14
+2026/09/17-12:21:10.081 5fcc Delete type=2 #16
+2026/09/17-12:21:10.081 5fcc Delete type=2 #18
