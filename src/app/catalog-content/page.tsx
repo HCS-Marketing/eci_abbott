@@ -7,7 +7,7 @@ import DateInput from "@/components/ui/DateInput"
 import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import ContentGlossary from "@/components/ui/ContentGlossary"
 import fallbackRows from "@/data/mx-provider-rows.json"
-import { Search, Download, FileText, Star } from "lucide-react"
+import { ExternalLink, Image as ImageIcon, Link as LinkIcon, Search, Download, FileText, Star, Video } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
 
 interface CatalogRow {
@@ -32,6 +32,8 @@ interface CatalogRow {
 type ContentSortBy = "reviews" | "valoracion" | "score"
 type ContentSortDir = "asc" | "desc"
 type TableMode = "score" | "content"
+
+const CO_PERFECT_STORE_CHANNEL = "FARMATODO"
 
 function inRange(value: number, min: number, max: number): boolean {
   return value >= min && value <= max
@@ -64,6 +66,14 @@ function calculateContentScore(row: {
   if (row.bullet_points >= 5) score += 20
   if (row.video_count >= 1) score += 10
   return score
+}
+
+function productUrlHost(value: string): string {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "")
+  } catch {
+    return "URL no disponible"
+  }
 }
 
 function normalizeCatalogRow(
@@ -142,11 +152,14 @@ export default function CatalogContentPage() {
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
+  const [previewProduct, setPreviewProduct] = useState<CatalogRow | null>(null)
   const [loading, setLoading] = useState(false)
   const isColombia = country === "CO"
   const useLocalFallback = country === "MX"
   const showCategoryFilter = availableCategories.length > 0
   const providerBasePath = isColombia ? "base_prov_co" : "base_prov"
+  const forcedChannel = isColombia ? CO_PERFECT_STORE_CHANNEL : ""
+  const selectedChannel = forcedChannel || channel
 
   const fallbackDateBounds = useMemo(() => {
     const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
@@ -154,7 +167,7 @@ export default function CatalogContentPage() {
   }, [])
 
   useEffect(() => {
-    setChannel("")
+    setChannel(country === "CO" ? CO_PERFECT_STORE_CHANNEL : "")
     setCategory("")
     setDate("")
     setMinDate("")
@@ -163,6 +176,7 @@ export default function CatalogContentPage() {
     setAvailableCategories([])
     setAvailableProducts([])
     setSelectedProducts([])
+    setPreviewProduct(null)
     setData([])
   }, [country])
 
@@ -177,7 +191,7 @@ export default function CatalogContentPage() {
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
     p.set("source", "provider")
-    if (channel) p.set("channel", channel)
+    if (selectedChannel) p.set("channel", selectedChannel)
     if (country) p.set("country", country)
     fetch(`/api/provider?${p}`).then(r => r.json()).then((d: { min: string; max: string }) => {
       if (!d?.max) return
@@ -185,7 +199,7 @@ export default function CatalogContentPage() {
       setMaxDate(d.max)
       setDate(d.max)
     })
-  }, [channel, country])
+  }, [country, selectedChannel])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "channels" })
@@ -197,21 +211,23 @@ export default function CatalogContentPage() {
       .then(r => r.json())
       .then((d: string[]) => {
         const channels = Array.isArray(d) ? d : []
-        setAvailableChannels(channels)
-        if (channel && !channels.includes(channel)) setChannel("")
+        const scopedChannels = isColombia ? channels.filter(c => c === CO_PERFECT_STORE_CHANNEL) : channels
+        const nextChannels = scopedChannels.length > 0 || !isColombia ? scopedChannels : [CO_PERFECT_STORE_CHANNEL]
+        setAvailableChannels(nextChannels)
+        if (!isColombia && channel && !nextChannels.includes(channel)) setChannel("")
       })
       .catch(() => setAvailableChannels([]))
-  }, [channel, country, date])
+  }, [channel, country, date, isColombia])
 
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
     const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
-      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!selectedChannel || normalizeChannel(r.retail) === selectedChannel) && (!category || String(r.categoria || "") === category))
       .map(r => r.titulo)
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
     const p = new URLSearchParams({ action: "products" })
-    if (channel) p.set("channel", channel)
+    if (selectedChannel) p.set("channel", selectedChannel)
     if (category) p.set("category", category)
     if (effectiveDate) p.set("date", effectiveDate)
     if (country) p.set("country", country)
@@ -227,17 +243,17 @@ export default function CatalogContentPage() {
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
+  }, [date, selectedChannel, category, country, fallbackDateBounds.max, useLocalFallback])
 
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
     const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
-      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!selectedChannel || normalizeChannel(r.retail) === selectedChannel))
       .map(r => String(r.categoria || "").trim())
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
     const p = new URLSearchParams({ action: "categories" })
-    if (channel) p.set("channel", channel)
+    if (selectedChannel) p.set("channel", selectedChannel)
     if (effectiveDate) p.set("date", effectiveDate)
     if (country) p.set("country", country)
 
@@ -252,14 +268,14 @@ export default function CatalogContentPage() {
         setAvailableCategories(local)
         if (category && !local.includes(category)) setCategory("")
       })
-  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
+  }, [date, selectedChannel, category, country, fallbackDateBounds.max, useLocalFallback])
 
   const fetchData = useCallback(() => {
     setLoading(true)
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
     const p = new URLSearchParams({ action: "content", date: effectiveDate, limit: "5000" })
     p.set("source", "provider")
-    if (channel) p.set("channel", channel)
+    if (selectedChannel) p.set("channel", selectedChannel)
     if (category) p.set("category", category)
     if (country) p.set("country", country)
     if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
@@ -273,7 +289,7 @@ export default function CatalogContentPage() {
         }
 
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
-        if (channel) pRaw.set("channel", channel)
+        if (selectedChannel) pRaw.set("channel", selectedChannel)
         if (category) pRaw.set("category", category)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         if (country) pRaw.set("country", country)
@@ -283,7 +299,7 @@ export default function CatalogContentPage() {
           ? raw
           : useLocalFallback ? (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string; EAN?: string; ean?: string; categoria?: string }>)
               .filter(r => !effectiveDate || r.fecha === effectiveDate)
-              .filter(r => !channel || normalizeChannel(r.retail) === channel)
+              .filter(r => !selectedChannel || normalizeChannel(r.retail) === selectedChannel)
               .filter(r => !category || String(r.categoria || "") === category)
               .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
           : []
@@ -322,7 +338,7 @@ export default function CatalogContentPage() {
       })
       .catch(() => setData([]))
       .finally(() => setLoading(false))
-  }, [date, channel, category, country, fallbackDateBounds.max, selectedProducts, useLocalFallback])
+  }, [date, selectedChannel, category, country, fallbackDateBounds.max, selectedProducts, useLocalFallback])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -365,6 +381,7 @@ export default function CatalogContentPage() {
 
   const avgRating = filtered.length ? (filtered.reduce((s, e) => s + e.valoracion, 0) / filtered.length) : 0
   const totalReviews = filtered.reduce((s, e) => s + e.reviews, 0)
+  const preview = previewProduct || sorted[0] || null
 
   return (
     <div className="space-y-4">
@@ -381,8 +398,8 @@ export default function CatalogContentPage() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>
-          <select value={channel} onChange={e => setChannel(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todos</option>
+          <select value={selectedChannel} onChange={e => setChannel(e.target.value)} disabled={isColombia} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500">
+            {!isColombia && <option value="">Todos</option>}
             {availableChannels.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -424,10 +441,77 @@ export default function CatalogContentPage() {
         ))}
       </div>
 
+      {preview && (
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-200">{preview.canal}</span>
+              <span className="text-sm font-semibold text-gray-800 truncate">Retail Product Audit</span>
+            </div>
+            <div className="text-[11px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-1">
+              Audit Score: {preview.content_score.toFixed(0)}/100
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5 p-5">
+            <div className="space-y-3">
+              <div className="aspect-square rounded-lg border border-gray-100 bg-gray-50 flex flex-col items-center justify-center text-gray-400">
+                <ImageIcon size={42} />
+                <span className="text-[11px] mt-2">Imagen no disponible</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg border border-blue-100 bg-blue-50 text-blue-700 text-[11px] text-center py-2 font-semibold"><ImageIcon size={12} className="inline mr-1" />{preview.img_count}</div>
+                <div className="rounded-lg border border-gray-100 bg-gray-50 text-gray-700 text-[11px] text-center py-2 font-semibold">+{Math.max(preview.img_count - 1, 0)} fotos</div>
+                <div className="rounded-lg border border-red-100 bg-red-50 text-red-700 text-[11px] text-center py-2 font-semibold"><Video size={12} className="inline mr-1" />{preview.video_count}</div>
+              </div>
+              <div className="rounded-lg border border-gray-100 px-3 py-2 text-[11px] text-gray-600">
+                Vendedor / Seller: <span className="font-semibold text-gray-800">Abbott</span>
+              </div>
+            </div>
+
+            <div className="space-y-4 min-w-0">
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-blue-600 font-bold mb-1">Abbott • {preview.categoria || "Sin categoria"}</div>
+                <h2 className="text-lg font-bold text-gray-900 leading-snug">{preview.titulo}</h2>
+                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
+                  <span className="inline-flex items-center gap-1 text-amber-600 font-semibold"><Star size={13} />{preview.valoracion.toFixed(1)}</span>
+                  <span>{preview.reviews.toLocaleString("es-MX")} valoraciones verificadas</span>
+                  <span className="font-mono text-gray-600">EAN {preview.ean || "-"}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="rounded-lg border border-green-100 bg-green-50 text-center py-3"><div className="text-[10px] font-bold text-green-700">DISPONIBLE</div><div className="text-[9px] text-green-700">DISPONIBILIDAD</div></div>
+                <div className="rounded-lg border border-gray-100 bg-gray-50 text-center py-3"><div className="text-lg font-bold text-gray-900">{preview.title_count_characters}</div><div className="text-[9px] text-gray-500">CHARS EN TITULO</div></div>
+                <div className="rounded-lg border border-gray-100 bg-gray-50 text-center py-3"><div className="text-lg font-bold text-gray-900">{preview.img_count} / {preview.video_count}</div><div className="text-[9px] text-gray-500">FOTOS / VIDEOS</div></div>
+                <div className="rounded-lg border border-gray-100 bg-gray-50 text-center py-3"><div className="text-lg font-bold text-gray-900">{preview.count_character_desc}</div><div className="text-[9px] text-gray-500">CHARS DESCRIPCION</div></div>
+              </div>
+
+              <div className="border-l-4 border-sky-400 bg-sky-50/40 rounded-r-lg p-3">
+                <div className="flex justify-between gap-3 mb-1">
+                  <div className="text-xs font-semibold text-gray-800">Vista previa de descripcion</div>
+                  <span className="text-[10px] text-gray-500">{preview.count_character_desc} caracteres</span>
+                </div>
+                <p className="text-xs text-gray-600 leading-relaxed">{preview.count_character_desc > 0 ? "Descripcion detectada durante el scraping. Abrir URL para revisar el contenido completo publicado en retailer." : "No se detecto texto de descripcion en la base scrapeada para este producto."}</p>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 bg-slate-900 text-white rounded-lg px-4 py-3 text-xs flex-wrap">
+                <span className="inline-flex items-center gap-2 min-w-0"><LinkIcon size={13} /><span className="truncate">URL Scraped: {productUrlHost(preview.url_producto)}</span></span>
+                {preview.url_producto ? (
+                  <a href={preview.url_producto} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sky-200 hover:text-white font-semibold">
+                    Abrir PDP <ExternalLink size={12} />
+                  </a>
+                ) : <span className="text-slate-400">Sin URL</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 gap-3 flex-wrap">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-gray-400">{channel || "Todos"}</div>
+            <div className="text-[10px] uppercase tracking-widest text-gray-400">{selectedChannel || "Todos"}</div>
             <div className="text-xs text-gray-500 mt-0.5">{sorted.length} productos</div>
           </div>
           <div className="flex gap-1 bg-white border border-gray-200 p-1 rounded-lg">
@@ -458,6 +542,7 @@ export default function CatalogContentPage() {
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right"><button type="button" onClick={() => toggleSort("valoracion")} className="hover:text-gray-700">Valoracion{sortMark("valoracion")}</button></th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right"><button type="button" onClick={() => toggleSort("reviews")} className="hover:text-gray-700">Reviews{sortMark("reviews")}</button></th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right"><button type="button" onClick={() => toggleSort("score")} className="hover:text-gray-700">Puntaje{sortMark("score")}</button></th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Vista</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Link</th>
                     </>
                   ) : (
@@ -470,6 +555,7 @@ export default function CatalogContentPage() {
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Caracteres titulo</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Caracteres descripcion</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Puntaje contenido</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Vista</th>
                       <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Link</th>
                     </>
                   )}
@@ -492,6 +578,7 @@ export default function CatalogContentPage() {
                         <td className="px-3 py-2.5 text-right"><span className="inline-flex items-center gap-1 text-gray-700 font-semibold"><Star size={11} className="text-amber-500" />{e.valoracion.toFixed(1)}</span></td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.reviews.toLocaleString("es-MX")}</td>
                         <td className="px-3 py-2.5 text-right font-bold text-purple-700">{e.score.toFixed(2)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap"><button type="button" onClick={() => setPreviewProduct(e)} className="text-[11px] text-purple-700 font-semibold hover:underline">Vista PDP</button></td>
                         <td className="px-3 py-2.5 whitespace-nowrap">{e.url_producto ? <a href={e.url_producto} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Ver producto</a> : <span className="text-[11px] text-gray-400">-</span>}</td>
                       </>
                     ) : (
@@ -509,6 +596,7 @@ export default function CatalogContentPage() {
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.title_count_characters}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.count_character_desc}</td>
                         <td className="px-3 py-2.5 text-right font-bold text-blue-700">{e.content_score.toFixed(0)}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap"><button type="button" onClick={() => setPreviewProduct(e)} className="text-[11px] text-purple-700 font-semibold hover:underline">Vista PDP</button></td>
                         <td className="px-3 py-2.5 whitespace-nowrap">{e.url_producto ? <a href={e.url_producto} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Ver producto</a> : <span className="text-[11px] text-gray-400">-</span>}</td>
                       </>
                     )}
