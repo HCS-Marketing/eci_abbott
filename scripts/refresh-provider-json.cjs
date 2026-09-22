@@ -181,6 +181,8 @@ function readExcelFilesFromDir(dirPath, retailOverride = "") {
         bullet_points: parseIntegerField(readField(r, ["bullet_points"])),
         title_count_characters: parseIntegerField(readField(r, ["title_count_characters"])),
         count_character_desc: parseIntegerField(readField(r, ["count_character_desc"])),
+        description: readTextField(r, ["description", "descripcion", "descripción"]),
+        url_imagen: readTextField(r, ["url_imagen", "image_url", "imagen", "image"]),
         url_producto: readTextField(r, ["url_producto"]),
         disponibilidad,
         disponible,

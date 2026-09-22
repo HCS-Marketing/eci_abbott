@@ -51,6 +51,8 @@ export interface MxProviderRow {
   bullet_points: number
   title_count_characters: number
   count_character_desc: number
+  description: string
+  url_imagen: string
   url_producto: string
   disponibilidad: string
   disponible: boolean
@@ -267,6 +269,8 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
         bullet_points: parseIntegerField(readField(r, ["bullet_points"])),
         title_count_characters: parseIntegerField(readField(r, ["title_count_characters"])),
         count_character_desc: parseIntegerField(readField(r, ["count_character_desc"])),
+        description: readTextField(r, ["description", "descripcion", "descripción"]),
+        url_imagen: readTextField(r, ["url_imagen", "image_url", "imagen", "image"]),
         url_producto: readTextField(r, ["url_producto"]),
         disponibilidad,
         disponible,
@@ -292,6 +296,8 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
     ean: String(r.ean || "").trim(),
     categoria: String(r.categoria || "").trim(),
     bullet_points: Number(r.bullet_points || 0),
+    description: String(r.description || "").trim(),
+    url_imagen: String(r.url_imagen || "").trim(),
   }))
   base.sort((a, b) => {
     if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha)

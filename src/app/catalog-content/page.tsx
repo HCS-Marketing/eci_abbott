@@ -23,6 +23,8 @@ interface CatalogRow {
   bullet_points: number
   title_count_characters: number
   count_character_desc: number
+  description: string
+  url_imagen: string
   url_producto: string
   score: number
   content_score: number
@@ -32,8 +34,6 @@ interface CatalogRow {
 type ContentSortBy = "reviews" | "valoracion" | "score"
 type ContentSortDir = "asc" | "desc"
 type TableMode = "score" | "content"
-
-const CO_PERFECT_STORE_CHANNEL = "FARMATODO"
 
 function inRange(value: number, min: number, max: number): boolean {
   return value >= min && value <= max
@@ -76,6 +76,15 @@ function productUrlHost(value: string): string {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;")
+}
+
 function normalizeCatalogRow(
   r: {
     titulo?: string
@@ -92,6 +101,8 @@ function normalizeCatalogRow(
     bullet_points?: number
     title_count_characters?: number
     count_character_desc?: number
+    description?: string
+    url_imagen?: string
     url_producto?: string
     score?: number
     rank?: number
@@ -112,6 +123,8 @@ function normalizeCatalogRow(
     bullet_points: Number(r.bullet_points || 0),
     title_count_characters: Number(r.title_count_characters || 0),
     count_character_desc: Number(r.count_character_desc || 0),
+    description: String(r.description || "").trim(),
+    url_imagen: String(r.url_imagen || "").trim(),
     url_producto: String(r.url_producto || "").trim(),
     score: Number(r.score || 0),
     rank: Number(r.rank || (idx + 1)),
@@ -158,8 +171,7 @@ export default function CatalogContentPage() {
   const useLocalFallback = country === "MX"
   const showCategoryFilter = availableCategories.length > 0
   const providerBasePath = isColombia ? "base_prov_co" : "base_prov"
-  const forcedChannel = isColombia ? CO_PERFECT_STORE_CHANNEL : ""
-  const selectedChannel = forcedChannel || channel
+  const selectedChannel = channel
 
   const fallbackDateBounds = useMemo(() => {
     const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
@@ -167,7 +179,7 @@ export default function CatalogContentPage() {
   }, [])
 
   useEffect(() => {
-    setChannel(country === "CO" ? CO_PERFECT_STORE_CHANNEL : "")
+    setChannel("")
     setCategory("")
     setDate("")
     setMinDate("")
@@ -211,13 +223,12 @@ export default function CatalogContentPage() {
       .then(r => r.json())
       .then((d: string[]) => {
         const channels = Array.isArray(d) ? d : []
-        const scopedChannels = isColombia ? channels.filter(c => c === CO_PERFECT_STORE_CHANNEL) : channels
-        const nextChannels = scopedChannels.length > 0 || !isColombia ? scopedChannels : [CO_PERFECT_STORE_CHANNEL]
+        const nextChannels = channels
         setAvailableChannels(nextChannels)
-        if (!isColombia && channel && !nextChannels.includes(channel)) setChannel("")
+        if (channel && !nextChannels.includes(channel)) setChannel("")
       })
       .catch(() => setAvailableChannels([]))
-  }, [channel, country, date, isColombia])
+  }, [channel, country, date])
 
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
@@ -305,7 +316,7 @@ export default function CatalogContentPage() {
           : []
 
         const mapped = sourceRows.map((r: {
-          titulo?: string; retail?: string; canal?: string; plataforma?: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string; EAN?: string; ean?: string; categoria?: string
+          titulo?: string; retail?: string; canal?: string; plataforma?: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; description?: string; url_imagen?: string; url_producto?: string; EAN?: string; ean?: string; categoria?: string
         }, i: number) => normalizeCatalogRow({
           titulo: r.titulo || "",
           skuid: `${String(r.retail || r.canal || r.plataforma || "")}-${i + 1}`,
@@ -319,6 +330,8 @@ export default function CatalogContentPage() {
           bullet_points: Number(r.bullet_points || 0),
           title_count_characters: Number(r.title_count_characters || 0),
           count_character_desc: Number(r.count_character_desc || 0),
+          description: String(r.description || "").trim(),
+          url_imagen: String(r.url_imagen || "").trim(),
           url_producto: String(r.url_producto || "").trim(),
           rank: i + 1,
         }, i))
@@ -383,6 +396,66 @@ export default function CatalogContentPage() {
   const totalReviews = filtered.reduce((s, e) => s + e.reviews, 0)
   const preview = previewProduct || sorted[0] || null
 
+  function downloadPreviewPDF(product: CatalogRow) {
+    const printWindow = window.open("", "_blank", "width=900,height=900")
+    if (!printWindow) return
+
+    const imageMarkup = product.url_imagen
+      ? `<img src="${escapeHtml(product.url_imagen)}" alt="${escapeHtml(product.titulo)}" />`
+      : `<div class="image-placeholder">Imagen no disponible</div>`
+
+    printWindow.document.write(`<!doctype html>
+      <html>
+      <head>
+        <title>Perfect Store - ${escapeHtml(product.ean || product.titulo)}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 24px; color: #111827; background: #f8fafc; }
+          .card { background: white; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+          .header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+          .retail { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 6px; padding: 5px 8px; font-size: 11px; font-weight: 700; }
+          .score { color: #047857; background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 700; }
+          .body { display: grid; grid-template-columns: 260px 1fr; gap: 22px; padding: 20px; }
+          .image { border: 1px solid #e5e7eb; border-radius: 10px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; background: #f9fafb; }
+          .image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+          .image-placeholder { color: #9ca3af; font-size: 12px; }
+          h1 { font-size: 20px; line-height: 1.25; margin: 8px 0 10px; }
+          .brand { color: #2563eb; text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+          .meta { display: flex; gap: 14px; color: #6b7280; font-size: 12px; flex-wrap: wrap; }
+          .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
+          .metric { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; text-align: center; }
+          .metric strong { display: block; font-size: 18px; }
+          .metric span { color: #6b7280; font-size: 10px; }
+          .description { border-left: 4px solid #38bdf8; background: #f0f9ff; padding: 12px; border-radius: 0 10px 10px 0; font-size: 12px; line-height: 1.45; }
+          .url { margin-top: 14px; background: #0f172a; color: white; border-radius: 8px; padding: 12px; font-size: 11px; word-break: break-all; }
+          @media print { body { background: white; } .card { break-inside: avoid; } }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header"><span class="retail">${escapeHtml(product.canal)}</span><span class="score">Audit Score: ${product.content_score.toFixed(0)}/100</span></div>
+          <div class="body">
+            <div class="image">${imageMarkup}</div>
+            <div>
+              <div class="brand">Abbott • ${escapeHtml(product.categoria || "Sin categoria")}</div>
+              <h1>${escapeHtml(product.titulo)}</h1>
+              <div class="meta"><span>Rating ${product.valoracion.toFixed(1)}</span><span>${product.reviews.toLocaleString("es-MX")} reviews</span><span>EAN ${escapeHtml(product.ean || "-")}</span></div>
+              <div class="metrics">
+                <div class="metric"><strong>Disponible</strong><span>Disponibilidad</span></div>
+                <div class="metric"><strong>${product.title_count_characters}</strong><span>Chars titulo</span></div>
+                <div class="metric"><strong>${product.img_count} / ${product.video_count}</strong><span>Fotos / videos</span></div>
+                <div class="metric"><strong>${product.count_character_desc}</strong><span>Chars descripcion</span></div>
+              </div>
+              <div class="description"><strong>Descripcion</strong><br>${escapeHtml(product.description || "No se detecto texto de descripcion en la base scrapeada para este producto.")}</div>
+              <div class="url">URL Scraped: ${escapeHtml(product.url_producto || "Sin URL")}</div>
+            </div>
+          </div>
+        </div>
+        <script>window.onload = () => { window.print(); };</script>
+      </body>
+      </html>`)
+    printWindow.document.close()
+  }
+
   return (
     <div className="space-y-4">
       <PageHeader title="Perfect Store" subtitle={`Calidad de catalogo por producto desde archivos ${providerBasePath}`} />
@@ -398,8 +471,8 @@ export default function CatalogContentPage() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>
-          <select value={selectedChannel} onChange={e => setChannel(e.target.value)} disabled={isColombia} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white disabled:bg-gray-100 disabled:text-gray-500">
-            {!isColombia && <option value="">Todos</option>}
+          <select value={selectedChannel} onChange={e => setChannel(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todos</option>
             {availableChannels.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
@@ -456,8 +529,14 @@ export default function CatalogContentPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5 p-5">
             <div className="space-y-3">
               <div className="aspect-square rounded-lg border border-gray-100 bg-gray-50 flex flex-col items-center justify-center text-gray-400">
-                <ImageIcon size={42} />
-                <span className="text-[11px] mt-2">Imagen no disponible</span>
+                {preview.url_imagen ? (
+                  <img src={preview.url_imagen} alt={preview.titulo} className="max-w-full max-h-full object-contain rounded-lg" />
+                ) : (
+                  <>
+                    <ImageIcon size={42} />
+                    <span className="text-[11px] mt-2">Imagen no disponible</span>
+                  </>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-lg border border-blue-100 bg-blue-50 text-blue-700 text-[11px] text-center py-2 font-semibold"><ImageIcon size={12} className="inline mr-1" />{preview.img_count}</div>
@@ -467,6 +546,9 @@ export default function CatalogContentPage() {
               <div className="rounded-lg border border-gray-100 px-3 py-2 text-[11px] text-gray-600">
                 Vendedor / Seller: <span className="font-semibold text-gray-800">Abbott</span>
               </div>
+              <button type="button" onClick={() => downloadPreviewPDF(preview)} className="w-full flex items-center justify-center gap-1 px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 hover:bg-gray-50 transition-colors">
+                <FileText size={12} /><span>PDF de PDP</span>
+              </button>
             </div>
 
             <div className="space-y-4 min-w-0">
@@ -492,7 +574,7 @@ export default function CatalogContentPage() {
                   <div className="text-xs font-semibold text-gray-800">Vista previa de descripcion</div>
                   <span className="text-[10px] text-gray-500">{preview.count_character_desc} caracteres</span>
                 </div>
-                <p className="text-xs text-gray-600 leading-relaxed">{preview.count_character_desc > 0 ? "Descripcion detectada durante el scraping. Abrir URL para revisar el contenido completo publicado en retailer." : "No se detecto texto de descripcion en la base scrapeada para este producto."}</p>
+                <p className="text-xs text-gray-600 leading-relaxed">{preview.description || "No se detecto texto de descripcion en la base scrapeada para este producto."}</p>
               </div>
 
               <div className="flex items-center justify-between gap-3 bg-slate-900 text-white rounded-lg px-4 py-3 text-xs flex-wrap">

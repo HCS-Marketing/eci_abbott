@@ -217,6 +217,8 @@ export async function GET(req: Request) {
         bullet_points: r.bullet_points,
         title_count_characters: r.title_count_characters,
         count_character_desc: r.count_character_desc,
+        description: r.description || "",
+        url_imagen: r.url_imagen || "",
         url_producto: r.url_producto || "",
       }))
 
