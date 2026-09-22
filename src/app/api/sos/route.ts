@@ -292,7 +292,7 @@ export async function GET(req: Request) {
     const useProviderSourceForMx = source === "provider" || action === "provider_health"
 
     if (useProviderSourceForMx) {
-      const rows = loadMxProviderRows()
+      const rows = loadMxProviderRows(country)
       const normalizeChannel = (value: string): string => {
         const raw = String(value || "").toUpperCase()
         if (!raw) return ""

@@ -19,9 +19,12 @@ const NAV = [
 ]
 
 const MX_NAV = [
-  { href: "/inventory",       label: "Inventario",    icon: Boxes       },
   { href: "/buybox",          label: "BuyBox",        icon: Trophy      },
   { href: "/catalog-content", label: "Contenido",     icon: BookOpenText },
+]
+
+const PROVIDER_NAV = [
+  { href: "/inventory",       label: "Inventario",    icon: Boxes       },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {
@@ -42,7 +45,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const router = useRouter()
-  const visibleNav = country === "MX" ? [...NAV, ...MX_NAV] : NAV
+  const visibleNav = country === "MX" ? [...NAV, ...PROVIDER_NAV, ...MX_NAV] : country === "CO" ? [...NAV, ...PROVIDER_NAV] : NAV
 
   if (
     pathname?.startsWith("/sign-in") ||

@@ -3,7 +3,12 @@ import path from "node:path"
 import * as XLSX from "xlsx"
 import fallbackRowsJson from "@/data/mx-provider-rows.json"
 
-const PROVIDER_DIRS = ["amz", "ml", "heb", "sams"]
+const PROVIDER_CONFIG = {
+  MX: { baseDir: "base_prov", dirs: ["amz", "ml", "heb", "sams"] },
+  CO: { baseDir: "base_prov_co", dirs: ["cruz_verde", "farmatodo", "larebaja", "rappi", "unidroga"] },
+} as const
+
+type ProviderCountry = keyof typeof PROVIDER_CONFIG
 
 const XLSX_API: {
   readFile: (path: string) => { SheetNames: string[]; Sheets: Record<string, unknown> }
@@ -36,8 +41,15 @@ export interface MxProviderRow {
   disponible: boolean
 }
 
-function hasProviderBase(root: string): boolean {
-  return PROVIDER_DIRS.some(dir => fs.existsSync(path.join(root, "base_prov", dir)))
+function normalizeProviderCountry(country?: string | null): ProviderCountry {
+  const raw = String(country || "MX").trim().toUpperCase()
+  if (raw === "CO" || raw === "COL" || raw === "COLOMBIA") return "CO"
+  return "MX"
+}
+
+function hasProviderBase(root: string, country: ProviderCountry): boolean {
+  const config = PROVIDER_CONFIG[country]
+  return config.dirs.some(dir => fs.existsSync(path.join(root, config.baseDir, dir)))
 }
 
 function candidateRoots(): string[] {
@@ -71,13 +83,14 @@ function candidateRoots(): string[] {
   return out
 }
 
-function resolveProviderBaseDir(): string {
+function resolveProviderBaseDir(country: ProviderCountry): string {
+  const config = PROVIDER_CONFIG[country]
   for (const root of candidateRoots()) {
-    if (hasProviderBase(root)) {
-      return path.join(root, "base_prov")
+    if (hasProviderBase(root, country)) {
+      return path.join(root, config.baseDir)
     }
   }
-  return path.join(process.cwd(), "base_prov")
+  return path.join(process.cwd(), config.baseDir)
 }
 
 function normalizeDate(value: unknown): string | null {
@@ -118,6 +131,10 @@ function normalizeRetail(value: unknown): string {
   if (raw === "SAMS" || raw.includes("SAM'S") || raw.includes("SAMS CLUB")) return "SAMS CLUB"
   if (raw === "HEB" || raw.includes("H-E-B")) return "HEB"
   return raw
+}
+
+function readTextField(row: Record<string, unknown>, keys: string[]): string {
+  return String(readField(row, keys) ?? "").trim()
 }
 
 function parseVentas(value: unknown): number {
@@ -208,29 +225,29 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
     const data = XLSX_API.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" })
 
     for (const r of data) {
-      const fecha = normalizeDate(r.fecha)
-      const retail = normalizeRetail(r.retail)
-      const titulo = String(r.titulo ?? "").trim()
+      const fecha = normalizeDate(readField(r, ["fecha"]))
+      const retail = normalizeRetail(readField(r, ["retail"]))
+      const titulo = readTextField(r, ["titulo"])
       if (!fecha || !retail || !titulo) continue
 
-      const { disponibilidad, disponible } = normalizeDisponibilidad(r.disponibilidad)
+      const { disponibilidad, disponible } = normalizeDisponibilidad(readField(r, ["disponibilidad"]))
       rows.push({
         fecha,
         retail,
         titulo,
-        ean: String(r.EAN ?? "").trim(),
-        categoria: String(r.categoria ?? "").trim(),
-        posicion: parsePosicion(r.posicion),
-        seller: String(r.seller ?? "").trim() || "SIN INFORMACION",
-        ventas: parseVentas(r.ventas),
-        valoracion: parseValoracion(r.valoracion),
-        reviews: parseIntegerField(r.reviews),
-        img_count: parseIntegerField(r.img_count),
-        video_count: parseIntegerField(r.video_count),
-        bullet_points: parseIntegerField(r.bullet_points),
-        title_count_characters: parseIntegerField(r.title_count_characters),
-        count_character_desc: parseIntegerField(r.count_character_desc),
-        url_producto: String(r.url_producto ?? "").trim(),
+        ean: readTextField(r, ["EAN", "ean"]),
+        categoria: readTextField(r, ["categoria", "categoría"]),
+        posicion: parsePosicion(readField(r, ["posicion", "posición"])),
+        seller: readTextField(r, ["seller"]) || "SIN INFORMACION",
+        ventas: parseVentas(readField(r, ["ventas"])),
+        valoracion: parseValoracion(readField(r, ["valoracion", "valoración"])),
+        reviews: parseIntegerField(readField(r, ["reviews"])),
+        img_count: parseIntegerField(readField(r, ["img_count"])),
+        video_count: parseIntegerField(readField(r, ["video_count"])),
+        bullet_points: parseIntegerField(readField(r, ["bullet_points"])),
+        title_count_characters: parseIntegerField(readField(r, ["title_count_characters"])),
+        count_character_desc: parseIntegerField(readField(r, ["count_character_desc"])),
+        url_producto: readTextField(r, ["url_producto"]),
         disponibilidad,
         disponible,
       })
@@ -240,11 +257,14 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
   return rows
 }
 
-export function loadMxProviderRows(): MxProviderRow[] {
-  const baseDir = resolveProviderBaseDir()
-  const all = PROVIDER_DIRS.flatMap(dir => readExcelFilesFromDir(path.join(baseDir, dir)))
+export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
+  const providerCountry = normalizeProviderCountry(country)
+  const config = PROVIDER_CONFIG[providerCountry]
+  const baseDir = resolveProviderBaseDir(providerCountry)
+  const all = config.dirs.flatMap(dir => readExcelFilesFromDir(path.join(baseDir, dir)))
   const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
-  const base = (all.length > 0 ? all : fallbackRows).map(r => ({
+  const baseRows = all.length > 0 ? all : providerCountry === "MX" ? fallbackRows : []
+  const base = baseRows.map(r => ({
     ...r,
     ean: String(r.ean || "").trim(),
     categoria: String(r.categoria || "").trim(),

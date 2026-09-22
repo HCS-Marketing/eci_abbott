@@ -3,10 +3,10 @@
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingIncludes: {
-    "/api/sos": ["./base_prov/**/*.xlsx"],
-    "/api/sos/route": ["./base_prov/**/*.xlsx"],
-    "/api/provider": ["./base_prov/**/*.xlsx"],
-    "/api/provider/route": ["./base_prov/**/*.xlsx"],
+    "/api/sos": ["./base_prov/**/*.xlsx", "./base_prov_co/**/*.xlsx"],
+    "/api/sos/route": ["./base_prov/**/*.xlsx", "./base_prov_co/**/*.xlsx"],
+    "/api/provider": ["./base_prov/**/*.xlsx", "./base_prov_co/**/*.xlsx"],
+    "/api/provider/route": ["./base_prov/**/*.xlsx", "./base_prov_co/**/*.xlsx"],
   },
   async redirects() {
     return [

@@ -21,6 +21,7 @@ export async function GET(req: Request) {
     const show = searchParams.get("show") || "all"
     const seller = searchParams.get("seller") || ""
     const category = searchParams.get("category") || ""
+    const country = searchParams.get("country") || "MX"
     const products = (searchParams.get("products") || "")
       .split(",")
       .map(v => decodeURIComponent(v.trim()))
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
     const sortDir = (searchParams.get("sortDir") || "desc").toLowerCase() === "asc" ? "asc" : "desc"
     const limit = Math.min(5000, Number.parseInt(searchParams.get("limit") || "500", 10))
 
-    const rows = loadMxProviderRows()
+    const rows = loadMxProviderRows(country)
     const channelNorm = normalizeChannel(channel)
     const rowsByChannel = channelNorm ? rows.filter(r => r.retail === channelNorm) : rows
     const categoryNorm = category.trim().toLowerCase()

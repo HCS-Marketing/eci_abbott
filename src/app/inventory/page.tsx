@@ -47,9 +47,11 @@ export default function InventoryPage() {
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
+  const useLocalFallback = country === "MX"
 
   const fallbackDateBounds = useMemo(() => {
     const typed = fallbackRows as Array<{ fecha?: string; ean?: string; categoria?: string; titulo?: string }>
@@ -72,6 +74,12 @@ export default function InventoryPage() {
       max: dates[dates.length - 1] || "",
     }
   }, [])
+
+  useEffect(() => {
+    setChannel("")
+    setCategory("")
+    setSelectedProducts([])
+  }, [country])
 
   useEffect(() => {
     if (!date && fallbackDateBounds.max) {
@@ -98,16 +106,32 @@ export default function InventoryPage() {
   }, [channel, country])
 
   useEffect(() => {
+    const p = new URLSearchParams({ action: "channels" })
+    p.set("source", "provider")
+    if (country) p.set("country", country)
+    if (date) p.set("endDate", date)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        const channels = Array.isArray(d) ? d : []
+        setAvailableChannels(channels)
+        if (channel && !channels.includes(channel)) setChannel("")
+      })
+      .catch(() => setAvailableChannels([]))
+  }, [channel, country, date])
+
+  useEffect(() => {
     const effectiveDate = date || fallbackDateBounds.max
-    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
+    const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
       .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
       .map(r => r.titulo)
-      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
     if (category) p.set("category", category)
     if (effectiveDate) p.set("date", effectiveDate)
+    if (country) p.set("country", country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then((d: string[]) => {
@@ -119,20 +143,21 @@ export default function InventoryPage() {
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel, category, fallbackDateBounds.max])
+  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
 
   useEffect(() => {
     const effectiveDate = date || fallbackDateBounds.max
-    const local = Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
+    const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
       .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
       .map(r => String(r.categoria || "").trim())
-      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
     console.log('[Inventory] Local categories from fallback:', local)
 
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (effectiveDate) p.set("date", effectiveDate)
+    if (country) p.set("country", country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
       .then((d: string[]) => {
@@ -147,7 +172,7 @@ export default function InventoryPage() {
         setAvailableCategories(local)
         if (category && !local.includes(category)) setCategory("")
       })
-  }, [date, channel, category, fallbackDateBounds.max])
+  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -173,9 +198,10 @@ export default function InventoryPage() {
         if (channel) pRaw.set("channel", channel)
         if (category) pRaw.set("category", category)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
+        if (country) pRaw.set("country", country)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
-          const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
+          const local = useLocalFallback ? (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .filter(r => !channel || normalizeChannel(r.retail) === channel)
             .filter(r => !category || String(r.categoria || "") === category)
@@ -192,7 +218,7 @@ export default function InventoryPage() {
                 ultimo_visto: r.fecha || null,
                 stock_status: status,
               }
-            })
+            }) : []
           setData(local)
           return
         }
@@ -208,7 +234,7 @@ export default function InventoryPage() {
         })))
       })
       .catch(() => {
-        const local = (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
+        const local = useLocalFallback ? (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .filter(r => !channel || normalizeChannel(r.retail) === channel)
           .filter(r => !category || String(r.categoria || "") === category)
@@ -225,11 +251,11 @@ export default function InventoryPage() {
               ultimo_visto: r.fecha || null,
               stock_status: status,
             }
-          })
+          }) : []
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, category, country, date, fallbackDateBounds.max, selectedProducts])
+  }, [channel, category, country, date, fallbackDateBounds.max, selectedProducts, useLocalFallback])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -285,10 +311,7 @@ export default function InventoryPage() {
           <select value={channel} onChange={e => setChannel(e.target.value)}
             className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
-            <option value="AMAZON">Amazon</option>
-            <option value="MERCADO LIBRE">Mercado Libre</option>
-            <option value="HEB">HEB</option>
-            <option value="SAMS CLUB">Sams Club</option>
+            {availableChannels.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
