@@ -3,8 +3,28 @@ const path = require("node:path")
 const XLSX = require("xlsx")
 
 const ROOT = process.cwd()
-const PROVIDER_DIRS = ["amz", "ml", "heb", "sams"]
-const OUTPUT_FILE = path.join(ROOT, "src", "data", "mx-provider-rows.json")
+const PROVIDER_CONFIGS = [
+  {
+    label: "mx",
+    baseDir: "base_prov",
+    dirs: ["amz", "ml", "heb", "sams"],
+    outputFile: path.join(ROOT, "src", "data", "mx-provider-rows.json"),
+    retailByDir: {},
+  },
+  {
+    label: "co",
+    baseDir: "base_prov_co",
+    dirs: ["cruz_verde", "farmatodo", "larebaja", "rappi", "unidroga"],
+    outputFile: path.join(ROOT, "src", "data", "co-provider-rows.json"),
+    retailByDir: {
+      cruz_verde: "CRUZ VERDE",
+      farmatodo: "FARMATODO",
+      larebaja: "LA REBAJA",
+      rappi: "RAPPI",
+      unidroga: "UNIDROGA",
+    },
+  },
+]
 
 function normalizeDate(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
@@ -44,6 +64,31 @@ function normalizeRetail(value) {
   if (raw === "SAMS" || raw.includes("SAM'S") || raw.includes("SAMS CLUB")) return "SAMS CLUB"
   if (raw === "HEB" || raw.includes("H-E-B")) return "HEB"
   return raw
+}
+
+function normalizeHeaderKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+}
+
+function readField(row, keys) {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) return row[key]
+  }
+
+  const normalizedTargets = new Set(keys.map(normalizeHeaderKey))
+  for (const [rowKey, rowValue] of Object.entries(row)) {
+    if (normalizedTargets.has(normalizeHeaderKey(rowKey))) return rowValue
+  }
+
+  return undefined
+}
+
+function readTextField(row, keys) {
+  return String(readField(row, keys) ?? "").trim()
 }
 
 function parseVentas(value) {
@@ -96,7 +141,7 @@ function normalizeDisponibilidad(value) {
   return { disponibilidad: "DISPONIBLE", disponible: true }
 }
 
-function readExcelFilesFromDir(dirPath) {
+function readExcelFilesFromDir(dirPath, retailOverride = "") {
   if (!fs.existsSync(dirPath)) return []
 
   const fileNames = fs.readdirSync(dirPath)
@@ -114,29 +159,29 @@ function readExcelFilesFromDir(dirPath) {
     const data = XLSX.utils.sheet_to_json(ws, { defval: "" })
 
     for (const r of data) {
-      const fecha = normalizeDate(r.fecha)
-      const retail = normalizeRetail(r.retail)
-      const titulo = String(r.titulo ?? "").trim()
+      const fecha = normalizeDate(readField(r, ["fecha"]))
+      const retail = retailOverride || normalizeRetail(readField(r, ["retail"]))
+      const titulo = readTextField(r, ["titulo"])
       if (!fecha || !retail || !titulo) continue
 
-      const { disponibilidad, disponible } = normalizeDisponibilidad(r.disponibilidad)
+      const { disponibilidad, disponible } = normalizeDisponibilidad(readField(r, ["disponibilidad"]))
       rows.push({
         fecha,
         retail,
         titulo,
-        ean: String(r.EAN ?? "").trim(),
-        categoria: String(r.categoria ?? "").trim(),
-        posicion: parsePosicion(r.posicion),
-        seller: String(r.seller ?? "").trim() || "SIN INFORMACION",
-        ventas: parseVentas(r.ventas),
-        valoracion: parseValoracion(r.valoracion),
-        reviews: parseIntegerField(r.reviews),
-        img_count: parseIntegerField(r.img_count),
-        video_count: parseIntegerField(r.video_count),
-        bullet_points: parseIntegerField(r.bullet_points),
-        title_count_characters: parseIntegerField(r.title_count_characters),
-        count_character_desc: parseIntegerField(r.count_character_desc),
-        url_producto: String(r.url_producto ?? "").trim(),
+        ean: readTextField(r, ["EAN", "ean"]),
+        categoria: readTextField(r, ["categoria", "categoría"]),
+        posicion: parsePosicion(readField(r, ["posicion", "posición"])),
+        seller: readTextField(r, ["seller"]) || "SIN INFORMACION",
+        ventas: parseVentas(readField(r, ["ventas"])),
+        valoracion: parseValoracion(readField(r, ["valoracion", "valoración"])),
+        reviews: parseIntegerField(readField(r, ["reviews"])),
+        img_count: parseIntegerField(readField(r, ["img_count"])),
+        video_count: parseIntegerField(readField(r, ["video_count"])),
+        bullet_points: parseIntegerField(readField(r, ["bullet_points"])),
+        title_count_characters: parseIntegerField(readField(r, ["title_count_characters"])),
+        count_character_desc: parseIntegerField(readField(r, ["count_character_desc"])),
+        url_producto: readTextField(r, ["url_producto"]),
         disponibilidad,
         disponible,
       })
@@ -146,11 +191,14 @@ function readExcelFilesFromDir(dirPath) {
   return rows
 }
 
-function main() {
-  const rows = PROVIDER_DIRS.flatMap(dir => readExcelFilesFromDir(path.join(ROOT, "base_prov", dir)))
+function refreshProviderJson(config) {
+  const rows = config.dirs.flatMap(dir => readExcelFilesFromDir(
+    path.join(ROOT, config.baseDir, dir),
+    config.retailByDir[dir] || ""
+  ))
 
   if (rows.length === 0) {
-    console.warn("[refresh-provider-json] No se encontraron filas válidas en Excel. Se conserva el JSON actual.")
+    console.warn(`[refresh-provider-json] ${config.label}: No se encontraron filas válidas en Excel. Se conserva el JSON actual.`)
     return
   }
 
@@ -160,11 +208,15 @@ function main() {
     return a.titulo.localeCompare(b.titulo, "es")
   })
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(rows, null, 2))
+  fs.writeFileSync(config.outputFile, JSON.stringify(rows, null, 2))
 
   const minDate = rows[0].fecha
   const maxDate = rows[rows.length - 1].fecha
-  console.log(`[refresh-provider-json] rows=${rows.length} min=${minDate} max=${maxDate}`)
+  console.log(`[refresh-provider-json] ${config.label}: rows=${rows.length} min=${minDate} max=${maxDate}`)
+}
+
+function main() {
+  for (const config of PROVIDER_CONFIGS) refreshProviderJson(config)
 }
 
 main()

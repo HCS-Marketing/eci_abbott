@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import * as XLSX from "xlsx"
 import fallbackRowsJson from "@/data/mx-provider-rows.json"
+import coFallbackRowsJson from "@/data/co-provider-rows.json"
 
 const PROVIDER_CONFIG = {
   MX: {
@@ -231,7 +232,12 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
 
   for (const fileName of fileNames) {
     const fullPath = path.join(dirPath, fileName)
-    const wb = XLSX_API.readFile(fullPath)
+    let wb: { SheetNames: string[]; Sheets: Record<string, unknown> }
+    try {
+      wb = XLSX_API.readFile(fullPath)
+    } catch {
+      continue
+    }
     const sheetName = wb.SheetNames[0]
     if (!sheetName) continue
 
@@ -276,8 +282,11 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
   const config = PROVIDER_CONFIG[providerCountry]
   const baseDir = resolveProviderBaseDir(providerCountry)
   const all = config.dirs.flatMap(dir => readExcelFilesFromDir(path.join(baseDir, dir), config.retailByDir[dir] || ""))
-  const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
-  const baseRows = all.length > 0 ? all : providerCountry === "MX" ? fallbackRows : []
+  const fallbackRowsByCountry: Record<ProviderCountry, MxProviderRow[]> = {
+    MX: (fallbackRowsJson as unknown as MxProviderRow[]) || [],
+    CO: (coFallbackRowsJson as unknown as MxProviderRow[]) || [],
+  }
+  const baseRows = all.length > 0 ? all : fallbackRowsByCountry[providerCountry]
   const base = baseRows.map(r => ({
     ...r,
     ean: String(r.ean || "").trim(),
