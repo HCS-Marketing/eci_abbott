@@ -1,5 +1,10 @@
-2026/09/18-09:15:52.573 84a0 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/18-09:15:52.602 84a0 Recovering log #24
-2026/09/18-09:15:52.607 84a0 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000024.log 
-2026/09/18-09:17:07.484 9734 Level-0 table #29: started
-2026/09/18-09:17:07.508 9734 Level-0 table #29: 107083 bytes OK
+2026/09/21-09:15:38.638 8ce0 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/21-09:15:38.666 8ce0 Recovering log #24
+2026/09/21-09:15:38.669 8ce0 Level-0 table #28: started
+2026/09/21-09:15:38.694 8ce0 Level-0 table #28: 107083 bytes OK
+2026/09/21-09:15:38.743 8ce0 Recovering log #28
+2026/09/21-09:15:38.832 8ce0 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000028.log 
+2026/09/21-09:15:38.899 8ce0 Delete type=0 #24
+2026/09/21-09:15:38.899 8ce0 Delete type=2 #29
+2026/09/21-09:17:13.081 a46c Level-0 table #30: started
+2026/09/21-09:17:13.136 a46c Level-0 table #30: 106930 bytes OK
