@@ -26,6 +26,10 @@ export async function GET(req: Request) {
       .split(",")
       .map(v => decodeURIComponent(v.trim()))
       .filter(Boolean)
+    const eans = (searchParams.get("eans") || "")
+      .split(",")
+      .map(v => decodeURIComponent(v.trim()))
+      .filter(Boolean)
     const sortBy = (searchParams.get("sortBy") || "score").toLowerCase()
     const sortDir = (searchParams.get("sortDir") || "desc").toLowerCase() === "asc" ? "asc" : "desc"
     const limit = Math.min(5000, Number.parseInt(searchParams.get("limit") || "500", 10))
@@ -64,7 +68,17 @@ export async function GET(req: Request) {
       const scoped = rowsByChannel
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
+        .filter(r => eans.length === 0 || eans.includes(r.ean))
       const items = Array.from(new Set(scoped.map(r => r.titulo).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      return NextResponse.json(items)
+    }
+
+    if (action === "eans") {
+      const scoped = rowsByChannel
+        .filter(r => !effectiveDate || r.fecha <= effectiveDate)
+        .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
+        .filter(r => products.length === 0 || products.includes(r.titulo))
+      const items = Array.from(new Set(scoped.map(r => r.ean).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(items)
     }
 
@@ -72,6 +86,7 @@ export async function GET(req: Request) {
       const scoped = rowsByChannel
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .filter(r => products.length === 0 || products.includes(r.titulo))
+        .filter(r => eans.length === 0 || eans.includes(r.ean))
       const items = Array.from(new Set(scoped.map(r => r.categoria).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(items)
     }
@@ -84,6 +99,7 @@ export async function GET(req: Request) {
     if (action === "raw") {
       const base = rowsByChannel
         .filter(r => products.length === 0 || products.includes(r.titulo))
+        .filter(r => eans.length === 0 || eans.includes(r.ean))
         .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .sort((a, b) => {
@@ -99,6 +115,7 @@ export async function GET(req: Request) {
 
       for (const r of rowsByChannel) {
         if (products.length > 0 && !products.includes(r.titulo)) continue
+        if (eans.length > 0 && !eans.includes(r.ean)) continue
         if (categoryNorm && r.categoria.trim().toLowerCase() !== categoryNorm) continue
         if (r.fecha > effectiveDate) continue
         const key = `${r.retail}|||${r.titulo}`

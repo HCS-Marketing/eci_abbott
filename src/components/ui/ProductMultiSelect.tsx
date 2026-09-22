@@ -8,6 +8,8 @@ interface ProductMultiSelectProps {
   selected: string[]
   onChange: (items: string[]) => void
   label?: string
+  allLabel?: string
+  searchPlaceholder?: string
   className?: string
 }
 
@@ -16,6 +18,8 @@ export default function ProductMultiSelect({
   selected,
   onChange,
   label = "Producto",
+  allLabel = "Todos los productos",
+  searchPlaceholder = "Buscar producto...",
   className = "",
 }: ProductMultiSelectProps) {
   const [open, setOpen] = useState(false)
@@ -66,7 +70,7 @@ export default function ProductMultiSelect({
         className="w-[280px] max-w-full border border-gray-200 bg-white rounded-lg px-3 py-2 text-xs text-left text-gray-700 flex items-center justify-between"
       >
         <span className="truncate">
-          {selected.length === 0 ? "Todos los productos" : `${selected.length} seleccionados`}
+          {selected.length === 0 ? allLabel : `${selected.length} seleccionados`}
         </span>
         <ChevronDown size={14} className="text-gray-400" />
       </button>
@@ -78,7 +82,7 @@ export default function ProductMultiSelect({
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar producto..."
+              placeholder={searchPlaceholder}
               className="w-full text-xs outline-none text-gray-700"
             />
           </div>

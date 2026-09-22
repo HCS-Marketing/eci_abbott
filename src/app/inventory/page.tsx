@@ -45,10 +45,10 @@ export default function InventoryPage() {
   const [search,     setSearch]     = useState("")
   const [showOnlyUnavailable, setShowOnlyUnavailable] = useState(false)
 
-  const [availableProducts, setAvailableProducts] = useState<string[]>([])
+  const [availableEans, setAvailableEans] = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([])
+  const [selectedEans, setSelectedEans] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
   const isColombia = country === "CO"
@@ -76,8 +76,8 @@ export default function InventoryPage() {
     setMaxDate("")
     setAvailableChannels([])
     setAvailableCategories([])
-    setAvailableProducts([])
-    setSelectedProducts([])
+    setAvailableEans([])
+    setSelectedEans([])
     setData([])
   }, [country])
 
@@ -122,12 +122,12 @@ export default function InventoryPage() {
 
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
-    const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
-      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
-      .map(r => r.titulo)
+    const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string; EAN?: string; ean?: string }>)
+      .filter(r => (!effectiveDate || r.fecha <= effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
+      .map(r => String(r.EAN || r.ean || "").trim())
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
-    const p = new URLSearchParams({ action: "products" })
+    const p = new URLSearchParams({ action: "eans" })
     if (channel) p.set("channel", channel)
     if (category) p.set("category", category)
     if (effectiveDate) p.set("date", effectiveDate)
@@ -136,12 +136,12 @@ export default function InventoryPage() {
       .then(r => r.json())
       .then((d: string[]) => {
         const merged = Array.from(new Set([...(Array.isArray(d) ? d : []), ...local])).sort((a, b) => a.localeCompare(b, "es"))
-        setAvailableProducts(merged)
-        setSelectedProducts(prev => prev.filter(item => merged.includes(item)))
+        setAvailableEans(merged)
+        setSelectedEans(prev => prev.filter(item => merged.includes(item)))
       })
       .catch(() => {
-        setAvailableProducts(local)
-        setSelectedProducts(prev => prev.filter(item => local.includes(item)))
+        setAvailableEans(local)
+        setSelectedEans(prev => prev.filter(item => local.includes(item)))
       })
   }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
 
@@ -155,6 +155,7 @@ export default function InventoryPage() {
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (effectiveDate) p.set("date", effectiveDate)
+    if (selectedEans.length) p.set("eans", selectedEans.map(v => encodeURIComponent(v)).join(","))
     if (country) p.set("country", country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -167,7 +168,7 @@ export default function InventoryPage() {
         setAvailableCategories(local)
         if (category && !local.includes(category)) setCategory("")
       })
-  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
+  }, [date, channel, category, country, fallbackDateBounds.max, selectedEans, useLocalFallback])
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -179,7 +180,7 @@ export default function InventoryPage() {
     p.set("source", "provider")
     if (channel)    p.set("channel",    channel)
     if (category)   p.set("category",   category)
-    if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
+    if (selectedEans.length) p.set("eans", selectedEans.map(v => encodeURIComponent(v)).join(","))
     if (country)    p.set("country",    country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -192,7 +193,7 @@ export default function InventoryPage() {
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (channel) pRaw.set("channel", channel)
         if (category) pRaw.set("category", category)
-        if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
+        if (selectedEans.length) pRaw.set("eans", selectedEans.map(v => encodeURIComponent(v)).join(","))
         if (country) pRaw.set("country", country)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
         if (!Array.isArray(raw) || raw.length === 0) {
@@ -200,7 +201,7 @@ export default function InventoryPage() {
             .filter(r => !effectiveDate || r.fecha === effectiveDate)
             .filter(r => !channel || normalizeChannel(r.retail) === channel)
             .filter(r => !category || String(r.categoria || "") === category)
-            .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
+            .filter(r => selectedEans.length === 0 || selectedEans.includes(String(r.EAN || r.ean || "").trim()))
             .map(r => {
               const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
               return {
@@ -233,7 +234,7 @@ export default function InventoryPage() {
           .filter(r => !effectiveDate || r.fecha === effectiveDate)
           .filter(r => !channel || normalizeChannel(r.retail) === channel)
           .filter(r => !category || String(r.categoria || "") === category)
-          .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
+          .filter(r => selectedEans.length === 0 || selectedEans.includes(String(r.EAN || r.ean || "").trim()))
           .map(r => {
             const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
             return {
@@ -250,7 +251,7 @@ export default function InventoryPage() {
         setData(local)
       })
       .finally(() => setLoading(false))
-  }, [channel, category, country, date, fallbackDateBounds.max, selectedProducts, useLocalFallback])
+  }, [channel, category, country, date, fallbackDateBounds.max, selectedEans, useLocalFallback])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -258,7 +259,7 @@ export default function InventoryPage() {
     data.filter(e =>
       (!showCategoryFilter || !category || e.categoria === category) &&
       (!showOnlyUnavailable || e.stock_status === "break") &&
-      (selectedProducts.length === 0 || selectedProducts.includes(e.producto)) && (
+      (selectedEans.length === 0 || selectedEans.includes(e.ean)) && (
         !search ||
         e.producto?.toLowerCase().includes(search.toLowerCase()) ||
         e.ean?.toLowerCase().includes(search.toLowerCase()) ||
@@ -267,7 +268,7 @@ export default function InventoryPage() {
         e.estado?.toLowerCase().includes(search.toLowerCase())
       )
     )
-  , [data, search, selectedProducts, category, showOnlyUnavailable, showCategoryFilter])
+  , [data, search, selectedEans, category, showOnlyUnavailable, showCategoryFilter])
 
   // KPIs
   const inStock      = filtered.filter(e => e.stock_status === "in_stock").length
@@ -341,10 +342,12 @@ export default function InventoryPage() {
         </button>
 
         <ProductMultiSelect
-          options={availableProducts}
-          selected={selectedProducts}
-          onChange={setSelectedProducts}
-          label="Producto"
+          options={availableEans}
+          selected={selectedEans}
+          onChange={setSelectedEans}
+          label="EAN"
+          allLabel="Todos los EAN"
+          searchPlaceholder="Buscar EAN..."
         />
 
         <div className="ml-auto flex items-center gap-2">
