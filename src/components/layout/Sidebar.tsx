@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Tag, LogOut, ScanSearch, LayoutGrid, Boxes, Trophy, BookOpenText,
+  Tag, LogOut, ScanSearch, LayoutGrid, Boxes, Trophy, BookOpenText, Megaphone,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 import { useGlobalFilters } from "@/lib/filter-context"
@@ -27,6 +27,10 @@ const PROVIDER_NAV = [
   { href: "/catalog-content", label: "Perfect Store", icon: BookOpenText },
 ]
 
+const CO_NAV = [
+  { href: "/retail-media",    label: "Retail Media",  icon: Megaphone   },
+]
+
 function SOSBrandmark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 120 128" fill="none">
@@ -45,7 +49,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const router = useRouter()
-  const visibleNav = country === "MX" ? [...NAV, ...PROVIDER_NAV, ...MX_NAV] : country === "CO" ? [...NAV, ...PROVIDER_NAV] : NAV
+  const visibleNav = country === "MX" ? [...NAV, ...PROVIDER_NAV, ...MX_NAV] : country === "CO" ? [...NAV, ...PROVIDER_NAV, ...CO_NAV] : NAV
 
   if (
     pathname?.startsWith("/sign-in") ||

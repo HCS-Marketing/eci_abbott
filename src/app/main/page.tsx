@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Search, ScanSearch, ListOrdered, Tag, Boxes, Trophy, BookOpenText } from "lucide-react"
+import { Search, ScanSearch, ListOrdered, Tag, Boxes, Trophy, BookOpenText, Megaphone } from "lucide-react"
 import { useGlobalFilters } from "@/lib/filter-context"
 
 const MODULES = [
@@ -62,9 +62,19 @@ const PROVIDER_MODULES = [
   },
 ]
 
+const CO_MODULES = [
+  {
+    href: "/retail-media",
+    label: "Retail Media",
+    description: "Análisis de productos promocionados, formatos y posición por retailer",
+    icon: Megaphone,
+    color: "#db2777",
+  },
+]
+
 export default function MainPage() {
   const { country } = useGlobalFilters()
-  const visibleModules = country === "MX" ? [...MODULES, ...MX_MODULES, ...PROVIDER_MODULES] : country === "CO" ? [...MODULES, ...PROVIDER_MODULES] : MODULES
+  const visibleModules = country === "MX" ? [...MODULES, ...MX_MODULES, ...PROVIDER_MODULES] : country === "CO" ? [...MODULES, ...PROVIDER_MODULES, ...CO_MODULES] : MODULES
 
   return (
     <div className="max-w-5xl mx-auto">
