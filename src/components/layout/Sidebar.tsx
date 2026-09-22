@@ -20,11 +20,11 @@ const NAV = [
 
 const MX_NAV = [
   { href: "/buybox",          label: "BuyBox",        icon: Trophy      },
-  { href: "/catalog-content", label: "Contenido",     icon: BookOpenText },
 ]
 
 const PROVIDER_NAV = [
   { href: "/inventory",       label: "Inventario",    icon: Boxes       },
+  { href: "/catalog-content", label: "Perfect Store", icon: BookOpenText },
 ]
 
 function SOSBrandmark({ size = 28 }: { size?: number }) {

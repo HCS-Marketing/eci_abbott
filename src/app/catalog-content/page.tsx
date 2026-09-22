@@ -139,9 +139,14 @@ export default function CatalogContentPage() {
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
   const [loading, setLoading] = useState(false)
+  const isColombia = country === "CO"
+  const useLocalFallback = country === "MX"
+  const showCategoryFilter = availableCategories.length > 0
+  const providerBasePath = isColombia ? "base_prov_co" : "base_prov"
 
   const fallbackDateBounds = useMemo(() => {
     const dates = Array.from(new Set((fallbackRows as Array<{ fecha?: string }>).map(r => r.fecha).filter(Boolean) as string[])).sort()
@@ -149,12 +154,25 @@ export default function CatalogContentPage() {
   }, [])
 
   useEffect(() => {
-    if (!date && fallbackDateBounds.max) {
+    setChannel("")
+    setCategory("")
+    setDate("")
+    setMinDate("")
+    setMaxDate("")
+    setAvailableChannels([])
+    setAvailableCategories([])
+    setAvailableProducts([])
+    setSelectedProducts([])
+    setData([])
+  }, [country])
+
+  useEffect(() => {
+    if (useLocalFallback && !date && fallbackDateBounds.max) {
       setMinDate(fallbackDateBounds.min)
       setMaxDate(fallbackDateBounds.max)
       setDate(fallbackDateBounds.max)
     }
-  }, [date, fallbackDateBounds])
+  }, [date, fallbackDateBounds, useLocalFallback])
 
   useEffect(() => {
     const p = new URLSearchParams({ action: "dates" })
@@ -170,16 +188,33 @@ export default function CatalogContentPage() {
   }, [channel, country])
 
   useEffect(() => {
-    const effectiveDate = date || fallbackDateBounds.max
-    const local = Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
+    const p = new URLSearchParams({ action: "channels" })
+    p.set("source", "provider")
+    if (country) p.set("country", country)
+    if (date) p.set("endDate", date)
+
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: string[]) => {
+        const channels = Array.isArray(d) ? d : []
+        setAvailableChannels(channels)
+        if (channel && !channels.includes(channel)) setChannel("")
+      })
+      .catch(() => setAvailableChannels([]))
+  }, [channel, country, date])
+
+  useEffect(() => {
+    const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
+    const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ titulo: string; fecha: string; retail: string; categoria?: string }>)
       .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
       .map(r => r.titulo)
-      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
     const p = new URLSearchParams({ action: "products" })
     if (channel) p.set("channel", channel)
     if (category) p.set("category", category)
     if (effectiveDate) p.set("date", effectiveDate)
+    if (country) p.set("country", country)
 
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -192,18 +227,19 @@ export default function CatalogContentPage() {
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, channel, category, fallbackDateBounds.max])
+  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
 
   useEffect(() => {
-    const effectiveDate = date || fallbackDateBounds.max
-    const local = Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
+    const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
+    const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
       .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
       .map(r => String(r.categoria || "").trim())
-      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
     const p = new URLSearchParams({ action: "categories" })
     if (channel) p.set("channel", channel)
     if (effectiveDate) p.set("date", effectiveDate)
+    if (country) p.set("country", country)
 
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
@@ -216,11 +252,11 @@ export default function CatalogContentPage() {
         setAvailableCategories(local)
         if (category && !local.includes(category)) setCategory("")
       })
-  }, [date, channel, category, fallbackDateBounds.max])
+  }, [date, channel, category, country, fallbackDateBounds.max, useLocalFallback])
 
   const fetchData = useCallback(() => {
     setLoading(true)
-    const effectiveDate = date || fallbackDateBounds.max
+    const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
     const p = new URLSearchParams({ action: "content", date: effectiveDate, limit: "5000" })
     p.set("source", "provider")
     if (channel) p.set("channel", channel)
@@ -240,15 +276,17 @@ export default function CatalogContentPage() {
         if (channel) pRaw.set("channel", channel)
         if (category) pRaw.set("category", category)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
+        if (country) pRaw.set("country", country)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
 
         const sourceRows = Array.isArray(raw) && raw.length > 0
           ? raw
-          : (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string; EAN?: string; ean?: string; categoria?: string }>)
+          : useLocalFallback ? (fallbackRows as Array<{ fecha: string; titulo: string; retail: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string; EAN?: string; ean?: string; categoria?: string }>)
               .filter(r => !effectiveDate || r.fecha === effectiveDate)
               .filter(r => !channel || normalizeChannel(r.retail) === channel)
               .filter(r => !category || String(r.categoria || "") === category)
               .filter(r => selectedProducts.length === 0 || selectedProducts.includes(r.titulo))
+          : []
 
         const mapped = sourceRows.map((r: {
           titulo?: string; retail?: string; canal?: string; plataforma?: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; url_producto?: string; EAN?: string; ean?: string; categoria?: string
@@ -284,13 +322,13 @@ export default function CatalogContentPage() {
       })
       .catch(() => setData([]))
       .finally(() => setLoading(false))
-  }, [date, channel, category, country, fallbackDateBounds.max, selectedProducts])
+  }, [date, channel, category, country, fallbackDateBounds.max, selectedProducts, useLocalFallback])
 
   useEffect(() => { fetchData() }, [fetchData])
 
   const filtered = useMemo(() =>
     data.filter(e =>
-      (!category || e.categoria === category) &&
+      (!showCategoryFilter || !category || e.categoria === category) &&
       (selectedProducts.length === 0 || selectedProducts.includes(e.titulo)) && (
         !search ||
         e.titulo.toLowerCase().includes(search.toLowerCase()) ||
@@ -299,7 +337,7 @@ export default function CatalogContentPage() {
         e.skuid.toLowerCase().includes(search.toLowerCase())
       )
     )
-  , [data, search, selectedProducts, category])
+  , [data, search, selectedProducts, category, showCategoryFilter])
 
   const sorted = useMemo(() => {
     const rows = [...filtered]
@@ -330,7 +368,7 @@ export default function CatalogContentPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Contenido de catalogo" subtitle="Calidad de catalogo por producto desde archivos base_prov" />
+      <PageHeader title="Perfect Store" subtitle={`Calidad de catalogo por producto desde archivos ${providerBasePath}`} />
 
       <div className="items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl flex">
         <div className="flex items-center gap-2">
@@ -345,20 +383,19 @@ export default function CatalogContentPage() {
           <span className="text-xs text-gray-400">Canal</span>
           <select value={channel} onChange={e => setChannel(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todos</option>
-            <option value="AMAZON">Amazon</option>
-            <option value="MERCADO LIBRE">Mercado Libre</option>
-            <option value="HEB">HEB</option>
-            <option value="SAMS CLUB">Sams Club</option>
+            {availableChannels.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Categoria</span>
-          <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="">Todas</option>
-            {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+        {showCategoryFilter && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Categoria</span>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+              <option value="">Todas</option>
+              {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        )}
 
         <ProductMultiSelect options={availableProducts} selected={selectedProducts} onChange={setSelectedProducts} label="Producto" />
 

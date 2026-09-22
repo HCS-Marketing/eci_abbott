@@ -37,23 +37,26 @@ const MODULES = [
 
 const MX_MODULES = [
   {
-    href: "/inventory",
-    label: "Inventario",
-    description: "Estado diario de disponibilidad de productos en Amazon y Mercado Libre",
-    icon: Boxes,
-    color: "#16a34a",
-  },
-  {
     href: "/buybox",
     label: "BuyBox",
     description: "Winner por producto y estado de disponibilidad del día",
     icon: Trophy,
     color: "#ea580c",
   },
+]
+
+const PROVIDER_MODULES = [
+  {
+    href: "/inventory",
+    label: "Inventario",
+    description: "Estado diario de disponibilidad de productos por retailer",
+    icon: Boxes,
+    color: "#16a34a",
+  },
   {
     href: "/catalog-content",
-    label: "Contenido",
-    description: "Ranking de contenido por ventas, valoración y score",
+    label: "Perfect Store",
+    description: "Ranking de contenido, valoracion y calidad de ficha por retailer",
     icon: BookOpenText,
     color: "#0ea5e9",
   },
@@ -61,7 +64,7 @@ const MX_MODULES = [
 
 export default function MainPage() {
   const { country } = useGlobalFilters()
-  const visibleModules = country === "MX" ? [...MODULES, ...MX_MODULES] : MODULES
+  const visibleModules = country === "MX" ? [...MODULES, ...MX_MODULES, ...PROVIDER_MODULES] : country === "CO" ? [...MODULES, ...PROVIDER_MODULES] : MODULES
 
   return (
     <div className="max-w-5xl mx-auto">
