@@ -508,19 +508,22 @@ export default function ShareOfShelfPage() {
         String(e.products_p1),
       ])
     } else if (drill === "brand") {
-      headers = ["Marca", "Fabricante", "Pos. Pág 1 (%)", "Pos. Total (%)", "Prods Pág 1"]
+      headers = ["Marca", "Fabricante", "Tu", "Pos. Pág 1 (%)", "Pos. Total (%)", "Prods Pág 1"]
       rows = brandData.map(b => [
         String(b.brand),
         String(b.seller),
+        b.is_own ? "Sí" : "",
         String(b.sos_p1),
         String(b.sos_total),
         String(b.products_p1),
       ])
     } else {
-      headers = ["Título", "Fabricante", "Pos. Pág 1 (%)", "Pos. Total (%)", "Pos. típica"]
+      headers = ["Título", "Fabricante", "Marca", "Tu", "Pos. Pág 1 (%)", "Pos. Total (%)", "Pos. típica"]
       rows = tituloData.map(t => [
         String(t.titulo),
         String(t.seller),
+        String(t.brand || ""),
+        t.is_own ? "Sí" : "",
         String(t.sos_p1),
         String(t.sos_total),
         String(t.ranking_pos),
@@ -994,7 +997,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[500px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Marca", "Fabricante", "Pos. Pág 1", "Pos. Total", "Prods Pág 1"].map(h => (
+                  {["Marca", "Fabricante", "Tu", "Pos. Pág 1", "Pos. Total", "Prods Pág 1"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -1009,6 +1012,7 @@ export default function ShareOfShelfPage() {
                   <tr key={String(b.brand)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-2 py-2.5 text-sm font-medium text-gray-800">{String(b.brand)}</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{String(b.seller)}</td>
+                    <td className="px-2 py-2.5 text-xs">{b.is_own ? <span className="rounded-full bg-blue-50 px-2 py-0.5 font-semibold text-blue-700">Tu</span> : <span className="text-gray-300">—</span>}</td>
                     <td className="px-2 py-2.5 text-sm font-bold text-gray-900 font-mono">{Number(b.sos_p1)}%</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500 font-mono">{Number(b.sos_total)}%</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{Number(b.products_p1)}</td>
@@ -1033,7 +1037,7 @@ export default function ShareOfShelfPage() {
             <table className="w-full min-w-[760px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  {["Título", "Fabricante", "EAN", "SKU", "MLA", "Pos. Pág 1", "Pos. Total", "Pos. típica"].map(h => (
+                  {["Título", "Fabricante", "Marca", "Tu", "EAN", "SKU", "MLA", "Pos. Pág 1", "Pos. Total", "Pos. típica"].map(h => (
                     <th
                       key={h}
                       className="text-[10px] uppercase tracking-wider text-gray-400 text-left pb-2 px-2 font-medium"
@@ -1048,6 +1052,8 @@ export default function ShareOfShelfPage() {
                   <tr key={`${i}-${String(t.titulo_id ?? '')}`} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                     <td className="px-2 py-2.5 text-sm text-gray-800 max-w-[220px] truncate">{String(t.titulo)}</td>
                     <td className="px-2 py-2.5 text-xs text-gray-500">{String(t.seller)}</td>
+                    <td className="px-2 py-2.5 text-xs text-gray-500">{t.brand ? String(t.brand) : "—"}</td>
+                    <td className="px-2 py-2.5 text-xs">{t.is_own ? <span className="rounded-full bg-blue-50 px-2 py-0.5 font-semibold text-blue-700">Tu</span> : <span className="text-gray-300">—</span>}</td>
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.ean ? String(t.ean) : "—"}</td>
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.sku ? String(t.sku) : "—"}</td>
                     <td className="px-2 py-2.5 text-[10px] font-mono text-gray-600">{t.meli_id ? String(t.meli_id) : "—"}</td>

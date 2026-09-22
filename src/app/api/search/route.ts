@@ -399,6 +399,7 @@ export async function GET(req: Request) {
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         products_p1:      Number(r.products_p1),
+        is_own:           Boolean(seller && r.seller === seller),
       })))
     }
 
@@ -415,6 +416,7 @@ export async function GET(req: Request) {
           SELECT COALESCE(NULLIF(ean, ''), NULLIF(skuid, ''), titulo) AS titulo_id,
             MAX(ean) AS ean,
             MAX(titulo) AS titulo,
+            MAX(marca) AS brand,
             ${FABRICANTE_UNIFIED} AS fab,
             COUNT(*) FILTER (WHERE pagina = 1) AS products_p1,
             COUNT(*) AS products_total,
@@ -424,7 +426,7 @@ export async function GET(req: Request) {
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         )
-        SELECT a.titulo_id, a.titulo, a.fab AS seller,
+        SELECT a.titulo_id, a.titulo, a.brand, a.fab AS seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
@@ -437,7 +439,7 @@ export async function GET(req: Request) {
         ORDER BY sos_p1 DESC LIMIT 30
       `
       const rows = await prisma.$queryRawUnsafe<{
-        titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
+        titulo_id: string; titulo: string; brand: string | null; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
         ean_out: string | null; local_sku: string | null; asin: string | null
         meli_id: string | null; sap_sku: string | null
@@ -445,6 +447,7 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
         titulo:           r.titulo,
+        brand:            r.brand,
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
@@ -454,6 +457,7 @@ export async function GET(req: Request) {
         sku:              r.local_sku || r.sap_sku,
         meli_id:          r.meli_id,
         asin:             r.asin,
+        is_own:           Boolean(seller && r.seller === seller),
       })))
     }
 

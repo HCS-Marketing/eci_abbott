@@ -802,7 +802,7 @@ export async function GET(req: Request) {
         w += countrySqlCondition(p, country, "s.pais")
         if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
         if (subcategory) { w += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p, subcategory) }
-        if (seller) { p.push(seller); w += ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length}` }
+        const selectedSeller = seller
 
         const rows = await prisma.$queryRawUnsafe<{
           brand: string; seller: string; products_p1: number; products_total: number
@@ -841,6 +841,7 @@ export async function GET(req: Request) {
           sos_p1:           Number(r.sos_p1),
           sos_total:        Number(r.sos_total),
           products_p1:      Number(r.products_p1),
+          is_own:           Boolean(selectedSeller && r.seller === selectedSeller),
         })))
       }
 
@@ -884,6 +885,7 @@ export async function GET(req: Request) {
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         products_p1:      Number(r.products_p1),
+        is_own:           Boolean(seller && r.seller === seller),
       })))
     }
 
@@ -897,10 +899,10 @@ export async function GET(req: Request) {
         w += countrySqlCondition(p, country, "s.pais")
         if (category) { w += categorySqlCondition(categoryFilterColumnByCountry(country, "s"), p, category) }
         if (subcategory) { w += categorySqlCondition(subcategoryFilterColumnByCountry(country, "s"), p, subcategory) }
-        if (seller) { p.push(seller); w += ` AND ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} = $${p.length}` }
+        const selectedSeller = seller
 
         const rows = await prisma.$queryRawUnsafe<{
-          titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
+          titulo_id: string; titulo: string; brand: string | null; seller: string; products_p1: number; products_total: number
           best_ranking: number; sos_p1: number; sos_total: number
           ean: string | null; local_sku: string | null; asin: string | null
           meli_id: string | null; sap_sku: string | null
@@ -909,6 +911,7 @@ export async function GET(req: Request) {
             SELECT
               COALESCE(s.id::text, s.titulo) AS titulo_id,
               MAX(s.titulo) AS titulo,
+              MAX(s.marca) AS brand,
               ${FABRICANTE_UNIFIED.replace(/fabricante/g, "s.fabricante")} AS seller,
               MAX(s.ean) AS ean,
               SUM(CASE WHEN s.pagina = 1 THEN 1 ELSE 0 END) AS products_p1,
@@ -922,7 +925,7 @@ export async function GET(req: Request) {
           totals AS (
             SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
           )
-          SELECT a.titulo_id, a.titulo, a.seller,
+          SELECT a.titulo_id, a.titulo, a.brand, a.seller,
             a.products_p1::int, a.products_total::int,
             a.best_ranking::int,
             ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
@@ -938,6 +941,7 @@ export async function GET(req: Request) {
         return NextResponse.json(rows.map(r => ({
           titulo_id:        r.titulo_id,
           titulo:           r.titulo,
+          brand:            r.brand,
           seller:           r.seller,
           sos_p1:           Number(r.sos_p1),
           sos_total:        Number(r.sos_total),
@@ -947,6 +951,7 @@ export async function GET(req: Request) {
           sku:              r.local_sku || r.sap_sku,
           meli_id:          r.meli_id,
           asin:             r.asin,
+          is_own:           Boolean(selectedSeller && r.seller === selectedSeller),
         })))
       }
 
@@ -999,6 +1004,7 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
         titulo:           r.titulo,
+        brand:            null,
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
@@ -1008,6 +1014,7 @@ export async function GET(req: Request) {
         sku:              r.local_sku || r.sap_sku,
         meli_id:          r.meli_id,
         asin:             r.asin,
+        is_own:           Boolean(seller && r.seller === seller),
       })))
     }
 
