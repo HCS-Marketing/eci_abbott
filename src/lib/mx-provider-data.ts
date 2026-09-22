@@ -4,8 +4,22 @@ import * as XLSX from "xlsx"
 import fallbackRowsJson from "@/data/mx-provider-rows.json"
 
 const PROVIDER_CONFIG = {
-  MX: { baseDir: "base_prov", dirs: ["amz", "ml", "heb", "sams"] },
-  CO: { baseDir: "base_prov_co", dirs: ["cruz_verde", "farmatodo", "larebaja", "rappi", "unidroga"] },
+  MX: {
+    baseDir: "base_prov",
+    dirs: ["amz", "ml", "heb", "sams"],
+    retailByDir: {} as Record<string, string>,
+  },
+  CO: {
+    baseDir: "base_prov_co",
+    dirs: ["cruz_verde", "farmatodo", "larebaja", "rappi", "unidroga"],
+    retailByDir: {
+      cruz_verde: "CRUZ VERDE",
+      farmatodo: "FARMATODO",
+      larebaja: "LA REBAJA",
+      rappi: "RAPPI",
+      unidroga: "UNIDROGA",
+    } as Record<string, string>,
+  },
 } as const
 
 type ProviderCountry = keyof typeof PROVIDER_CONFIG
@@ -208,7 +222,7 @@ function parsePosicion(value: unknown): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
+function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProviderRow[] {
   if (!fs.existsSync(dirPath)) return []
   const fileNames = fs.readdirSync(dirPath)
     .filter(f => f.toLowerCase().endsWith(".xlsx") && !f.startsWith("~$"))
@@ -226,7 +240,7 @@ function readExcelFilesFromDir(dirPath: string): MxProviderRow[] {
 
     for (const r of data) {
       const fecha = normalizeDate(readField(r, ["fecha"]))
-      const retail = normalizeRetail(readField(r, ["retail"]))
+      const retail = retailOverride || normalizeRetail(readField(r, ["retail"]))
       const titulo = readTextField(r, ["titulo"])
       if (!fecha || !retail || !titulo) continue
 
@@ -261,7 +275,7 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
   const providerCountry = normalizeProviderCountry(country)
   const config = PROVIDER_CONFIG[providerCountry]
   const baseDir = resolveProviderBaseDir(providerCountry)
-  const all = config.dirs.flatMap(dir => readExcelFilesFromDir(path.join(baseDir, dir)))
+  const all = config.dirs.flatMap(dir => readExcelFilesFromDir(path.join(baseDir, dir), config.retailByDir[dir] || ""))
   const fallbackRows = (fallbackRowsJson as unknown as MxProviderRow[]) || []
   const baseRows = all.length > 0 ? all : providerCountry === "MX" ? fallbackRows : []
   const base = baseRows.map(r => ({
