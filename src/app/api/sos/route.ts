@@ -504,7 +504,7 @@ export async function GET(req: Request) {
       return w
     }
 
-    const useColombiaCategoryBase = isColombiaCountry(country) && Boolean(category || subcategory)
+    const useColombiaCategoryBase = isColombiaCountry(country)
 
     // ── sellers list (fabricantes unified) — from MV ──────
     if (action === "sellers_list") {
