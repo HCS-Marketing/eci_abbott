@@ -76,6 +76,8 @@ const SOS_DAILY_TITULO_SOURCE = `(
     ${FABRICANTE_UNIFIED} AS fabricante,
     id AS producto_id,
     MAX(titulo) AS titulo,
+    MAX(marca) AS marca,
+    MAX(ean) AS ean,
     MIN(ranking) AS best_ranking,
     COUNT(*) FILTER (WHERE pagina = 1) AS count_p1,
     COUNT(*) AS count_total
@@ -903,8 +905,7 @@ export async function GET(req: Request) {
         const rows = await prisma.$queryRawUnsafe<{
           titulo_id: string; titulo: string; brand: string | null; seller: string; products_p1: number; products_total: number
           best_ranking: number; sos_p1: number; sos_total: number
-          ean: string | null; local_sku: string | null; asin: string | null
-          meli_id: string | null; sap_sku: string | null
+          ean: string | null
         }[]>(`
           WITH agg AS (
             SELECT
@@ -929,11 +930,9 @@ export async function GET(req: Request) {
             a.best_ranking::int,
             ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
             ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total,
-            COALESCE(a.ean, pm.ean) AS ean,
-            pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+            a.ean AS ean
           FROM agg a
           CROSS JOIN totals t
-          LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(a.ean, a.titulo_id)
           ORDER BY sos_p1 DESC LIMIT 10000
         `, ...p)
 
@@ -947,9 +946,9 @@ export async function GET(req: Request) {
           ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
           products_p1:      Number(r.products_p1),
           ean:              r.ean,
-          sku:              r.local_sku || r.sap_sku,
-          meli_id:          r.meli_id,
-          asin:             r.asin,
+          sku:              null,
+          meli_id:          null,
+          asin:             null,
           is_own:           Boolean(selectedSeller && r.seller === selectedSeller),
         })))
       }
@@ -964,6 +963,7 @@ export async function GET(req: Request) {
           SELECT COALESCE(producto_id::text, titulo) AS titulo_id,
             MAX(titulo) AS titulo,
             MAX(marca) AS brand,
+            MAX(ean) AS ean,
             fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total,
@@ -975,30 +975,20 @@ export async function GET(req: Request) {
         totals AS (
           SELECT SUM(products_p1) AS t_p1, SUM(products_total) AS t_all FROM agg
         ),
-        ean_map AS (
-          SELECT id::text AS pid, MAX(ean) AS ean
-          FROM eci.sos
-          WHERE id::text IN (SELECT titulo_id FROM agg) AND ean IS NOT NULL
-          GROUP BY id
-        )
         SELECT a.titulo_id, a.titulo, a.brand, a.seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
           ROUND(a.products_total * 100.0 / NULLIF(t.t_all, 0), 2) AS sos_total,
-          COALESCE(em.ean, pm.ean) AS ean,
-          pm.local_sku, pm.asin, pm.meli_id, pm.sap_sku
+          a.ean AS ean
         FROM agg a
         CROSS JOIN totals t
-        LEFT JOIN ean_map em ON em.pid = a.titulo_id
-        LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.titulo_id)
         ORDER BY sos_p1 DESC LIMIT 10000
       `
       const rows = await prisma.$queryRawUnsafe<{
         titulo_id: string; titulo: string; brand: string | null; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
-        ean: string | null; local_sku: string | null; asin: string | null
-        meli_id: string | null; sap_sku: string | null
+        ean: string | null
       }[]>(sql, ...p)
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
@@ -1010,9 +1000,9 @@ export async function GET(req: Request) {
         ranking_pos:      r.best_ranking != null ? Number(r.best_ranking) : null,
         products_p1:      Number(r.products_p1),
         ean:              r.ean,
-        sku:              r.local_sku || r.sap_sku,
-        meli_id:          r.meli_id,
-        asin:             r.asin,
+        sku:              null,
+        meli_id:          null,
+        asin:             null,
         is_own:           Boolean(selectedSeller && r.seller === selectedSeller),
       })))
     }
