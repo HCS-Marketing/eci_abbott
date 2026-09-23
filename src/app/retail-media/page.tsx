@@ -101,6 +101,12 @@ export default function RetailMediaPage() {
   }, [isColombia])
 
   useEffect(() => {
+    if (!isColombia || !maxDate) return
+    if (startDate !== maxDate) setStartDate(maxDate)
+    if (endDate !== maxDate) setEndDate(maxDate)
+  }, [endDate, isColombia, maxDate, startDate])
+
+  useEffect(() => {
     if (!isColombia) return
     const p = new URLSearchParams({ action: "channels", country: "CO" })
     if (startDate) p.set("startDate", startDate)
@@ -188,12 +194,13 @@ export default function RetailMediaPage() {
       <div className="items-center gap-3 flex-wrap p-3 bg-gray-50 border border-gray-200 rounded-xl flex">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Desde</span>
-          <DateInput value={startDate} min={minDate} max={maxDate} onChange={setStartDate} />
+          <DateInput value={maxDate || startDate} min={minDate} max={maxDate} onChange={() => {}} disabled />
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Hasta</span>
-          <DateInput value={endDate} min={minDate} max={maxDate} onChange={setEndDate} />
+          <DateInput value={maxDate || endDate} min={minDate} max={maxDate} onChange={() => {}} disabled />
         </div>
+        {maxDate && <span className="text-[10px] text-green-600 font-semibold">Última fecha BD: {maxDate}</span>}
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Retail</span>
