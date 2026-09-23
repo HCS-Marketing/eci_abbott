@@ -436,7 +436,7 @@ export async function GET(req: Request) {
         FROM agg a
         CROSS JOIN totals t
         LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(a.ean, a.titulo_id)
-        ORDER BY sos_p1 DESC LIMIT 30
+        ORDER BY sos_p1 DESC LIMIT 10000
       `
       const rows = await prisma.$queryRawUnsafe<{
         titulo_id: string; titulo: string; brand: string | null; seller: string; products_p1: number; products_total: number

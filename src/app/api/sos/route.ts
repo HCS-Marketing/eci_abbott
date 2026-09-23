@@ -934,7 +934,7 @@ export async function GET(req: Request) {
           FROM agg a
           CROSS JOIN totals t
           LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(a.ean, a.titulo_id)
-          ORDER BY sos_p1 DESC LIMIT 500
+          ORDER BY sos_p1 DESC LIMIT 10000
         `, ...p)
 
         return NextResponse.json(rows.map(r => ({
@@ -963,6 +963,7 @@ export async function GET(req: Request) {
         WITH agg AS (
           SELECT COALESCE(producto_id::text, titulo) AS titulo_id,
             MAX(titulo) AS titulo,
+            MAX(marca) AS brand,
             fabricante AS seller,
             SUM(count_p1) AS products_p1,
             SUM(count_total) AS products_total,
@@ -980,7 +981,7 @@ export async function GET(req: Request) {
           WHERE id::text IN (SELECT titulo_id FROM agg) AND ean IS NOT NULL
           GROUP BY id
         )
-        SELECT a.titulo_id, a.titulo, a.seller,
+        SELECT a.titulo_id, a.titulo, a.brand, a.seller,
           a.products_p1::int, a.products_total::int,
           a.best_ranking::int,
           ROUND(a.products_p1 * 100.0 / NULLIF(t.t_p1, 0), 2) AS sos_p1,
@@ -991,10 +992,10 @@ export async function GET(req: Request) {
         CROSS JOIN totals t
         LEFT JOIN ean_map em ON em.pid = a.titulo_id
         LEFT JOIN eci.products_master pm ON pm.ean = COALESCE(em.ean, a.titulo_id)
-        ORDER BY sos_p1 DESC LIMIT 500
+        ORDER BY sos_p1 DESC LIMIT 10000
       `
       const rows = await prisma.$queryRawUnsafe<{
-        titulo_id: string; titulo: string; seller: string; products_p1: number; products_total: number
+        titulo_id: string; titulo: string; brand: string | null; seller: string; products_p1: number; products_total: number
         best_ranking: number; sos_p1: number; sos_total: number
         ean: string | null; local_sku: string | null; asin: string | null
         meli_id: string | null; sap_sku: string | null
@@ -1002,7 +1003,7 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => ({
         titulo_id:        r.titulo_id,
         titulo:           r.titulo,
-        brand:            null,
+        brand:            r.brand,
         seller:           r.seller,
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
