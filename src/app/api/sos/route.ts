@@ -847,10 +847,9 @@ export async function GET(req: Request) {
 
       const p: unknown[] = []
       const w = buildWhere(p)
-      // If a specific seller is selected, don't also filter by marca_fabricante (mf)
-      // because seller filter is already specific. Only apply mf if no seller is selected.
-      const sf = sellerFilterSQL(p, "d", seller)
-      const mf = seller ? "" : marcaFilterSQL(p, "d")
+      const selectedSeller = seller
+      const sf = ""
+      const mf = marcaFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT marca,
@@ -885,7 +884,7 @@ export async function GET(req: Request) {
         sos_p1:           Number(r.sos_p1),
         sos_total:        Number(r.sos_total),
         products_p1:      Number(r.products_p1),
-        is_own:           Boolean(seller && r.seller === seller),
+          is_own:           Boolean(selectedSeller && r.seller === selectedSeller),
       })))
     }
 
@@ -957,10 +956,9 @@ export async function GET(req: Request) {
 
       const p: unknown[] = []
       const w = buildWhere(p)
-      // If a specific seller is selected, don't also filter by marca_fabricante (mf)
-      // because seller filter is already specific. Only apply mf if no seller is selected.
-      const sf = sellerFilterSQL(p, "d", seller)
-      const mf = seller ? "" : fabricanteFilterSQL(p, "d")
+      const selectedSeller = seller
+      const sf = ""
+      const mf = fabricanteFilterSQL(p, "d")
       const sql = `
         WITH agg AS (
           SELECT COALESCE(producto_id::text, titulo) AS titulo_id,
@@ -1014,7 +1012,7 @@ export async function GET(req: Request) {
         sku:              r.local_sku || r.sap_sku,
         meli_id:          r.meli_id,
         asin:             r.asin,
-        is_own:           Boolean(seller && r.seller === seller),
+        is_own:           Boolean(selectedSeller && r.seller === selectedSeller),
       })))
     }
 
