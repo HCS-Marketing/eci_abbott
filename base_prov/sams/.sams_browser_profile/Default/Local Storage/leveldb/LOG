@@ -1,18 +1,10 @@
-2026/09/24-11:46:39.760 e3f0 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/24-11:46:39.810 e3f0 Recovering log #31
-2026/09/24-11:46:39.815 e3f0 Level-0 table #34: started
-2026/09/24-11:46:39.874 e3f0 Level-0 table #34: 107234 bytes OK
-2026/09/24-11:46:39.894 e3f0 Recovering log #33
-2026/09/24-11:46:39.903 e3f0 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000033.log 
-2026/09/24-11:46:39.913 e3f0 Delete type=0 #31
-2026/09/24-11:46:39.915 4390 Compacting 4@0 + 1@1 files
-2026/09/24-11:46:39.958 4390 Generated table #35@0: 16 keys, 107173 bytes
-2026/09/24-11:46:39.959 4390 Compacted 4@0 + 1@1 files => 107173 bytes
-2026/09/24-11:46:39.961 4390 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/09/24-11:46:39.963 4390 Delete type=2 #26
-2026/09/24-11:46:39.963 4390 Delete type=2 #28
-2026/09/24-11:46:39.963 4390 Delete type=2 #30
-2026/09/24-11:46:39.963 4390 Delete type=2 #32
-2026/09/24-11:46:39.963 4390 Delete type=2 #34
-2026/09/24-11:48:29.056 e3f0 Level-0 table #37: started
-2026/09/24-11:48:29.094 e3f0 Level-0 table #37: 107338 bytes OK
+2026/09/25-14:49:15.136 e52c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/25-14:49:15.181 e52c Recovering log #33
+2026/09/25-14:49:15.187 e52c Level-0 table #37: started
+2026/09/25-14:49:15.216 e52c Level-0 table #37: 107338 bytes OK
+2026/09/25-14:49:15.262 e52c Recovering log #36
+2026/09/25-14:49:15.283 e52c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000036.log 
+2026/09/25-14:49:15.409 e52c Delete type=0 #33
+2026/09/25-14:51:16.938 59e0 Level-0 table #39: started
+2026/09/25-14:51:16.956 59e0 Level-0 table #39: 107510 bytes OK
+2026/09/25-14:51:16.960 59e0 Delete type=0 #36
