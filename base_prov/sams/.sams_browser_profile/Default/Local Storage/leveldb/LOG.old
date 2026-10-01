@@ -1,10 +1,18 @@
-2026/09/29-11:16:07.084 eca8 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/09/29-11:16:07.129 eca8 Recovering log #38
-2026/09/29-11:16:07.185 eca8 Level-0 table #41: started
-2026/09/29-11:16:07.244 eca8 Level-0 table #41: 107777 bytes OK
-2026/09/29-11:16:07.266 eca8 Recovering log #41
-2026/09/29-11:16:07.271 eca8 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000041.log 
-2026/09/29-11:16:07.287 eca8 Delete type=0 #38
-2026/09/29-11:16:07.288 eca8 Delete type=2 #42
-2026/09/29-11:17:16.875 e768 Level-0 table #43: started
-2026/09/29-11:17:16.916 e768 Level-0 table #43: 107936 bytes OK
+2026/09/30-11:28:36.636 1102c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/09/30-11:28:36.673 1102c Recovering log #41
+2026/09/30-11:28:36.675 1102c Level-0 table #43: started
+2026/09/30-11:28:36.770 1102c Level-0 table #43: 107936 bytes OK
+2026/09/30-11:28:36.789 1102c Recovering log #42
+2026/09/30-11:28:36.808 1102c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000042.log 
+2026/09/30-11:28:36.814 1102c Delete type=0 #41
+2026/09/30-11:28:36.839 12620 Compacting 4@0 + 1@1 files
+2026/09/30-11:28:36.875 12620 Generated table #44@0: 16 keys, 107658 bytes
+2026/09/30-11:28:36.876 12620 Compacted 4@0 + 1@1 files => 107658 bytes
+2026/09/30-11:28:36.877 12620 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/09/30-11:28:36.880 12620 Delete type=2 #35
+2026/09/30-11:28:36.881 12620 Delete type=2 #37
+2026/09/30-11:28:36.881 12620 Delete type=2 #39
+2026/09/30-11:28:36.881 12620 Delete type=2 #41
+2026/09/30-11:28:36.881 12620 Delete type=2 #43
+2026/09/30-11:29:46.595 1102c Level-0 table #46: started
+2026/09/30-11:29:46.638 1102c Level-0 table #46: 107932 bytes OK
