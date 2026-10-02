@@ -1,3 +1,15 @@
-2026/09/30-11:28:36.812 f46c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/09/30-11:28:36.837 f46c Recovering log #27
-2026/09/30-11:28:36.846 f46c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000027.log 
+2026/10/01-09:35:41.183 4bc8 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/01-09:35:41.200 4bc8 Recovering log #27
+2026/10/01-09:35:41.205 4bc8 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000027.log 
+2026/10/01-09:36:45.194 4bc8 Level-0 table #31: started
+2026/10/01-09:36:45.208 4bc8 Level-0 table #31: 23150 bytes OK
+2026/10/01-09:36:45.211 4bc8 Delete type=0 #27
+2026/10/01-09:36:45.212 4bc8 Compacting 4@0 + 1@1 files
+2026/10/01-09:36:45.221 4bc8 Generated table #32@0: 1227 keys, 25879 bytes
+2026/10/01-09:36:45.222 4bc8 Compacted 4@0 + 1@1 files => 25879 bytes
+2026/10/01-09:36:45.223 4bc8 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/10/01-09:36:45.224 4bc8 Delete type=2 #19
+2026/10/01-09:36:45.224 4bc8 Delete type=2 #22
+2026/10/01-09:36:45.224 4bc8 Delete type=2 #25
+2026/10/01-09:36:45.224 4bc8 Delete type=2 #28
+2026/10/01-09:36:45.224 4bc8 Delete type=2 #31
