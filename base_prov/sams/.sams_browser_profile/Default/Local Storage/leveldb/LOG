@@ -1,5 +1,12 @@
-2026/10/05-09:41:40.059 958c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/05-09:41:40.085 958c Recovering log #49
-2026/10/05-09:41:40.090 958c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000049.log 
-2026/10/05-09:42:44.929 3ac8 Level-0 table #53: started
-2026/10/05-09:42:44.955 3ac8 Level-0 table #53: 108165 bytes OK
+2026/10/06-10:47:54.853 ac24 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/06-10:47:54.879 ac24 Recovering log #49
+2026/10/06-10:47:54.881 ac24 Level-0 table #52: started
+2026/10/06-10:47:54.895 ac24 Level-0 table #52: 108165 bytes OK
+2026/10/06-10:47:54.913 ac24 Recovering log #52
+2026/10/06-10:47:54.917 ac24 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000052.log 
+2026/10/06-10:47:54.927 ac24 Delete type=0 #49
+2026/10/06-10:47:54.927 ac24 Delete type=2 #53
+2026/10/06-10:47:54.935 46d0 Compacting 4@0 + 1@1 files
+2026/10/06-10:47:54.976 46d0 Generated table #53@0: 16 keys, 108097 bytes
+2026/10/06-10:47:54.976 46d0 Compacted 4@0 + 1@1 files => 108097 bytes
+2026/10/06-10:47:54.977 46d0 compacted to: files[ 0 1 1 0 0 0 0 ]
