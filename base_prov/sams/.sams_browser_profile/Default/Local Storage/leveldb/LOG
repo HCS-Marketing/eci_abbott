@@ -1,9 +1,9 @@
-2026/10/08-09:46:11.011 cff8 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/08-09:46:11.050 cff8 Recovering log #54
-2026/10/08-09:46:11.051 cff8 Level-0 table #57: started
-2026/10/08-09:46:11.147 cff8 Level-0 table #57: 108243 bytes OK
-2026/10/08-09:46:11.168 cff8 Recovering log #56
-2026/10/08-09:46:11.180 cff8 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000056.log 
-2026/10/08-09:46:11.204 cff8 Delete type=0 #54
-2026/10/08-09:47:20.511 d204 Level-0 table #59: started
-2026/10/08-09:47:20.543 d204 Level-0 table #59: 108362 bytes OK
+2026/10/09-09:34:36.980 34dc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/09-09:34:37.073 34dc Recovering log #56
+2026/10/09-09:34:37.074 34dc Level-0 table #59: started
+2026/10/09-09:34:37.101 34dc Level-0 table #59: 108362 bytes OK
+2026/10/09-09:34:37.127 34dc Recovering log #58
+2026/10/09-09:34:37.132 34dc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000058.log 
+2026/10/09-09:34:37.148 34dc Delete type=0 #56
+2026/10/09-09:35:42.883 34dc Level-0 table #61: started
+2026/10/09-09:35:42.913 34dc Level-0 table #61: 108115 bytes OK
