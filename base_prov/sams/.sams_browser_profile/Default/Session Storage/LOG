@@ -1,5 +1,8 @@
-2026/10/09-09:34:37.151 1104 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/10/09-09:34:37.180 1104 Recovering log #36
-2026/10/09-09:34:37.188 1104 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000036.log 
-2026/10/09-09:35:42.886 8028 Level-0 table #40: started
-2026/10/09-09:35:42.916 8028 Level-0 table #40: 15373 bytes OK
+2026/10/13-09:53:17.738 123c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/13-09:53:17.757 123c Recovering log #36
+2026/10/13-09:53:17.758 123c Level-0 table #39: started
+2026/10/13-09:53:17.767 123c Level-0 table #39: 15373 bytes OK
+2026/10/13-09:53:17.783 123c Recovering log #39
+2026/10/13-09:53:17.788 123c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000039.log 
+2026/10/13-09:53:17.791 123c Delete type=0 #36
+2026/10/13-09:53:17.791 123c Delete type=2 #40
