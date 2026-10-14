@@ -1,9 +1,19 @@
-2026/10/09-09:34:36.980 34dc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/09-09:34:37.073 34dc Recovering log #56
-2026/10/09-09:34:37.074 34dc Level-0 table #59: started
-2026/10/09-09:34:37.101 34dc Level-0 table #59: 108362 bytes OK
-2026/10/09-09:34:37.127 34dc Recovering log #58
-2026/10/09-09:34:37.132 34dc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000058.log 
-2026/10/09-09:34:37.148 34dc Delete type=0 #56
-2026/10/09-09:35:42.883 34dc Level-0 table #61: started
-2026/10/09-09:35:42.913 34dc Level-0 table #61: 108115 bytes OK
+2026/10/13-09:53:17.597 1d3c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/13-09:53:17.619 1d3c Recovering log #58
+2026/10/13-09:53:17.621 1d3c Level-0 table #61: started
+2026/10/13-09:53:17.651 1d3c Level-0 table #61: 108115 bytes OK
+2026/10/13-09:53:17.667 1d3c Recovering log #60
+2026/10/13-09:53:17.755 1d3c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000060.log 
+2026/10/13-09:53:17.783 1d3c Delete type=0 #58
+2026/10/13-09:53:17.784 a78 Compacting 4@0 + 1@1 files
+2026/10/13-09:53:17.838 a78 Generated table #62@0: 16 keys, 107955 bytes
+2026/10/13-09:53:17.840 a78 Compacted 4@0 + 1@1 files => 107955 bytes
+2026/10/13-09:53:17.841 a78 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/10/13-09:53:17.845 a78 Delete type=2 #53
+2026/10/13-09:53:17.845 a78 Delete type=2 #55
+2026/10/13-09:53:17.846 a78 Delete type=2 #57
+2026/10/13-09:53:17.846 a78 Delete type=2 #59
+2026/10/13-09:53:17.846 a78 Delete type=2 #61
+2026/10/13-09:54:23.476 123c Level-0 table #64: started
+2026/10/13-09:54:23.492 123c Level-0 table #64: 108075 bytes OK
+2026/10/13-09:54:23.511 123c Delete type=0 #60

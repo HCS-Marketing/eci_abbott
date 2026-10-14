@@ -1,8 +1,14 @@
-2026/10/13-09:53:17.738 123c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/10/13-09:53:17.757 123c Recovering log #36
-2026/10/13-09:53:17.758 123c Level-0 table #39: started
-2026/10/13-09:53:17.767 123c Level-0 table #39: 15373 bytes OK
-2026/10/13-09:53:17.783 123c Recovering log #39
-2026/10/13-09:53:17.788 123c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000039.log 
-2026/10/13-09:53:17.791 123c Delete type=0 #36
-2026/10/13-09:53:17.791 123c Delete type=2 #40
+2026/10/14-11:42:02.879 4540 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/14-11:42:02.892 4540 Recovering log #39
+2026/10/14-11:42:02.893 4540 Level-0 table #41: started
+2026/10/14-11:42:02.904 4540 Level-0 table #41: 15941 bytes OK
+2026/10/14-11:42:02.916 4540 Delete type=0 #39
+2026/10/14-11:42:02.922 638c Compacting 4@0 + 1@1 files
+2026/10/14-11:42:02.960 638c Generated table #43@0: 1689 keys, 34854 bytes
+2026/10/14-11:42:02.960 638c Compacted 4@0 + 1@1 files => 34854 bytes
+2026/10/14-11:42:02.962 638c compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/10/14-11:42:02.963 638c Delete type=2 #32
+2026/10/14-11:42:02.963 638c Delete type=2 #34
+2026/10/14-11:42:02.963 638c Delete type=2 #37
+2026/10/14-11:42:02.963 638c Delete type=2 #39
+2026/10/14-11:42:02.964 638c Delete type=2 #41
