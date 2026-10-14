@@ -11,6 +11,16 @@ function normalizeChannel(value: string): string {
   return raw
 }
 
+function inventoryKey(row: { retail: string; ean: string; titulo: string }): string {
+  return `${row.retail}|||${row.ean || row.titulo}`
+}
+
+function daysBeforeIso(date: string, days: number): string {
+  const parsed = new Date(`${date}T00:00:00Z`)
+  parsed.setUTCDate(parsed.getUTCDate() - days)
+  return parsed.toISOString().slice(0, 10)
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
@@ -122,32 +132,60 @@ export async function GET(req: Request) {
     }
 
     if (action === "inventory") {
-      const grouped = new Map<string, typeof rowsByChannel>()
+      const historyByProduct = new Map<string, typeof rowsByChannel>()
+      const currentByProduct = new Map<string, typeof rowsByChannel[number]>()
+      const availabilityByDay = new Map<string, Map<string, boolean>>()
+      const windowStart = daysBeforeIso(effectiveDate, 6)
 
       for (const r of rowsByChannel) {
         if (products.length > 0 && !products.includes(r.titulo)) continue
         if (eans.length > 0 && !eans.includes(r.ean)) continue
         if (categoryNorm && r.categoria.trim().toLowerCase() !== categoryNorm) continue
         if (r.fecha > effectiveDate) continue
-        const key = `${r.retail}|||${r.titulo}`
-        const list = grouped.get(key) || []
+
+        const key = inventoryKey(r)
+        const list = historyByProduct.get(key) || []
         list.push(r)
-        grouped.set(key, list)
+        historyByProduct.set(key, list)
+
+        if (r.fecha >= windowStart) {
+          const days = availabilityByDay.get(key) || new Map<string, boolean>()
+          const previousStatus = days.get(r.fecha)
+          days.set(r.fecha, previousStatus === undefined ? r.disponible : previousStatus && r.disponible)
+          availabilityByDay.set(key, days)
+        }
+
+        if (r.fecha === effectiveDate) {
+          const previous = currentByProduct.get(key)
+          const shouldReplace = !previous ||
+            (!r.disponible && previous.disponible) ||
+            (r.disponible === previous.disponible && (r.posicion ?? 9999) < (previous.posicion ?? 9999))
+          if (shouldReplace) currentByProduct.set(key, r)
+        }
       }
 
-      const out = Array.from(grouped.entries()).map(([key, list]) => {
+      const out = Array.from(currentByProduct.entries()).map(([key, current]) => {
+        const list = historyByProduct.get(key) || []
         list.sort((a, b) => (a.fecha === b.fecha ? (a.posicion ?? 9999) - (b.posicion ?? 9999) : b.fecha.localeCompare(a.fecha)))
-        const current = list[0]
         const lastAvailable = list.find(x => x.disponible)
+        const observedDays = Array.from(availabilityByDay.get(key)?.values() || [])
+        const availableDays = observedDays.filter(Boolean).length
+        const availabilityPercentage = observedDays.length > 0
+          ? Math.round((availableDays / observedDays.length) * 100)
+          : 0
+
         return {
           id: key,
-          estado: current?.disponibilidad || "NO DISPONIBLE",
-          producto: current?.titulo || "",
-          ean: current?.ean || "",
-          categoria: current?.categoria || "",
-          canal: current?.retail || "",
+          estado: current.disponibilidad || "NO DISPONIBLE",
+          producto: current.titulo || "",
+          ean: current.ean || "",
+          categoria: current.categoria || "",
+          canal: current.retail || "",
           ultimo_visto: lastAvailable?.fecha || null,
-          stock_status: current?.disponible ? "in_stock" : "break",
+          stock_status: current.disponible ? "in_stock" : "break",
+          dias_disponibles_7d: availableDays,
+          dias_observados_7d: observedDays.length,
+          porcentaje_disponibilidad_7d: availabilityPercentage,
         }
       })
 

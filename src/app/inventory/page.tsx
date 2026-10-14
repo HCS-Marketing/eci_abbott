@@ -20,22 +20,122 @@ interface InventoryRow {
   canal: string
   ultimo_visto: string | null
   stock_status: "in_stock" | "break"
+  dias_disponibles_7d: number
+  dias_observados_7d: number
+  porcentaje_disponibilidad_7d: number
+}
+
+interface FallbackInventoryRow {
+  fecha: string
+  retail: string
+  titulo: string
+  disponibilidad: string
+  EAN?: string
+  ean?: string
+  categoria?: string
+}
+
+function normalizeInventoryChannel(value: string): string {
+  const normalized = String(value || "").trim().toUpperCase()
+  if (!normalized) return ""
+  if (normalized === "ML" || normalized.includes("MERCADO")) return "MERCADO LIBRE"
+  if (normalized.includes("AMAZON")) return "AMAZON"
+  if (normalized === "SAMS" || normalized.includes("SAM'S") || normalized.includes("SAMS CLUB")) return "SAMS CLUB"
+  if (normalized === "HEB" || normalized.includes("H-E-B")) return "HEB"
+  return normalized
+}
+
+function isAvailable(value: string): boolean {
+  return !String(value || "").toUpperCase().includes("NO")
+}
+
+function buildLocalInventoryRows(
+  rows: FallbackInventoryRow[],
+  effectiveDate: string,
+  channel: string,
+  category: string,
+  selectedEans: string[]
+): InventoryRow[] {
+  if (!effectiveDate) return []
+
+  const windowStartDate = new Date(`${effectiveDate}T00:00:00Z`)
+  windowStartDate.setUTCDate(windowStartDate.getUTCDate() - 6)
+  const windowStart = windowStartDate.toISOString().slice(0, 10)
+  const scoped = rows.filter(row => {
+    const ean = String(row.EAN || row.ean || "").trim()
+    return row.fecha <= effectiveDate &&
+      (!channel || normalizeInventoryChannel(row.retail) === channel) &&
+      (!category || String(row.categoria || "") === category) &&
+      (selectedEans.length === 0 || selectedEans.includes(ean))
+  })
+  const currentByProduct = new Map<string, FallbackInventoryRow>()
+
+  for (const row of scoped) {
+    if (row.fecha !== effectiveDate) continue
+    const ean = String(row.EAN || row.ean || "").trim()
+    const key = `${row.retail}|||${ean || row.titulo}`
+    const previous = currentByProduct.get(key)
+    if (!previous || (!isAvailable(row.disponibilidad) && isAvailable(previous.disponibilidad))) {
+      currentByProduct.set(key, row)
+    }
+  }
+
+  return Array.from(currentByProduct.entries()).map(([key, current]) => {
+    const history = scoped.filter(row => {
+      const ean = String(row.EAN || row.ean || "").trim()
+      return `${row.retail}|||${ean || row.titulo}` === key
+    })
+    const lastAvailable = history
+      .filter(row => isAvailable(row.disponibilidad))
+      .sort((a, b) => b.fecha.localeCompare(a.fecha))[0]
+    const availabilityByDay = new Map<string, boolean>()
+    for (const row of history.filter(item => item.fecha >= windowStart)) {
+      const previous = availabilityByDay.get(row.fecha)
+      const available = isAvailable(row.disponibilidad)
+      availabilityByDay.set(row.fecha, previous === undefined ? available : previous && available)
+    }
+    const observedDays = Array.from(availabilityByDay.values())
+    const availableDays = observedDays.filter(Boolean).length
+
+    return {
+      id: key,
+      estado: current.disponibilidad || "NO DISPONIBLE",
+      producto: current.titulo || "",
+      ean: String(current.EAN || current.ean || "").trim(),
+      categoria: String(current.categoria || "").trim(),
+      canal: current.retail || "",
+      ultimo_visto: lastAvailable?.fecha || null,
+      stock_status: isAvailable(current.disponibilidad) ? "in_stock" : "break",
+      dias_disponibles_7d: availableDays,
+      dias_observados_7d: observedDays.length,
+      porcentaje_disponibilidad_7d: observedDays.length > 0 ? Math.round((availableDays / observedDays.length) * 100) : 0,
+    }
+  })
+}
+
+function AvailabilityBar({ row }: { row: InventoryRow }) {
+  const percentage = Math.max(0, Math.min(100, row.porcentaje_disponibilidad_7d))
+  const color = percentage >= 80 ? "#16a34a" : percentage >= 50 ? "#d97706" : "#dc2626"
+  const detail = row.dias_observados_7d === 0
+    ? "Sin observaciones"
+    : row.dias_disponibles_7d === row.dias_observados_7d
+      ? `${percentage}% (estuvo los ${row.dias_observados_7d} días observados)`
+      : `${percentage}% (estuvo ${row.dias_disponibles_7d} de ${row.dias_observados_7d} días observados)`
+
+  return (
+    <div className="min-w-48">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+        <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
+      </div>
+      <div className="mt-1 text-[10px] font-medium text-gray-600 whitespace-nowrap">{detail}</div>
+    </div>
+  )
 }
 
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function InventoryPage() {
   useMarket()
   const { country } = useGlobalFilters()
-
-  const normalizeChannel = (value: string) => {
-    const v = String(value || "").trim().toUpperCase()
-    if (!v) return ""
-    if (v === "ML" || v.includes("MERCADO")) return "MERCADO LIBRE"
-    if (v.includes("AMAZON")) return "AMAZON"
-    if (v === "SAMS" || v.includes("SAM'S") || v.includes("SAMS CLUB")) return "SAMS CLUB"
-    if (v === "HEB" || v.includes("H-E-B")) return "HEB"
-    return v
-  }
 
   const [channel,    setChannel]    = useState("")
   const [category,   setCategory]   = useState("")
@@ -123,7 +223,7 @@ export default function InventoryPage() {
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
     const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string; EAN?: string; ean?: string }>)
-      .filter(r => (!effectiveDate || r.fecha <= effectiveDate) && (!channel || normalizeChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
+      .filter(r => (!effectiveDate || r.fecha <= effectiveDate) && (!channel || normalizeInventoryChannel(r.retail) === channel) && (!category || String(r.categoria || "") === category))
       .map(r => String(r.EAN || r.ean || "").trim())
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
@@ -148,7 +248,7 @@ export default function InventoryPage() {
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
     const local = useLocalFallback ? Array.from(new Set((fallbackRows as Array<{ fecha: string; retail: string; categoria?: string }>)
-      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeChannel(r.retail) === channel))
+      .filter(r => (!effectiveDate || r.fecha === effectiveDate) && (!channel || normalizeInventoryChannel(r.retail) === channel))
       .map(r => String(r.categoria || "").trim())
       .filter(Boolean))).sort((a, b) => a.localeCompare(b, "es")) : []
 
@@ -184,71 +284,15 @@ export default function InventoryPage() {
     if (country)    p.set("country",    country)
     fetch(`/api/provider?${p}`)
       .then(r => r.json())
-      .then(async d => {
-        if (Array.isArray(d) && d.length > 0) {
+      .then(d => {
+        if (Array.isArray(d)) {
           setData(d)
           return
         }
-
-        const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
-        if (channel) pRaw.set("channel", channel)
-        if (category) pRaw.set("category", category)
-        if (selectedEans.length) pRaw.set("eans", selectedEans.map(v => encodeURIComponent(v)).join(","))
-        if (country) pRaw.set("country", country)
-        const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
-        if (!Array.isArray(raw) || raw.length === 0) {
-          const local = useLocalFallback ? (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
-            .filter(r => !effectiveDate || r.fecha === effectiveDate)
-            .filter(r => !channel || normalizeChannel(r.retail) === channel)
-            .filter(r => !category || String(r.categoria || "") === category)
-            .filter(r => selectedEans.length === 0 || selectedEans.includes(String(r.EAN || r.ean || "").trim()))
-            .map(r => {
-              const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
-              return {
-                id: `${r.retail}|||${r.titulo}`,
-                estado: r.disponibilidad || "NO DISPONIBLE",
-                producto: r.titulo || "",
-                ean: String(r.EAN || r.ean || "").trim(),
-                categoria: String(r.categoria || "").trim(),
-                canal: r.retail || "",
-                ultimo_visto: r.fecha || null,
-                stock_status: status,
-              }
-            }) : []
-          setData(local)
-          return
-        }
-        setData(raw.map((r: { retail: string; titulo: string; fecha: string; disponibilidad: string; ean?: string; categoria?: string }) => ({
-          id: `${r.retail}|||${r.titulo}`,
-          estado: r.disponibilidad || "NO DISPONIBLE",
-          producto: r.titulo || "",
-          ean: String(r.ean || "").trim(),
-          categoria: String(r.categoria || "").trim(),
-          canal: r.retail || "",
-          ultimo_visto: r.fecha || null,
-          stock_status: String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock",
-        })))
+        setData(useLocalFallback ? buildLocalInventoryRows(fallbackRows as FallbackInventoryRow[], effectiveDate, channel, category, selectedEans) : [])
       })
       .catch(() => {
-        const local = useLocalFallback ? (fallbackRows as Array<{ fecha: string; retail: string; titulo: string; disponibilidad: string; EAN?: string; ean?: string; categoria?: string }>)
-          .filter(r => !effectiveDate || r.fecha === effectiveDate)
-          .filter(r => !channel || normalizeChannel(r.retail) === channel)
-          .filter(r => !category || String(r.categoria || "") === category)
-          .filter(r => selectedEans.length === 0 || selectedEans.includes(String(r.EAN || r.ean || "").trim()))
-          .map(r => {
-            const status: "in_stock" | "break" = String(r.disponibilidad || "").toUpperCase().includes("NO") ? "break" : "in_stock"
-            return {
-              id: `${r.retail}|||${r.titulo}`,
-              estado: r.disponibilidad || "NO DISPONIBLE",
-              producto: r.titulo || "",
-              ean: String(r.EAN || r.ean || "").trim(),
-              categoria: String(r.categoria || "").trim(),
-              canal: r.retail || "",
-              ultimo_visto: r.fecha || null,
-              stock_status: status,
-            }
-          }) : []
-        setData(local)
+        setData(useLocalFallback ? buildLocalInventoryRows(fallbackRows as FallbackInventoryRow[], effectiveDate, channel, category, selectedEans) : [])
       })
       .finally(() => setLoading(false))
   }, [channel, category, country, date, fallbackDateBounds.max, selectedEans, useLocalFallback])
@@ -271,14 +315,8 @@ export default function InventoryPage() {
   , [data, search, selectedEans, category, showOnlyUnavailable, showCategoryFilter])
 
   // KPIs
-  const inStock      = filtered.filter(e => e.stock_status === "in_stock").length
-  const breaks       = filtered.filter(e => e.stock_status === "break").length
-  const channelKpis = availableChannels.slice(0, 2).map(c => ({
-    label: `${c} en stock`,
-    value: String(filtered.filter(e => e.stock_status === "in_stock" && e.canal === c).length),
-    color: "#16a34a",
-    sub: "productos publicados",
-  }))
+  const inStock = data.filter(e => e.stock_status === "in_stock").length
+  const breaks = data.filter(e => e.stock_status === "break").length
 
   return (
     <div className="space-y-4">
@@ -291,7 +329,7 @@ export default function InventoryPage() {
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
         <span className="font-semibold">Lógica de inventario:</span> se unifican todos los Excel diarios de {providerFolders.map((folder, idx) => (
           <span key={folder}><span className="font-semibold">{folder}</span>{idx < providerFolders.length - 1 ? ", " : ""}</span>
-        ))}. El estado se toma de la columna <span className="font-semibold">disponibilidad</span> y <span className="font-semibold">Ultimo visto</span> muestra la fecha más reciente con disponibilidad.
+        ))}. El estado corresponde al día seleccionado, <span className="font-semibold">Último visto</span> muestra la fecha más reciente con disponibilidad y el porcentaje usa las observaciones de los últimos 7 días calendario.
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}
@@ -363,11 +401,10 @@ export default function InventoryPage() {
       </div>
 
       {/* ── KPIs ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
-          { label: "En stock hoy",       value: String(inStock),      color: "#16a34a", sub: "productos activos" },
-          { label: "Roturas hoy",        value: String(breaks),       color: breaks > 0 ? "#dc2626" : "#6b7280", sub: "sin match en sos" },
-          ...channelKpis,
+          { label: "Artículos disponibles", value: String(inStock), color: "#16a34a", sub: date || "día seleccionado" },
+          { label: "Rotura de stock", value: String(breaks), color: breaks > 0 ? "#dc2626" : "#6b7280", sub: date || "día seleccionado" },
         ].map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
@@ -410,6 +447,7 @@ export default function InventoryPage() {
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">EAN</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Ultimo visto</th>
+                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">% Disp 7 días</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -458,6 +496,10 @@ export default function InventoryPage() {
                       ) : (
                         <span className="text-[10px] font-medium text-gray-400">—</span>
                       )}
+                    </td>
+
+                    <td className="px-3 py-2.5">
+                      <AvailabilityBar row={e} />
                     </td>
                   </tr>
                 ))}
