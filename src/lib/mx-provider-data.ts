@@ -39,6 +39,7 @@ export interface MxProviderRow {
   fecha: string
   retail: string
   titulo: string
+  marca: string
   ean: string
   categoria: string
   posicion: number | null
@@ -257,6 +258,7 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
         fecha,
         retail,
         titulo,
+        marca: readTextField(r, ["MARCA", "marca"]),
         ean: readTextField(r, ["EAN", "ean"]),
         categoria: readTextField(r, ["categoria", "categoría"]),
         posicion: parsePosicion(readField(r, ["posicion", "posición"])),
@@ -293,6 +295,7 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
   const baseRows = all.length > 0 ? all : fallbackRowsByCountry[providerCountry]
   const base = baseRows.map(r => ({
     ...r,
+    marca: String(r.marca || "").trim(),
     ean: String(r.ean || "").trim(),
     categoria: String(r.categoria || "").trim(),
     bullet_points: Number(r.bullet_points || 0),

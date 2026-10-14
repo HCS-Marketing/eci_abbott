@@ -21,6 +21,7 @@ export async function GET(req: Request) {
     const show = searchParams.get("show") || "all"
     const seller = searchParams.get("seller") || ""
     const category = searchParams.get("category") || ""
+    const brand = searchParams.get("brand") || ""
     const country = searchParams.get("country") || "MX"
     const products = (searchParams.get("products") || "")
       .split(",")
@@ -38,6 +39,7 @@ export async function GET(req: Request) {
     const channelNorm = normalizeChannel(channel)
     const rowsByChannel = channelNorm ? rows.filter(r => r.retail === channelNorm) : rows
     const categoryNorm = category.trim().toLowerCase()
+    const brandNorm = brand.trim().toLowerCase()
     const maxDate = maxMxProviderDate(rowsByChannel)
     const effectiveDate = date || endDate || maxDate
 
@@ -64,10 +66,16 @@ export async function GET(req: Request) {
       return NextResponse.json(channels)
     }
 
+    if (action === "brands") {
+      const brands = Array.from(new Set(rows.map(r => r.marca).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
+      return NextResponse.json(brands)
+    }
+
     if (action === "products") {
       const scoped = rowsByChannel
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
+        .filter(r => !brandNorm || r.marca.trim().toLowerCase() === brandNorm)
         .filter(r => eans.length === 0 || eans.includes(r.ean))
       const items = Array.from(new Set(scoped.map(r => r.titulo).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(items)
@@ -77,6 +85,7 @@ export async function GET(req: Request) {
       const scoped = rowsByChannel
         .filter(r => !effectiveDate || r.fecha <= effectiveDate)
         .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
+        .filter(r => !brandNorm || r.marca.trim().toLowerCase() === brandNorm)
         .filter(r => products.length === 0 || products.includes(r.titulo))
       const items = Array.from(new Set(scoped.map(r => r.ean).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
       return NextResponse.json(items)
@@ -85,6 +94,7 @@ export async function GET(req: Request) {
     if (action === "categories") {
       const scoped = rowsByChannel
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
+        .filter(r => !brandNorm || r.marca.trim().toLowerCase() === brandNorm)
         .filter(r => products.length === 0 || products.includes(r.titulo))
         .filter(r => eans.length === 0 || eans.includes(r.ean))
       const items = Array.from(new Set(scoped.map(r => r.categoria).filter(Boolean))).sort((a, b) => a.localeCompare(b, "es"))
@@ -101,6 +111,7 @@ export async function GET(req: Request) {
         .filter(r => products.length === 0 || products.includes(r.titulo))
         .filter(r => eans.length === 0 || eans.includes(r.ean))
         .filter(r => !categoryNorm || r.categoria.trim().toLowerCase() === categoryNorm)
+        .filter(r => !brandNorm || r.marca.trim().toLowerCase() === brandNorm)
         .filter(r => !effectiveDate || r.fecha === effectiveDate)
         .sort((a, b) => {
           if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha)
@@ -191,6 +202,7 @@ export async function GET(req: Request) {
       const base = rowsByChannel.filter(r => r.fecha === effectiveDate).filter(r => {
         if (products.length > 0 && !products.includes(r.titulo)) return false
         if (categoryNorm && r.categoria.trim().toLowerCase() !== categoryNorm) return false
+        if (brandNorm && r.marca.trim().toLowerCase() !== brandNorm) return false
         if (!sellerNorm) return true
         const fab = r.seller.trim().toUpperCase().includes("ABBOTT") ? "ABBOTT" : r.seller.trim().toUpperCase()
         return fab === sellerNorm || r.seller.trim().toUpperCase() === sellerNorm
@@ -205,6 +217,7 @@ export async function GET(req: Request) {
 
       const parsed = Array.from(dedup.values()).map((r, idx) => ({
         titulo: r.titulo,
+        marca: r.marca,
         ean: r.ean,
         categoria: r.categoria,
         skuid: toProviderSkuid(r, idx),

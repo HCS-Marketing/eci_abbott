@@ -7,40 +7,29 @@ export default function ContentGlossary() {
   const glossaryTerms = [
     {
       term: "Puntaje (Score)",
-      description: "Puntuación general del producto basada en la valoración de clientes y cantidad de reviews.",
+      description: "Puntuación de calidad de la PDP basada exclusivamente en imágenes, título y descripción.",
       details: [
-        "Se calcula considerando las reseñas y valoraciones que han dejado los clientes en la plataforma.",
-        "Mayor cantidad de reviews positivos = mayor puntaje.",
-        "Rango: 0 - máximo depende de los datos históricos.",
-        "Indicador de popularidad y satisfacción del cliente.",
+        "Imágenes: máximo 25 puntos.",
+        "Título: máximo 40 puntos.",
+        "Descripción: máximo 35 puntos.",
+        "Valoración, reviews y videos son informativos y no afectan el puntaje.",
       ],
     },
     {
       term: "Puntaje Contenido",
-      description: "Evaluación de la calidad del contenido del producto en la plataforma de venta.",
+      description: "Evaluación absoluta de la calidad del contenido del producto en Colombia.",
       details: [
         "Se calcula automáticamente según criterios específicos para Amazon y Mercado Libre.",
         "Máximo puntaje posible: 100 puntos.",
       ],
       platforms: [
         {
-          name: "Amazon",
+          name: "Modelo Colombia",
           criteria: [
-            "Título entre 150-195 caracteres: +25 puntos",
-            "Mínimo 5 imágenes: +20 puntos",
-            "Mínimo 1 video: +15 puntos",
-            "Descripción entre 1,200-1,500 caracteres: +25 puntos",
-            "Mínimo 5 bullet points: +15 puntos",
-          ],
-        },
-        {
-          name: "Mercado Libre",
-          criteria: [
-            "Título entre 60-120 caracteres: +25 puntos",
-            "Descripción entre 300-500 caracteres: +25 puntos",
-            "Entre 5-10 imágenes: +20 puntos",
-            "Mínimo 5 bullet points: +20 puntos",
-            "Mínimo 1 video: +10 puntos",
+            "Imágenes: 5 puntos por imagen hasta 25; Pedialyte obtiene 25 con una o más.",
+            "Título: marca, producto, presentación, variante y keyword de categoría.",
+            "Descripción: presencia, marca, beneficios y presentación/uso/público.",
+            "Clasificación: Perfect Store (90+), PDP completa (75+), por optimizar (60+) o incompleta (<60).",
           ],
         },
       ],

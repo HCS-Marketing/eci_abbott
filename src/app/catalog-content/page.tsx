@@ -9,9 +9,11 @@ import ContentGlossary from "@/components/ui/ContentGlossary"
 import fallbackRows from "@/data/mx-provider-rows.json"
 import { ExternalLink, Image as ImageIcon, Link as LinkIcon, Search, Download, FileText, Star, Video } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
+import { calculatePerfectStoreScore, classifyPerfectStoreScore, type PerfectStoreClassification } from "@/lib/perfect-store-score"
 
 interface CatalogRow {
   titulo: string
+  marca: string
   skuid: string
   ean: string
   categoria: string
@@ -28,6 +30,10 @@ interface CatalogRow {
   url_producto: string
   score: number
   content_score: number
+  image_score: number
+  title_score: number
+  description_score: number
+  classification: PerfectStoreClassification
   rank: number
 }
 
@@ -50,9 +56,17 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;")
 }
 
+function classificationClass(value: PerfectStoreClassification): string {
+  if (value === "Perfect Store") return "bg-emerald-50 text-emerald-700 border-emerald-200"
+  if (value === "PDP completa") return "bg-blue-50 text-blue-700 border-blue-200"
+  if (value === "PDP por optimizar") return "bg-amber-50 text-amber-700 border-amber-200"
+  return "bg-red-50 text-red-700 border-red-200"
+}
+
 function normalizeCatalogRow(
   r: {
     titulo?: string
+    marca?: string
     skuid?: string
     ean?: string
     categoria?: string
@@ -77,6 +91,7 @@ function normalizeCatalogRow(
   const canal = String(r.canal || r.plataforma || r.retail || "").trim()
   const base = {
     titulo: String(r.titulo || ""),
+    marca: String(r.marca || "").trim(),
     skuid: String(r.skuid || `${canal}-${idx + 1}`),
     ean: String(r.ean || "").trim(),
     categoria: String(r.categoria || "").trim(),
@@ -98,6 +113,10 @@ function normalizeCatalogRow(
   return {
     ...base,
     content_score: Number(r.score || 0),
+    image_score: 0,
+    title_score: 0,
+    description_score: 0,
+    classification: classifyPerfectStoreScore(Number(r.score || 0)),
   }
 }
 
@@ -105,7 +124,25 @@ function isFarmatodo(canal: string): boolean {
   return String(canal || "").trim().toUpperCase() === "FARMATODO"
 }
 
-function scoreCatalogRows(rows: CatalogRow[]): CatalogRow[] {
+function scoreCatalogRows(rows: CatalogRow[], useColombiaModel: boolean): CatalogRow[] {
+  if (useColombiaModel) {
+    return rows
+      .map(row => {
+        const result = calculatePerfectStoreScore(row)
+        return {
+          ...row,
+          score: result.total,
+          content_score: result.total,
+          image_score: result.imageScore,
+          title_score: result.titleScore,
+          description_score: result.descriptionScore,
+          classification: result.classification,
+        }
+      })
+      .sort((a, b) => (b.score - a.score) || a.titulo.localeCompare(b.titulo, "es"))
+      .map((row, index) => ({ ...row, rank: index + 1 }))
+  }
+
   const maxTitleChars = Math.max(...rows.map(row => row.title_count_characters), 0)
   const maxDescriptionChars = Math.max(...rows.map(row => row.count_character_desc), 0)
   const maxImages = Math.min(Math.max(...rows.map(row => Math.min(row.img_count, IMAGE_SCORE_CAP)), 0), IMAGE_SCORE_CAP)
@@ -120,7 +157,8 @@ function scoreCatalogRows(rows: CatalogRow[]): CatalogRow[] {
       const reviewScore = isFarmatodo(row.canal) && maxFarmatodoReviews > 0 ? (row.reviews / maxFarmatodoReviews) * 20 : 0
       const ratingScore = isFarmatodo(row.canal) ? (Math.max(0, Math.min(row.valoracion, 5)) / 5) * 10 : 0
       const score = titleScore + descriptionScore + imageScore + reviewScore + ratingScore
-      return { ...row, score: Math.round(score * 100) / 100, content_score: Math.round(score * 100) / 100 }
+      const roundedScore = Math.round(score * 100) / 100
+      return { ...row, score: roundedScore, content_score: roundedScore, classification: classifyPerfectStoreScore(roundedScore) }
     })
     .sort((a, b) => (b.score - a.score) || a.titulo.localeCompare(b.titulo, "es"))
     .map((row, index) => ({ ...row, rank: index + 1 }))
@@ -142,6 +180,7 @@ export default function CatalogContentPage() {
 
   const [channel, setChannel] = useState("")
   const [category, setCategory] = useState("")
+  const [brand, setBrand] = useState("")
   const [date, setDate] = useState("")
   const [minDate, setMinDate] = useState("")
   const [maxDate, setMaxDate] = useState("")
@@ -149,9 +188,11 @@ export default function CatalogContentPage() {
 
   const [availableProducts, setAvailableProducts] = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [availableBrands, setAvailableBrands] = useState<string[]>([])
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   const [data, setData] = useState<CatalogRow[]>([])
+  const [retailAverageData, setRetailAverageData] = useState<CatalogRow[]>([])
   const [previewProduct, setPreviewProduct] = useState<CatalogRow | null>(null)
   const [loading, setLoading] = useState(false)
   const isColombia = country === "CO"
@@ -168,16 +209,27 @@ export default function CatalogContentPage() {
   useEffect(() => {
     setChannel("")
     setCategory("")
+    setBrand("")
     setDate("")
     setMinDate("")
     setMaxDate("")
     setAvailableChannels([])
     setAvailableCategories([])
+    setAvailableBrands([])
     setAvailableProducts([])
     setSelectedProducts([])
     setPreviewProduct(null)
     setData([])
+    setRetailAverageData([])
   }, [country])
+
+  useEffect(() => {
+    if (!isColombia) return
+    fetch(`/api/provider?action=brands&country=${country}`)
+      .then(r => r.json())
+      .then((d: string[]) => setAvailableBrands(Array.isArray(d) ? d : []))
+      .catch(() => setAvailableBrands([]))
+  }, [country, isColombia])
 
   useEffect(() => {
     if (useLocalFallback && !date && fallbackDateBounds.max) {
@@ -227,6 +279,7 @@ export default function CatalogContentPage() {
     const p = new URLSearchParams({ action: "products" })
     if (selectedChannel) p.set("channel", selectedChannel)
     if (category) p.set("category", category)
+    if (brand) p.set("brand", brand)
     if (effectiveDate) p.set("date", effectiveDate)
     if (country) p.set("country", country)
 
@@ -241,7 +294,7 @@ export default function CatalogContentPage() {
         setAvailableProducts(local)
         setSelectedProducts(prev => prev.filter(item => local.includes(item)))
       })
-  }, [date, selectedChannel, category, country, fallbackDateBounds.max, useLocalFallback])
+  }, [date, selectedChannel, category, brand, country, fallbackDateBounds.max, useLocalFallback])
 
   useEffect(() => {
     const effectiveDate = date || (useLocalFallback ? fallbackDateBounds.max : "")
@@ -252,6 +305,7 @@ export default function CatalogContentPage() {
 
     const p = new URLSearchParams({ action: "categories" })
     if (selectedChannel) p.set("channel", selectedChannel)
+    if (brand) p.set("brand", brand)
     if (effectiveDate) p.set("date", effectiveDate)
     if (country) p.set("country", country)
 
@@ -266,7 +320,7 @@ export default function CatalogContentPage() {
         setAvailableCategories(local)
         if (category && !local.includes(category)) setCategory("")
       })
-  }, [date, selectedChannel, category, country, fallbackDateBounds.max, useLocalFallback])
+  }, [date, selectedChannel, category, brand, country, fallbackDateBounds.max, useLocalFallback])
 
   const fetchData = useCallback(() => {
     setLoading(true)
@@ -275,6 +329,7 @@ export default function CatalogContentPage() {
     p.set("source", "provider")
     if (selectedChannel) p.set("channel", selectedChannel)
     if (category) p.set("category", category)
+    if (brand) p.set("brand", brand)
     if (country) p.set("country", country)
     if (selectedProducts.length) p.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
 
@@ -289,6 +344,7 @@ export default function CatalogContentPage() {
         const pRaw = new URLSearchParams({ action: "raw", date: effectiveDate, limit: "5000" })
         if (selectedChannel) pRaw.set("channel", selectedChannel)
         if (category) pRaw.set("category", category)
+        if (brand) pRaw.set("brand", brand)
         if (selectedProducts.length) pRaw.set("products", selectedProducts.map(v => encodeURIComponent(v)).join(","))
         if (country) pRaw.set("country", country)
         const raw = await fetch(`/api/provider?${pRaw}`).then(r => r.json())
@@ -303,9 +359,10 @@ export default function CatalogContentPage() {
           : []
 
         const mapped = sourceRows.map((r: {
-          titulo?: string; retail?: string; canal?: string; plataforma?: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; description?: string; url_imagen?: string; url_producto?: string; EAN?: string; ean?: string; categoria?: string
+          titulo?: string; marca?: string; retail?: string; canal?: string; plataforma?: string; valoracion?: number; reviews?: number; img_count?: number; video_count?: number; bullet_points?: number; title_count_characters?: number; count_character_desc?: number; description?: string; url_imagen?: string; url_producto?: string; EAN?: string; ean?: string; categoria?: string
         }, i: number) => normalizeCatalogRow({
           titulo: r.titulo || "",
+          marca: r.marca || "",
           skuid: `${String(r.retail || r.canal || r.plataforma || "")}-${i + 1}`,
           ean: String(r.ean || r.EAN || "").trim(),
           categoria: String(r.categoria || "").trim(),
@@ -327,9 +384,22 @@ export default function CatalogContentPage() {
       })
       .catch(() => setData([]))
       .finally(() => setLoading(false))
-  }, [date, selectedChannel, category, country, fallbackDateBounds.max, selectedProducts, useLocalFallback])
+  }, [date, selectedChannel, category, brand, country, fallbackDateBounds.max, selectedProducts, useLocalFallback])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    if (!isColombia || !date) {
+      setRetailAverageData([])
+      return
+    }
+    const p = new URLSearchParams({ action: "content", country, date, limit: "5000" })
+    if (brand) p.set("brand", brand)
+    fetch(`/api/provider?${p}`)
+      .then(r => r.json())
+      .then((d: Array<Parameters<typeof normalizeCatalogRow>[0]>) => setRetailAverageData(Array.isArray(d) ? d.map((row, index) => normalizeCatalogRow(row, index)) : []))
+      .catch(() => setRetailAverageData([]))
+  }, [brand, country, date, isColombia])
 
   const filtered = useMemo(() =>
     data.filter(e =>
@@ -344,7 +414,16 @@ export default function CatalogContentPage() {
     )
   , [data, search, selectedProducts, category, showCategoryFilter])
 
-  const sorted = useMemo(() => scoreCatalogRows(filtered), [filtered])
+  const sorted = useMemo(() => scoreCatalogRows(filtered, isColombia), [filtered, isColombia])
+  const retailAverages = useMemo(() => {
+    const groups = new Map<string, { total: number; count: number }>()
+    for (const row of scoreCatalogRows(retailAverageData, true)) {
+      const current = groups.get(row.canal) || { total: 0, count: 0 }
+      groups.set(row.canal, { total: current.total + row.score, count: current.count + 1 })
+    }
+    return Array.from(groups, ([retail, values]) => ({ retail, average: values.total / values.count, count: values.count }))
+      .sort((a, b) => b.average - a.average)
+  }, [retailAverageData])
 
   const avgRating = filtered.length ? (filtered.reduce((s, e) => s + e.valoracion, 0) / filtered.length) : 0
   const totalReviews = filtered.reduce((s, e) => s + e.reviews, 0)
@@ -386,18 +465,18 @@ export default function CatalogContentPage() {
       </head>
       <body>
         <div class="card">
-          <div class="header"><span class="retail">${escapeHtml(product.canal)}</span><span class="score">Audit Score: ${product.content_score.toFixed(0)}/100</span></div>
+          <div class="header"><span class="retail">${escapeHtml(product.canal)}</span><span class="score">${escapeHtml(product.classification)} · ${product.content_score.toFixed(0)}/100</span></div>
           <div class="body">
             <div class="image">${imageMarkup}</div>
             <div>
-              <div class="brand">Abbott • ${escapeHtml(product.categoria || "Sin categoria")}</div>
+              <div class="brand">${escapeHtml(product.marca || "Abbott")} • ${escapeHtml(product.categoria || "Sin categoria")}</div>
               <h1>${escapeHtml(product.titulo)}</h1>
               <div class="meta"><span>Rating ${product.valoracion.toFixed(1)}</span><span>${product.reviews.toLocaleString("es-MX")} reviews</span><span>EAN ${escapeHtml(product.ean || "-")}</span></div>
               <div class="metrics">
                 <div class="metric"><strong>Disponible</strong><span>Disponibilidad</span></div>
-                <div class="metric"><strong>${product.title_count_characters}</strong><span>Chars titulo</span></div>
+                <div class="metric"><strong>${product.title_score}/40</strong><span>Titulo</span></div>
                 <div class="metric"><strong>${product.img_count} / ${product.video_count}</strong><span>Fotos / videos</span></div>
-                <div class="metric"><strong>${product.count_character_desc}</strong><span>Chars descripcion</span></div>
+                <div class="metric"><strong>${product.description_score}/35</strong><span>Descripcion</span></div>
               </div>
               <div class="description"><strong>Descripcion</strong><br>${escapeHtml(product.description || "No se detecto texto de descripcion en la base scrapeada para este producto.")}</div>
               <div class="url">URL Scraped: ${escapeHtml(product.url_producto || "Sin URL")}</div>
@@ -422,6 +501,16 @@ export default function CatalogContentPage() {
         {maxDate && <span className="text-[10px] text-green-600 font-semibold">Ultima actualizacion BD: {maxDate}</span>}
 
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
+
+        {isColombia && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Marca</span>
+            <select value={brand} onChange={e => setBrand(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+              <option value="">Todas</option>
+              {availableBrands.map(item => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">Canal</span>
@@ -454,12 +543,17 @@ export default function CatalogContentPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
+        {(isColombia ? [
+          { label: "Productos", value: String(filtered.length), color: "#7c3aed", sub: "universo filtrado" },
+          { label: "Puntaje promedio", value: sorted.length ? (sorted.reduce((sum, row) => sum + row.score, 0) / sorted.length).toFixed(2) : "0", color: "#d97706", sub: "modelo 25 / 40 / 35" },
+          { label: "Perfect Store", value: String(sorted.filter(row => row.classification === "Perfect Store").length), color: "#16a34a", sub: "productos con 90 o mas" },
+          { label: "Top score", value: sorted[0] ? sorted[0].score.toFixed(2) : "0", color: "#2563eb", sub: "mejor producto" },
+        ] : [
           { label: "Productos", value: String(filtered.length), color: "#7c3aed", sub: "universo filtrado" },
           { label: "Valoracion promedio", value: avgRating.toFixed(2), color: "#d97706", sub: "escala 0-5" },
           { label: "Reviews acumuladas", value: totalReviews.toLocaleString("es-MX"), color: "#16a34a", sub: "personas que puntuaron" },
           { label: "Top score", value: sorted[0] ? `${sorted[0].score.toFixed(2)}` : "0", color: "#2563eb", sub: "mejor producto" },
-        ].map(k => (
+        ]).map(k => (
           <div key={k.label} className="bg-white border border-gray-100 shadow-sm rounded-xl p-4">
             <div className="text-[10px] uppercase tracking-wider text-gray-400 mb-2">{k.label}</div>
             <div className="text-2xl font-bold" style={{ color: k.color }}>{k.value}</div>
@@ -468,6 +562,25 @@ export default function CatalogContentPage() {
         ))}
       </div>
 
+      {isColombia && (
+        <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100">
+            <div className="text-sm font-semibold text-gray-800">Puntaje promedio por retail</div>
+            <div className="text-[11px] text-gray-500 mt-0.5">Afectado exclusivamente por fecha y marca</div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 divide-x divide-y divide-gray-100">
+            {retailAverages.map(item => (
+              <div key={item.retail} className="p-4">
+                <div className="text-[10px] font-semibold uppercase text-gray-500 truncate">{item.retail}</div>
+                <div className="text-2xl font-bold text-indigo-700 mt-1">{item.average.toFixed(2)}</div>
+                <div className="text-[10px] text-gray-400">{item.count} productos</div>
+              </div>
+            ))}
+            {retailAverages.length === 0 && <div className="col-span-full p-5 text-xs text-gray-400 text-center">Sin datos para la fecha y marca seleccionadas</div>}
+          </div>
+        </div>
+      )}
+
       {preview && (
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
           <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50">
@@ -475,8 +588,8 @@ export default function CatalogContentPage() {
               <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded bg-yellow-100 text-yellow-800 border border-yellow-200">{preview.canal}</span>
               <span className="text-sm font-semibold text-gray-800 truncate">Retail Product Audit</span>
             </div>
-            <div className="text-[11px] font-semibold text-green-700 bg-green-50 border border-green-100 rounded-full px-2 py-1">
-              Audit Score: {preview.content_score.toFixed(0)}/100
+            <div className={`text-[11px] font-semibold border rounded-full px-2 py-1 ${classificationClass(preview.classification)}`}>
+              {preview.classification} · {preview.content_score.toFixed(0)}/100
             </div>
           </div>
 
@@ -507,7 +620,7 @@ export default function CatalogContentPage() {
 
             <div className="space-y-4 min-w-0">
               <div>
-                <div className="text-[11px] uppercase tracking-wider text-blue-600 font-bold mb-1">Abbott • {preview.categoria || "Sin categoria"}</div>
+                <div className="text-[11px] uppercase tracking-wider text-blue-600 font-bold mb-1">{preview.marca || "Abbott"} • {preview.categoria || "Sin categoria"}</div>
                 <h2 className="text-lg font-bold text-gray-900 leading-snug">{preview.titulo}</h2>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-500 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-amber-600 font-semibold"><Star size={13} />{preview.valoracion.toFixed(1)}</span>
@@ -522,6 +635,14 @@ export default function CatalogContentPage() {
                 <div className="rounded-lg border border-gray-100 bg-gray-50 text-center py-3"><div className="text-lg font-bold text-gray-900">{preview.img_count} / {preview.video_count}</div><div className="text-[9px] text-gray-500">FOTOS / VIDEOS</div></div>
                 <div className="rounded-lg border border-gray-100 bg-gray-50 text-center py-3"><div className="text-lg font-bold text-gray-900">{preview.count_character_desc}</div><div className="text-[9px] text-gray-500">CHARS DESCRIPCION</div></div>
               </div>
+
+              {isColombia && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-gray-200 p-3"><div className="text-[10px] text-gray-500 uppercase">Imagenes</div><div className="font-bold text-gray-900 mt-1">{preview.image_score} / 25</div></div>
+                  <div className="rounded-lg border border-gray-200 p-3"><div className="text-[10px] text-gray-500 uppercase">Titulo</div><div className="font-bold text-gray-900 mt-1">{preview.title_score} / 40</div></div>
+                  <div className="rounded-lg border border-gray-200 p-3"><div className="text-[10px] text-gray-500 uppercase">Descripcion</div><div className="font-bold text-gray-900 mt-1">{preview.description_score} / 35</div></div>
+                </div>
+              )}
 
               <div className="border-l-4 border-sky-400 bg-sky-50/40 rounded-r-lg p-3">
                 <div className="flex justify-between gap-3 mb-1">
@@ -566,8 +687,8 @@ export default function CatalogContentPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
                   {[
-                    "Posición", "Título", "EAN", "Canal", "Valoración", "Reviews", "Imágenes", "Videos",
-                    "Caracteres Título", "Caracteres Descripción", "Puntaje", "Vista PDP", "Ver producto"
+                    "Posición", "Título", "Marca", "EAN", "Canal", "Valoración", "Reviews", "Imágenes", "Videos",
+                    "Caracteres Título", "Caracteres Descripción", "Puntaje", "Clasificación", "Vista PDP", "Ver producto"
                   ].map(h => (
                     <th key={h} className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">{h}</th>
                   ))}
@@ -578,6 +699,7 @@ export default function CatalogContentPage() {
                   <tr key={`${e.skuid}-${e.canal}-${i}`} className="hover:bg-gray-50">
                     <td className="px-3 py-2.5"><span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">#{e.rank}</span></td>
                     <td className="px-3 py-2.5 max-w-md"><div className="font-medium text-gray-800 truncate">{e.titulo}</div>{e.categoria && <div className="text-[10px] text-gray-500 mt-0.5">{e.categoria}</div>}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap text-[11px] font-semibold text-gray-700">{e.marca || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">{e.ean || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap"><span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{e.canal}</span></td>
                     <td className="px-3 py-2.5 text-right"><span className="inline-flex items-center gap-1 text-gray-700 font-semibold"><Star size={11} className="text-amber-500" />{e.valoracion.toFixed(1)}</span></td>
@@ -587,6 +709,7 @@ export default function CatalogContentPage() {
                     <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.title_count_characters}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-gray-800">{e.count_character_desc}</td>
                     <td className="px-3 py-2.5 text-right font-bold text-purple-700">{e.score.toFixed(2)}</td>
+                    <td className="px-3 py-2.5 whitespace-nowrap"><span className={`inline-flex text-[10px] font-semibold border rounded-full px-2 py-0.5 ${classificationClass(e.classification)}`}>{e.classification}</span></td>
                     <td className="px-3 py-2.5 whitespace-nowrap"><button type="button" onClick={() => setPreviewProduct(e)} className="text-[11px] text-purple-700 font-semibold hover:underline">Vista PDP</button></td>
                     <td className="px-3 py-2.5 whitespace-nowrap">{e.url_producto ? <a href={e.url_producto} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline">Ver producto</a> : <span className="text-[11px] text-gray-400">-</span>}</td>
                   </tr>

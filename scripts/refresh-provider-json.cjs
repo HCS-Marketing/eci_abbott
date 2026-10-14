@@ -165,10 +165,12 @@ function readExcelFilesFromDir(dirPath, retailOverride = "") {
       if (!fecha || !retail || !titulo) continue
 
       const { disponibilidad, disponible } = normalizeDisponibilidad(readField(r, ["disponibilidad"]))
+      const marca = readTextField(r, ["MARCA", "marca"])
       rows.push({
         fecha,
         retail,
         titulo,
+        ...(marca ? { marca } : {}),
         ean: readTextField(r, ["EAN", "ean"]),
         categoria: readTextField(r, ["categoria", "categoría"]),
         posicion: parsePosicion(readField(r, ["posicion", "posición"])),
