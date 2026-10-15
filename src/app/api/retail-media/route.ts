@@ -43,6 +43,12 @@ function categoryCondition(params: unknown[], category: string): string {
   return ` AND NULLIF(TRIM(categoria_col), '') = $${params.length}`
 }
 
+function keywordCondition(params: unknown[], keyword: string): string {
+  if (!keyword) return ""
+  params.push(keyword)
+  return ` AND NULLIF(TRIM(search::text), '') = $${params.length}`
+}
+
 function sourceCondition(source: string): string[] {
   if (source === "sos") return ["sos"]
   if (source === "search") return ["search"]
@@ -71,6 +77,7 @@ export async function GET(req: Request) {
   const country = searchParams.get("country") || "CO"
   const channel = searchParams.get("channel") || ""
   const category = searchParams.get("category") || ""
+  const keyword = searchParams.get("keyword") || ""
   const source = searchParams.get("source") || "all"
   const startDate = searchParams.get("startDate") || searchParams.get("date") || ""
   const endDate = searchParams.get("endDate") || searchParams.get("date") || ""
@@ -134,6 +141,27 @@ export async function GET(req: Request) {
       return NextResponse.json(rows.map(r => r.n))
     }
 
+    if (action === "keywords") {
+      const columns = await tableColumns("search")
+      if (!columns.has("search")) return NextResponse.json([])
+
+      const params: unknown[] = []
+      const dateSql = dateRangeCondition(params, startDate, endDate)
+      const countrySql = countryCondition(params, country)
+      const channelSql = channelCondition(params, channel)
+      const categorySql = categoryCondition(params, category)
+      const sql = `
+        SELECT DISTINCT NULLIF(TRIM(search::text), '') AS n
+        FROM eci.search
+        WHERE ${isTruthyPromotedSql("promocionado")}
+          AND NULLIF(TRIM(search::text), '') IS NOT NULL
+          ${dateSql} ${countrySql} ${channelSql} ${categorySql}
+        ORDER BY 1
+      `
+      const rows = await prisma.$queryRawUnsafe<{ n: string }[]>(sql, ...params)
+      return NextResponse.json(rows.map(row => row.n))
+    }
+
     const selectedSources = sourceCondition(source)
     const [sosColumns, searchColumns] = await Promise.all([
       selectedSources.includes("sos") ? tableColumns("sos") : Promise.resolve(new Set<string>()),
@@ -156,6 +184,7 @@ export async function GET(req: Request) {
     const baseCountrySql = countryCondition(params, country)
     const baseChannelSql = channelCondition(params, channel)
     const baseCategorySql = categoryCondition(params, category)
+    const searchKeywordFilterSql = selectedSources.includes("search") ? keywordCondition(params, keyword) : ""
 
     if (selectedSources.includes("sos")) {
       unionParts.push(`
@@ -193,7 +222,7 @@ export async function GET(req: Request) {
           NULLIF(TRIM(orden::text), '')::numeric AS orden,
           ${isTruthyPromotedSql("promocionado")} AS promocionado
         FROM eci.search
-        WHERE ${searchWhere.join(" AND ")} ${baseDateSql} ${baseCountrySql} ${baseChannelSql} ${baseCategorySql}
+        WHERE ${searchWhere.join(" AND ")} ${baseDateSql} ${baseCountrySql} ${baseChannelSql} ${baseCategorySql} ${searchKeywordFilterSql}
       `)
     }
 

@@ -140,6 +140,7 @@ export default function RetailMediaPage() {
 
   const [channel, setChannel] = useState("")
   const [category, setCategory] = useState("")
+  const [keyword, setKeyword] = useState("")
   const [chartSource, setChartSource] = useState<"sos" | "search">("sos")
   const [tableSource, setTableSource] = useState<"sos" | "search">("sos")
   const [startDate, setStartDate] = useState("")
@@ -150,6 +151,7 @@ export default function RetailMediaPage() {
 
   const [availableChannels, setAvailableChannels] = useState<string[]>([])
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [availableKeywords, setAvailableKeywords] = useState<string[]>([])
   const [summary, setSummary] = useState<SummaryResponse>({ totals: {}, byRetail: [], byFormat: [], competitors: [] })
   const [rows, setRows] = useState<RetailMediaRow[]>([])
   const [summaryLoading, setSummaryLoading] = useState(false)
@@ -159,6 +161,8 @@ export default function RetailMediaPage() {
     if (!isColombia) {
       setChannel("")
       setCategory("")
+      setKeyword("")
+      setAvailableKeywords([])
       setRows([])
       setSummary({ totals: {}, byRetail: [], byFormat: [], competitors: [] })
     }
@@ -212,18 +216,37 @@ export default function RetailMediaPage() {
       })
   }, [isColombia, startDate, endDate, channel, category])
 
+  useEffect(() => {
+    if (!isColombia) return
+    const params = new URLSearchParams({ action: "keywords", country: "CO" })
+    if (startDate) params.set("startDate", startDate)
+    if (endDate) params.set("endDate", endDate)
+    if (channel) params.set("channel", channel)
+    if (category) params.set("category", category)
+
+    fetch(`/api/retail-media?${params}`)
+      .then(r => r.json())
+      .then((data: string[]) => {
+        const keywords = Array.isArray(data) ? data : []
+        setAvailableKeywords(keywords)
+        if (keyword && !keywords.includes(keyword)) setKeyword("")
+      })
+      .catch(() => setAvailableKeywords([]))
+  }, [isColombia, startDate, endDate, channel, category, keyword])
+
   const fetchSummary = useCallback(() => {
     if (!isColombia || !endDate) return
     setSummaryLoading(true)
     const params = new URLSearchParams({ country: "CO", startDate, endDate, action: "summary", source: "all" })
     if (channel) params.set("channel", channel)
     if (category) params.set("category", category)
+    if (keyword) params.set("keyword", keyword)
 
     fetch(`/api/retail-media?${params}`)
       .then(r => r.json())
       .then(summaryData => setSummary(summaryData?.totals ? summaryData : { totals: {}, byRetail: [], byFormat: [], competitors: [] }))
       .finally(() => setSummaryLoading(false))
-  }, [isColombia, startDate, endDate, channel, category])
+  }, [isColombia, startDate, endDate, channel, category, keyword])
 
   const fetchRows = useCallback(() => {
     if (!isColombia || !endDate) return
@@ -231,12 +254,13 @@ export default function RetailMediaPage() {
     const params = new URLSearchParams({ country: "CO", startDate, endDate, action: "rows", source: tableSource, limit: "1000" })
     if (channel) params.set("channel", channel)
     if (category) params.set("category", category)
+    if (keyword) params.set("keyword", keyword)
 
     fetch(`/api/retail-media?${params}`)
       .then(r => r.json())
       .then(rowData => setRows(Array.isArray(rowData) ? rowData : []))
       .finally(() => setRowsLoading(false))
-  }, [isColombia, startDate, endDate, channel, category, tableSource])
+  }, [isColombia, startDate, endDate, channel, category, keyword, tableSource])
 
   useEffect(() => { fetchSummary() }, [fetchSummary])
   useEffect(() => { fetchRows() }, [fetchRows])
@@ -295,6 +319,13 @@ export default function RetailMediaPage() {
           <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
             <option value="">Todas</option>
             {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">Keyword</span>
+          <select value={keyword} onChange={e => setKeyword(e.target.value)} className="max-w-56 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
+            <option value="">Todas</option>
+            {availableKeywords.map(item => <option key={item} value={item}>{item}</option>)}
           </select>
         </div>
         <div className="ml-auto flex items-center gap-2">
