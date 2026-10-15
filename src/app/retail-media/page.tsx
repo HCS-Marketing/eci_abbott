@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { BarChart3, Download, FileText, Search } from "lucide-react"
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import { useGlobalFilters } from "@/lib/filter-context"
@@ -59,6 +60,79 @@ function fmtOrder(value: number | null | undefined) {
   return Number(value).toFixed(1)
 }
 
+function AdPresenceChart({
+  row,
+  source,
+  loading,
+  onSourceChange,
+}: {
+  row?: GroupRow
+  source: "sos" | "search"
+  loading: boolean
+  onSourceChange: (source: "sos" | "search") => void
+}) {
+  const abbott = Number(row?.abbott || 0)
+  const competencia = Number(row?.competencia || 0)
+  const total = abbott + competencia
+  const data = [
+    { name: "Abbott", value: abbott, share: total > 0 ? Math.round((abbott / total) * 100) : 0, color: "#2563eb" },
+    { name: "Competencia", value: competencia, share: total > 0 ? Math.round((competencia / total) * 100) : 0, color: "#dc2626" },
+  ]
+
+  return (
+    <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3 flex-wrap">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-700">
+            <BarChart3 size={16} />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-gray-800">Presencia de Ads</div>
+            <div className="text-xs text-gray-400">Abbott vs competencia · {fmtNumber(total)} anuncios</div>
+          </div>
+        </div>
+        <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1" aria-label="Fuente de presencia de Ads">
+          {(["sos", "search"] as const).map(option => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onSourceChange(option)}
+              className={`min-w-20 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${source === option ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              {option === "sos" ? "SOS" : "Search"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="h-72 px-3 pb-3 pt-5 sm:px-6">
+        {loading ? (
+          <div className="flex h-full items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" /></div>
+        ) : total === 0 ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">Sin Ads para los filtros seleccionados</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 20, right: 12, left: 0, bottom: 0 }} barCategoryGap="30%">
+              <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: "#4b5563", fontSize: 12, fontWeight: 600 }} />
+              <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 11 }} width={44} />
+              <Tooltip
+                cursor={{ fill: "#f9fafb" }}
+                formatter={(value, _name, item) => [`${fmtNumber(Number(value))} Ads (${item.payload.share}%)`, "Presencia"]}
+                contentStyle={{ border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 4px 14px rgb(0 0 0 / 0.08)", fontSize: 12 }}
+              />
+              <Bar dataKey="value" maxBarSize={110} radius={[5, 5, 0, 0]}>
+                {data.map(item => <Cell key={item.name} fill={item.color} />)}
+                <LabelList dataKey="share" position="top" formatter={value => `${Number(value || 0)}%`} style={{ fill: "#374151", fontSize: 12, fontWeight: 700 }} />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function RetailMediaPage() {
   const { country } = useGlobalFilters()
   const isColombia = country === "CO"
@@ -66,6 +140,7 @@ export default function RetailMediaPage() {
   const [channel, setChannel] = useState("")
   const [category, setCategory] = useState("")
   const [source, setSource] = useState("all")
+  const [chartSource, setChartSource] = useState<"sos" | "search">("sos")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [minDate, setMinDate] = useState("")
@@ -162,6 +237,10 @@ export default function RetailMediaPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  useEffect(() => {
+    if (source === "sos" || source === "search") setChartSource(source)
+  }, [source])
+
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase()
     if (!q) return rows
@@ -186,6 +265,7 @@ export default function RetailMediaPage() {
   }
 
   const totals = summary.totals || {}
+  const chartRow = summary.byFormat.find(row => row.fuente === chartSource)
 
   return (
     <div className="space-y-4">
@@ -250,6 +330,16 @@ export default function RetailMediaPage() {
           </div>
         ))}
       </div>
+
+      <AdPresenceChart
+        row={chartRow}
+        source={chartSource}
+        loading={loading}
+        onSourceChange={nextSource => {
+          setChartSource(nextSource)
+          setSource(nextSource)
+        }}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden">
