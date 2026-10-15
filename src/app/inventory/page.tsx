@@ -6,6 +6,7 @@ import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
 import ProductMultiSelect from "@/components/ui/ProductMultiSelect"
 import fallbackRows from "@/data/mx-provider-rows.json"
+import { buildProviderInventoryRows } from "@/lib/provider-inventory"
 import clsx from "clsx"
 import { Search, AlertTriangle, Download, FileText } from "lucide-react"
 import { downloadCSV, exportPDF } from "@/lib/export"
@@ -33,6 +34,7 @@ interface FallbackInventoryRow {
   EAN?: string
   ean?: string
   categoria?: string
+  posicion?: number | null
 }
 
 function normalizeInventoryChannel(value: string): string {
@@ -45,10 +47,6 @@ function normalizeInventoryChannel(value: string): string {
   return normalized
 }
 
-function isAvailable(value: string): boolean {
-  return !String(value || "").toUpperCase().includes("NO")
-}
-
 function buildLocalInventoryRows(
   rows: FallbackInventoryRow[],
   effectiveDate: string,
@@ -56,60 +54,25 @@ function buildLocalInventoryRows(
   category: string,
   selectedEans: string[]
 ): InventoryRow[] {
-  if (!effectiveDate) return []
-
-  const windowStartDate = new Date(`${effectiveDate}T00:00:00Z`)
-  windowStartDate.setUTCDate(windowStartDate.getUTCDate() - 6)
-  const windowStart = windowStartDate.toISOString().slice(0, 10)
-  const scoped = rows.filter(row => {
-    const ean = String(row.EAN || row.ean || "").trim()
-    return row.fecha <= effectiveDate &&
-      (!channel || normalizeInventoryChannel(row.retail) === channel) &&
-      (!category || String(row.categoria || "") === category) &&
-      (selectedEans.length === 0 || selectedEans.includes(ean))
-  })
-  const currentByProduct = new Map<string, FallbackInventoryRow>()
-
-  for (const row of scoped) {
-    if (row.fecha !== effectiveDate) continue
-    const ean = String(row.EAN || row.ean || "").trim()
-    const key = `${row.retail}|||${ean || row.titulo}`
-    const previous = currentByProduct.get(key)
-    if (!previous || (!isAvailable(row.disponibilidad) && isAvailable(previous.disponibilidad))) {
-      currentByProduct.set(key, row)
-    }
-  }
-
-  return Array.from(currentByProduct.entries()).map(([key, current]) => {
-    const history = scoped.filter(row => {
-      const ean = String(row.EAN || row.ean || "").trim()
-      return `${row.retail}|||${ean || row.titulo}` === key
+  const sourceRows = rows
+    .map(row => {
+      const disponibilidad = String(row.disponibilidad || "")
+      return {
+        fecha: row.fecha,
+        retail: normalizeInventoryChannel(row.retail),
+        titulo: String(row.titulo || ""),
+        ean: String(row.EAN || row.ean || "").trim(),
+        categoria: String(row.categoria || "").trim(),
+        posicion: row.posicion ?? null,
+        disponibilidad,
+        disponible: !disponibilidad.toUpperCase().includes("NO"),
+      }
     })
-    const lastAvailable = history
-      .filter(row => isAvailable(row.disponibilidad))
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))[0]
-    const availabilityByDay = new Map<string, boolean>()
-    for (const row of history.filter(item => item.fecha >= windowStart)) {
-      const previous = availabilityByDay.get(row.fecha)
-      const available = isAvailable(row.disponibilidad)
-      availabilityByDay.set(row.fecha, previous === undefined ? available : previous && available)
-    }
-    const observedDays = Array.from(availabilityByDay.values())
-    const availableDays = observedDays.filter(Boolean).length
+    .filter(row => !channel || row.retail === channel)
 
-    return {
-      id: key,
-      estado: current.disponibilidad || "NO DISPONIBLE",
-      producto: current.titulo || "",
-      ean: String(current.EAN || current.ean || "").trim(),
-      categoria: String(current.categoria || "").trim(),
-      canal: current.retail || "",
-      ultimo_visto: lastAvailable?.fecha || null,
-      stock_status: isAvailable(current.disponibilidad) ? "in_stock" : "break",
-      dias_disponibles_7d: availableDays,
-      dias_observados_7d: observedDays.length,
-      porcentaje_disponibilidad_7d: observedDays.length > 0 ? Math.round((availableDays / observedDays.length) * 100) : 0,
-    }
+  return buildProviderInventoryRows(sourceRows, effectiveDate, {
+    eans: selectedEans,
+    category,
   })
 }
 
@@ -329,7 +292,7 @@ export default function InventoryPage() {
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
         <span className="font-semibold">Lógica de inventario:</span> se unifican todos los Excel diarios de {providerFolders.map((folder, idx) => (
           <span key={folder}><span className="font-semibold">{folder}</span>{idx < providerFolders.length - 1 ? ", " : ""}</span>
-        ))}. El estado corresponde al día seleccionado, <span className="font-semibold">Último visto</span> muestra la fecha más reciente con disponibilidad y el porcentaje usa las observaciones de los últimos 7 días calendario.
+        ))}. El estado corresponde al día seleccionado, <span className="font-semibold">Último visto</span> muestra la fecha más reciente con disponibilidad y el porcentaje usa las últimas 7 fechas scrapeadas por retail.
       </div>
 
       {/* ── Filtros ───────────────────────────────────────── */}

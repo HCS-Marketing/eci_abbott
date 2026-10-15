@@ -7,6 +7,7 @@
     "build": "npm run refresh:provider-json && next build",
     "start": "next start",
     "lint": "next lint",
+    "test:provider-inventory": "tsx --test src/lib/provider-inventory.test.ts",
     "refresh:provider-json": "node scripts/refresh-provider-json.cjs",
     "db:pull": "prisma db pull",
     "db:push": "prisma db push",

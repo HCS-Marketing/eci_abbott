@@ -141,7 +141,7 @@ function normalizeDisponibilidad(value) {
   return { disponibilidad: "DISPONIBLE", disponible: true }
 }
 
-function readExcelFilesFromDir(dirPath, retailOverride = "") {
+function readExcelFilesFromDir(dirPath, retailOverride = "", stats) {
   if (!fs.existsSync(dirPath)) return []
 
   const fileNames = fs.readdirSync(dirPath)
@@ -162,16 +162,23 @@ function readExcelFilesFromDir(dirPath, retailOverride = "") {
       const fecha = normalizeDate(readField(r, ["fecha"]))
       const retail = retailOverride || normalizeRetail(readField(r, ["retail"]))
       const titulo = readTextField(r, ["titulo"])
-      if (!fecha || !retail || !titulo) continue
+      const ean = readTextField(r, ["EAN", "ean"])
+      const rawDisponibilidad = readTextField(r, ["disponibilidad"])
+      if (!fecha || !retail || (!titulo && !ean)) {
+        stats.discarded += 1
+        if (rawDisponibilidad.toUpperCase().includes("NO")) stats.discardedUnavailable += 1
+        continue
+      }
+      if (!titulo && ean) stats.recoveredWithoutTitle += 1
 
-      const { disponibilidad, disponible } = normalizeDisponibilidad(readField(r, ["disponibilidad"]))
+      const { disponibilidad, disponible } = normalizeDisponibilidad(rawDisponibilidad)
       const marca = readTextField(r, ["MARCA", "marca"])
       rows.push({
         fecha,
         retail,
         titulo,
         ...(marca ? { marca } : {}),
-        ean: readTextField(r, ["EAN", "ean"]),
+        ean,
         categoria: readTextField(r, ["categoria", "categoría"]),
         posicion: parsePosicion(readField(r, ["posicion", "posición"])),
         seller: readTextField(r, ["seller"]) || "SIN INFORMACION",
@@ -195,11 +202,38 @@ function readExcelFilesFromDir(dirPath, retailOverride = "") {
   return rows
 }
 
+function enrichProviderRows(rows) {
+  const sorted = [...rows].sort((a, b) => a.fecha.localeCompare(b.fecha))
+  const metadataByProduct = new Map()
+
+  return sorted.map(row => {
+    if (!row.ean) return row
+
+    const key = `${row.retail}|||${row.ean}`
+    const previous = metadataByProduct.get(key)
+    const enriched = {
+      ...row,
+      titulo: row.titulo || previous?.titulo || row.ean,
+      marca: row.marca || previous?.marca || "",
+      categoria: row.categoria || previous?.categoria || "",
+    }
+    metadataByProduct.set(key, {
+      titulo: enriched.titulo,
+      marca: enriched.marca,
+      categoria: enriched.categoria,
+    })
+    return enriched
+  })
+}
+
 function refreshProviderJson(config) {
-  const rows = config.dirs.flatMap(dir => readExcelFilesFromDir(
+  const stats = { discarded: 0, discardedUnavailable: 0, recoveredWithoutTitle: 0 }
+  const rawRows = config.dirs.flatMap(dir => readExcelFilesFromDir(
     path.join(ROOT, config.baseDir, dir),
-    config.retailByDir[dir] || ""
+    config.retailByDir[dir] || "",
+    stats
   ))
+  const rows = enrichProviderRows(rawRows)
 
   if (rows.length === 0) {
     console.warn(`[refresh-provider-json] ${config.label}: No se encontraron filas válidas en Excel. Se conserva el JSON actual.`)
@@ -216,7 +250,7 @@ function refreshProviderJson(config) {
 
   const minDate = rows[0].fecha
   const maxDate = rows[rows.length - 1].fecha
-  console.log(`[refresh-provider-json] ${config.label}: rows=${rows.length} min=${minDate} max=${maxDate}`)
+  console.log(`[refresh-provider-json] ${config.label}: rows=${rows.length} min=${minDate} max=${maxDate} recovered_without_title=${stats.recoveredWithoutTitle} discarded=${stats.discarded} discarded_unavailable=${stats.discardedUnavailable}`)
 }
 
 function main() {

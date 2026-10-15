@@ -251,7 +251,8 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
       const fecha = normalizeDate(readField(r, ["fecha"]))
       const retail = retailOverride || normalizeRetail(readField(r, ["retail"]))
       const titulo = readTextField(r, ["titulo"])
-      if (!fecha || !retail || !titulo) continue
+      const ean = readTextField(r, ["EAN", "ean"])
+      if (!fecha || !retail || (!titulo && !ean)) continue
 
       const { disponibilidad, disponible } = normalizeDisponibilidad(readField(r, ["disponibilidad"]))
       rows.push({
@@ -259,7 +260,7 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
         retail,
         titulo,
         marca: readTextField(r, ["MARCA", "marca"]),
-        ean: readTextField(r, ["EAN", "ean"]),
+        ean,
         categoria: readTextField(r, ["categoria", "categoría"]),
         posicion: parsePosicion(readField(r, ["posicion", "posición"])),
         seller: readTextField(r, ["seller"]) || "SIN INFORMACION",
@@ -283,6 +284,30 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
   return rows
 }
 
+function enrichProviderRows(rows: MxProviderRow[]): MxProviderRow[] {
+  const sorted = [...rows].sort((a, b) => a.fecha.localeCompare(b.fecha))
+  const metadataByProduct = new Map<string, Pick<MxProviderRow, "titulo" | "marca" | "categoria">>()
+
+  return sorted.map(row => {
+    if (!row.ean) return row
+
+    const key = `${row.retail}|||${row.ean}`
+    const previous = metadataByProduct.get(key)
+    const enriched = {
+      ...row,
+      titulo: row.titulo || previous?.titulo || row.ean,
+      marca: row.marca || previous?.marca || "",
+      categoria: row.categoria || previous?.categoria || "",
+    }
+    metadataByProduct.set(key, {
+      titulo: enriched.titulo,
+      marca: enriched.marca,
+      categoria: enriched.categoria,
+    })
+    return enriched
+  })
+}
+
 export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
   const providerCountry = normalizeProviderCountry(country)
   const config = PROVIDER_CONFIG[providerCountry]
@@ -293,7 +318,7 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
     CO: (coFallbackRowsJson as unknown as MxProviderRow[]) || [],
   }
   const baseRows = all.length > 0 ? all : fallbackRowsByCountry[providerCountry]
-  const base = baseRows.map(r => ({
+  const base = enrichProviderRows(baseRows.map(r => ({
     ...r,
     marca: String(r.marca || "").trim(),
     ean: String(r.ean || "").trim(),
@@ -301,7 +326,7 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
     bullet_points: Number(r.bullet_points || 0),
     description: String(r.description || "").trim(),
     url_imagen: String(r.url_imagen || "").trim(),
-  }))
+  })))
   base.sort((a, b) => {
     if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha)
     if (a.retail !== b.retail) return a.retail.localeCompare(b.retail)
