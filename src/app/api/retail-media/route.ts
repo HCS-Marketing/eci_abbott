@@ -141,6 +141,7 @@ export async function GET(req: Request) {
     ])
     const sosTitleSql = titleExpression(sosColumns, ["titulo", "producto", "id"])
     const searchTitleSql = titleExpression(searchColumns, ["titulo", "producto", "id", "search"])
+    const searchKeywordSql = searchColumns.has("search") ? "NULLIF(TRIM(search::text), '')" : "NULL::text"
     const unionParts: string[] = []
     const params: unknown[] = []
 
@@ -166,6 +167,7 @@ export async function GET(req: Request) {
           NULLIF(TRIM(categoria_col), '') AS categoria_col,
           NULLIF(TRIM(subcategoria_col), '') AS subcategoria_col,
           ${sosTitleSql} AS titulo,
+          NULL::text AS keyword,
           NULLIF(TRIM(marca), '') AS marca,
           CASE WHEN UPPER(COALESCE(fabricante, '')) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(NULLIF(TRIM(fabricante), ''), 'MARCA LOCAL') END AS fabricante,
           NULLIF(TRIM(orden::text), '')::numeric AS orden,
@@ -185,6 +187,7 @@ export async function GET(req: Request) {
           NULLIF(TRIM(categoria_col), '') AS categoria_col,
           NULLIF(TRIM(subcategoria_col), '') AS subcategoria_col,
           ${searchTitleSql} AS titulo,
+          ${searchKeywordSql} AS keyword,
           NULLIF(TRIM(marca), '') AS marca,
           CASE WHEN UPPER(COALESCE(fabricante, '')) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(NULLIF(TRIM(fabricante), ''), 'MARCA LOCAL') END AS fabricante,
           NULLIF(TRIM(orden::text), '')::numeric AS orden,

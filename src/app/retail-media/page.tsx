@@ -16,6 +16,7 @@ interface RetailMediaRow {
   categoria_col: string | null
   subcategoria_col: string | null
   titulo: string | null
+  keyword: string | null
   marca: string | null
   fabricante: string
   orden: number | null
@@ -99,7 +100,7 @@ function AdPresenceChart({
               onClick={() => onSourceChange(option)}
               className={`min-w-20 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${source === option ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
             >
-              {option === "sos" ? "SOS" : "Search"}
+              {option === "sos" ? "PLP Categoria" : "Sponsored Search"}
             </button>
           ))}
         </div>
@@ -139,8 +140,8 @@ export default function RetailMediaPage() {
 
   const [channel, setChannel] = useState("")
   const [category, setCategory] = useState("")
-  const [source, setSource] = useState("all")
   const [chartSource, setChartSource] = useState<"sos" | "search">("sos")
+  const [tableSource, setTableSource] = useState<"sos" | "search">("sos")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [minDate, setMinDate] = useState("")
@@ -151,7 +152,8 @@ export default function RetailMediaPage() {
   const [availableCategories, setAvailableCategories] = useState<string[]>([])
   const [summary, setSummary] = useState<SummaryResponse>({ totals: {}, byRetail: [], byFormat: [], competitors: [] })
   const [rows, setRows] = useState<RetailMediaRow[]>([])
-  const [loading, setLoading] = useState(false)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [rowsLoading, setRowsLoading] = useState(false)
 
   useEffect(() => {
     if (!isColombia) {
@@ -210,36 +212,34 @@ export default function RetailMediaPage() {
       })
   }, [isColombia, startDate, endDate, channel, category])
 
-  const fetchData = useCallback(() => {
+  const fetchSummary = useCallback(() => {
     if (!isColombia || !endDate) return
-    setLoading(true)
-    const base = new URLSearchParams({ country: "CO", startDate, endDate })
-    if (channel) base.set("channel", channel)
-    if (category) base.set("category", category)
-    if (source) base.set("source", source)
+    setSummaryLoading(true)
+    const params = new URLSearchParams({ country: "CO", startDate, endDate, action: "summary", source: "all" })
+    if (channel) params.set("channel", channel)
+    if (category) params.set("category", category)
 
-    const summaryParams = new URLSearchParams(base)
-    summaryParams.set("action", "summary")
-    const rowParams = new URLSearchParams(base)
-    rowParams.set("action", "rows")
-    rowParams.set("limit", "1000")
+    fetch(`/api/retail-media?${params}`)
+      .then(r => r.json())
+      .then(summaryData => setSummary(summaryData?.totals ? summaryData : { totals: {}, byRetail: [], byFormat: [], competitors: [] }))
+      .finally(() => setSummaryLoading(false))
+  }, [isColombia, startDate, endDate, channel, category])
 
-    Promise.all([
-      fetch(`/api/retail-media?${summaryParams}`).then(r => r.json()),
-      fetch(`/api/retail-media?${rowParams}`).then(r => r.json()),
-    ])
-      .then(([summaryData, rowData]) => {
-        setSummary(summaryData?.totals ? summaryData : { totals: {}, byRetail: [], byFormat: [], competitors: [] })
-        setRows(Array.isArray(rowData) ? rowData : [])
-      })
-      .finally(() => setLoading(false))
-  }, [isColombia, startDate, endDate, channel, category, source])
+  const fetchRows = useCallback(() => {
+    if (!isColombia || !endDate) return
+    setRowsLoading(true)
+    const params = new URLSearchParams({ country: "CO", startDate, endDate, action: "rows", source: tableSource, limit: "1000" })
+    if (channel) params.set("channel", channel)
+    if (category) params.set("category", category)
 
-  useEffect(() => { fetchData() }, [fetchData])
+    fetch(`/api/retail-media?${params}`)
+      .then(r => r.json())
+      .then(rowData => setRows(Array.isArray(rowData) ? rowData : []))
+      .finally(() => setRowsLoading(false))
+  }, [isColombia, startDate, endDate, channel, category, tableSource])
 
-  useEffect(() => {
-    if (source === "sos" || source === "search") setChartSource(source)
-  }, [source])
+  useEffect(() => { fetchSummary() }, [fetchSummary])
+  useEffect(() => { fetchRows() }, [fetchRows])
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -248,6 +248,7 @@ export default function RetailMediaPage() {
       String(row.titulo || "").toLowerCase().includes(q) ||
       String(row.marca || "").toLowerCase().includes(q) ||
       String(row.fabricante || "").toLowerCase().includes(q) ||
+      String(row.keyword || "").toLowerCase().includes(q) ||
       String(row.categoria_col || "").toLowerCase().includes(q) ||
       String(row.retail || "").toLowerCase().includes(q)
     )
@@ -296,14 +297,6 @@ export default function RetailMediaPage() {
             {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Formato</span>
-          <select value={source} onChange={e => setSource(e.target.value)} className="border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg outline-none bg-white">
-            <option value="all">Todos</option>
-            <option value="sos">PLP categorías</option>
-            <option value="search">Sponsored search</option>
-          </select>
-        </div>
         <div className="ml-auto flex items-center gap-2">
           <button onClick={() => downloadCSV(filteredRows as unknown as Record<string, unknown>[], "retail-media")} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Descargar CSV">
             <Download size={12} /><span>CSV</span>
@@ -334,11 +327,8 @@ export default function RetailMediaPage() {
       <AdPresenceChart
         row={chartRow}
         source={chartSource}
-        loading={loading}
-        onSourceChange={nextSource => {
-          setChartSource(nextSource)
-          setSource(nextSource)
-        }}
+        loading={summaryLoading}
+        onSourceChange={setChartSource}
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
@@ -394,13 +384,27 @@ export default function RetailMediaPage() {
             <div className="text-[10px] uppercase tracking-widest text-gray-400">Promocionados true</div>
             <div className="text-xs text-gray-500 mt-0.5">{filteredRows.length} registros</div>
           </div>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
-            <Search size={12} className="text-gray-400" />
-            <input type="text" placeholder="Buscar título, marca, fabricante, categoría..." value={search} onChange={e => setSearch(e.target.value)} className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-72" />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1" aria-label="Formato de productos promocionados">
+              {(["sos", "search"] as const).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setTableSource(option)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${tableSource === option ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                >
+                  {option === "sos" ? "PLP Categoria" : "Sponsored Search"}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
+              <Search size={12} className="text-gray-400" />
+              <input type="text" placeholder={tableSource === "sos" ? "Buscar título, marca, fabricante, categoría..." : "Buscar título, marca, fabricante, keyword..."} value={search} onChange={e => setSearch(e.target.value)} className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-72 max-w-[60vw]" />
+            </div>
           </div>
         </div>
 
-        {loading ? (
+        {rowsLoading ? (
           <div className="flex items-center justify-center py-16"><div className="w-7 h-7 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" /></div>
         ) : filteredRows.length === 0 ? (
           <div className="text-center py-14 text-gray-400 text-sm">Sin productos promocionados para los filtros seleccionados</div>
@@ -409,29 +413,37 @@ export default function RetailMediaPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Fecha</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Retail</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Formato</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right">Orden</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Título</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Marca</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Fabricante</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoría</th>
-                  <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Subcategoría</th>
+                  {tableSource === "sos" ? (
+                    <>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Categoría</th>
+                      <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Subcategoría</th>
+                    </>
+                  ) : (
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Keyword</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredRows.map((row, idx) => (
                   <tr key={`${row.fuente}-${row.retail}-${row.titulo}-${idx}`} className="hover:bg-gray-50">
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{String(row.fecha).slice(0, 10)}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap"><span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-100">{row.retail}</span></td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{row.formato}</td>
                     <td className="px-3 py-2.5 text-right font-mono font-bold text-purple-700">{fmtOrder(row.orden)}</td>
                     <td className="px-3 py-2.5 max-w-sm"><div className="font-medium text-gray-800 truncate">{row.titulo || "-"}</div></td>
                     <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{row.marca || "-"}</td>
                     <td className="px-3 py-2.5 whitespace-nowrap"><span className={row.fabricante === "ABBOTT" ? "text-blue-700 font-bold" : "text-gray-700"}>{row.fabricante}</span></td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{row.categoria_col || "-"}</td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{row.subcategoria_col || "-"}</td>
+                    {tableSource === "sos" ? (
+                      <>
+                        <td className="px-3 py-2.5 whitespace-nowrap text-gray-700">{row.categoria_col || "-"}</td>
+                        <td className="px-3 py-2.5 whitespace-nowrap text-gray-500">{row.subcategoria_col || "-"}</td>
+                      </>
+                    ) : (
+                      <td className="px-3 py-2.5 text-gray-700">{row.keyword || "-"}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
