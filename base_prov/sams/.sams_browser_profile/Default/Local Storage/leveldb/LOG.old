@@ -1,5 +1,21 @@
-2026/10/14-11:42:02.719 638c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/14-11:42:02.785 638c Recovering log #63
-2026/10/14-11:42:02.822 638c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000063.log 
-2026/10/14-11:43:16.155 638c Level-0 table #67: started
-2026/10/14-11:43:16.189 638c Level-0 table #67: 108062 bytes OK
+2026/10/21-09:13:59.823 9544 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/21-09:13:59.843 9544 Recovering log #10
+2026/10/21-09:13:59.846 9544 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000010.log 
+2026/10/21-09:16:00.836 9498 Level-0 table #14: started
+2026/10/21-09:16:00.843 9498 Level-0 table #14: 119175 bytes OK
+2026/10/21-09:16:00.846 9498 Delete type=0 #10
+2026/10/21-09:21:43.456 9544 Level-0 table #16: started
+2026/10/21-09:21:43.466 9544 Level-0 table #16: 102912 bytes OK
+2026/10/21-09:21:43.469 9544 Delete type=0 #13
+2026/10/21-09:21:43.470 9544 Compacting 4@0 + 1@1 files
+2026/10/21-09:21:43.484 9544 Generated table #17@0: 16 keys, 107525 bytes
+2026/10/21-09:21:43.484 9544 Compacted 4@0 + 1@1 files => 107525 bytes
+2026/10/21-09:21:43.485 9544 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/10/21-09:21:43.487 9544 Delete type=2 #7
+2026/10/21-09:21:43.487 9544 Delete type=2 #9
+2026/10/21-09:21:43.487 9544 Delete type=2 #11
+2026/10/21-09:21:43.487 9544 Delete type=2 #14
+2026/10/21-09:21:43.487 9544 Delete type=2 #16
+2026/10/21-09:27:00.849 9498 Level-0 table #19: started
+2026/10/21-09:27:00.858 9498 Level-0 table #19: 108395 bytes OK
+2026/10/21-09:27:00.860 9498 Delete type=0 #15

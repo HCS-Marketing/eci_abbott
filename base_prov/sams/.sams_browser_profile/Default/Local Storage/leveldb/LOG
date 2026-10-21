@@ -1,11 +1,21 @@
-2026/10/15-11:49:40.900 5e58 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/15-11:49:40.924 5e58 Recovering log #63
-2026/10/15-11:49:40.926 5e58 Level-0 table #66: started
-2026/10/15-11:49:40.939 5e58 Level-0 table #66: 108062 bytes OK
-2026/10/15-11:49:40.958 5e58 Recovering log #66
-2026/10/15-11:49:40.963 5e58 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000066.log 
-2026/10/15-11:49:40.966 5e58 Delete type=0 #63
-2026/10/15-11:49:40.966 5e58 Delete type=2 #67
-2026/10/15-11:51:01.410 58f0 Level-0 table #68: started
-2026/10/15-11:51:01.429 58f0 Level-0 table #68: 107712 bytes OK
-2026/10/15-11:51:01.433 58f0 Delete type=0 #66
+2026/10/21-10:49:12.251 a1bc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/21-10:49:12.260 a1bc Recovering log #18
+2026/10/21-10:49:12.264 a1bc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000018.log 
+2026/10/21-10:50:12.276 8e70 Level-0 table #22: started
+2026/10/21-10:50:12.285 8e70 Level-0 table #22: 108071 bytes OK
+2026/10/21-10:50:12.288 8e70 Delete type=0 #18
+2026/10/21-10:55:13.382 8e70 Level-0 table #24: started
+2026/10/21-10:55:13.393 8e70 Level-0 table #24: 102753 bytes OK
+2026/10/21-10:55:13.395 8e70 Delete type=0 #21
+2026/10/21-11:01:13.373 8e70 Level-0 table #26: started
+2026/10/21-11:01:13.385 8e70 Level-0 table #26: 103192 bytes OK
+2026/10/21-11:01:13.387 8e70 Delete type=0 #23
+2026/10/21-11:01:13.388 8e70 Compacting 4@0 + 1@1 files
+2026/10/21-11:01:13.396 8e70 Generated table #27@0: 16 keys, 107447 bytes
+2026/10/21-11:01:13.396 8e70 Compacted 4@0 + 1@1 files => 107447 bytes
+2026/10/21-11:01:13.397 8e70 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/10/21-11:01:13.398 8e70 Delete type=2 #17
+2026/10/21-11:01:13.399 8e70 Delete type=2 #19
+2026/10/21-11:01:13.399 8e70 Delete type=2 #22
+2026/10/21-11:01:13.399 8e70 Delete type=2 #24
+2026/10/21-11:01:13.399 8e70 Delete type=2 #26
