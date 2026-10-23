@@ -1,24 +1,8 @@
-2026/10/21-10:49:12.402 a1bc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/10/21-10:49:12.407 a1bc Recovering log #20
-2026/10/21-10:49:12.412 a1bc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000020.log 
-2026/10/21-10:54:13.379 a1bc Level-0 table #24: started
-2026/10/21-10:54:13.391 a1bc Level-0 table #24: 16030 bytes OK
-2026/10/21-10:54:13.394 a1bc Delete type=0 #20
-2026/10/21-10:59:13.385 a1bc Level-0 table #26: started
-2026/10/21-10:59:13.399 a1bc Level-0 table #26: 19918 bytes OK
-2026/10/21-10:59:13.402 a1bc Delete type=0 #23
-2026/10/21-10:59:13.404 a1bc Compacting 4@0 + 1@1 files
-2026/10/21-10:59:13.413 a1bc Generated table #27@0: 198 keys, 10891 bytes
-2026/10/21-10:59:13.414 a1bc Compacted 4@0 + 1@1 files => 10891 bytes
-2026/10/21-10:59:13.415 a1bc compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/10/21-10:59:13.416 a1bc Delete type=2 #17
-2026/10/21-10:59:13.416 a1bc Delete type=2 #19
-2026/10/21-10:59:13.416 a1bc Delete type=2 #21
-2026/10/21-10:59:13.417 a1bc Delete type=2 #24
-2026/10/21-10:59:13.417 a1bc Delete type=2 #26
-2026/10/21-11:02:06.767 a1bc Level-0 table #29: started
-2026/10/21-11:02:06.776 a1bc Level-0 table #29: 16037 bytes OK
-2026/10/21-11:02:06.780 a1bc Delete type=0 #25
-2026/10/21-11:03:45.013 8e70 Level-0 table #31: started
-2026/10/21-11:03:45.022 8e70 Level-0 table #31: 14748 bytes OK
-2026/10/21-11:03:45.025 8e70 Delete type=0 #28
+2026/10/21-12:24:23.588 a120 Creating DB C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage since it was missing.
+2026/10/21-12:24:23.616 a120 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/21-12:28:25.396 a120 Level-0 table #5: started
+2026/10/21-12:28:25.406 a120 Level-0 table #5: 15777 bytes OK
+2026/10/21-12:28:25.409 a120 Delete type=0 #3
+2026/10/21-12:32:42.105 a120 Level-0 table #7: started
+2026/10/21-12:32:42.119 a120 Level-0 table #7: 17771 bytes OK
+2026/10/21-12:32:42.123 a120 Delete type=0 #4

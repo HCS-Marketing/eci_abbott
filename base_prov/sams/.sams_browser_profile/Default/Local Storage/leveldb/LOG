@@ -1,21 +1,8 @@
-2026/10/21-10:49:12.251 a1bc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/21-10:49:12.260 a1bc Recovering log #18
-2026/10/21-10:49:12.264 a1bc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000018.log 
-2026/10/21-10:50:12.276 8e70 Level-0 table #22: started
-2026/10/21-10:50:12.285 8e70 Level-0 table #22: 108071 bytes OK
-2026/10/21-10:50:12.288 8e70 Delete type=0 #18
-2026/10/21-10:55:13.382 8e70 Level-0 table #24: started
-2026/10/21-10:55:13.393 8e70 Level-0 table #24: 102753 bytes OK
-2026/10/21-10:55:13.395 8e70 Delete type=0 #21
-2026/10/21-11:01:13.373 8e70 Level-0 table #26: started
-2026/10/21-11:01:13.385 8e70 Level-0 table #26: 103192 bytes OK
-2026/10/21-11:01:13.387 8e70 Delete type=0 #23
-2026/10/21-11:01:13.388 8e70 Compacting 4@0 + 1@1 files
-2026/10/21-11:01:13.396 8e70 Generated table #27@0: 16 keys, 107447 bytes
-2026/10/21-11:01:13.396 8e70 Compacted 4@0 + 1@1 files => 107447 bytes
-2026/10/21-11:01:13.397 8e70 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/10/21-11:01:13.398 8e70 Delete type=2 #17
-2026/10/21-11:01:13.399 8e70 Delete type=2 #19
-2026/10/21-11:01:13.399 8e70 Delete type=2 #22
-2026/10/21-11:01:13.399 8e70 Delete type=2 #24
-2026/10/21-11:01:13.399 8e70 Delete type=2 #26
+2026/10/21-12:24:23.446 a120 Creating DB C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb since it was missing.
+2026/10/21-12:24:23.473 a120 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/21-12:25:23.493 9c1c Level-0 table #5: started
+2026/10/21-12:25:23.504 9c1c Level-0 table #5: 103186 bytes OK
+2026/10/21-12:25:23.506 9c1c Delete type=0 #3
+2026/10/21-12:30:34.077 9c1c Level-0 table #7: started
+2026/10/21-12:30:34.090 9c1c Level-0 table #7: 108056 bytes OK
+2026/10/21-12:30:34.093 9c1c Delete type=0 #4
