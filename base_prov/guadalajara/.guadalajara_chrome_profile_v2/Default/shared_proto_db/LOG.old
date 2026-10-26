@@ -1,2 +1,3 @@
-2026/10/22-17:42:44.884 b750 Creating DB C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\shared_proto_db since it was missing.
-2026/10/22-17:42:44.901 b750 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\shared_proto_db/MANIFEST-000001
+2026/10/26-11:20:13.374 1678 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\shared_proto_db/MANIFEST-000001
+2026/10/26-11:20:13.375 1678 Recovering log #3
+2026/10/26-11:20:13.377 1678 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\shared_proto_db/000003.log 

@@ -1,0 +1,8 @@
+2026/10/21-12:24:23.446 a120 Creating DB C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb since it was missing.
+2026/10/21-12:24:23.473 a120 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/21-12:25:23.493 9c1c Level-0 table #5: started
+2026/10/21-12:25:23.504 9c1c Level-0 table #5: 103186 bytes OK
+2026/10/21-12:25:23.506 9c1c Delete type=0 #3
+2026/10/21-12:30:34.077 9c1c Level-0 table #7: started
+2026/10/21-12:30:34.090 9c1c Level-0 table #7: 108056 bytes OK
+2026/10/21-12:30:34.093 9c1c Delete type=0 #4

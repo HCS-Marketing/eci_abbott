@@ -1,8 +1,9 @@
-2026/10/21-12:24:23.588 a120 Creating DB C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage since it was missing.
-2026/10/21-12:24:23.616 a120 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/10/21-12:28:25.396 a120 Level-0 table #5: started
-2026/10/21-12:28:25.406 a120 Level-0 table #5: 15777 bytes OK
-2026/10/21-12:28:25.409 a120 Delete type=0 #3
-2026/10/21-12:32:42.105 a120 Level-0 table #7: started
-2026/10/21-12:32:42.119 a120 Level-0 table #7: 17771 bytes OK
-2026/10/21-12:32:42.123 a120 Delete type=0 #4
+2026/10/26-09:24:07.269 2348 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/26-09:24:07.285 2348 Recovering log #6
+2026/10/26-09:24:07.304 2348 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000006.log 
+2026/10/26-09:25:58.784 30c4 Level-0 table #10: started
+2026/10/26-09:25:58.793 30c4 Level-0 table #10: 15575 bytes OK
+2026/10/26-09:25:58.795 30c4 Delete type=0 #6
+2026/10/26-09:29:10.102 30c4 Level-0 table #12: started
+2026/10/26-09:29:10.114 30c4 Level-0 table #12: 18981 bytes OK
+2026/10/26-09:29:10.118 30c4 Delete type=0 #9
