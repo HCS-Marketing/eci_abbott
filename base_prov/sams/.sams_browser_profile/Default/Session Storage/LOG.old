@@ -1,18 +1,8 @@
-2026/10/27-11:30:42.499 17a0 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/10/27-11:30:42.528 17a0 Recovering log #11
-2026/10/27-11:30:42.534 17a0 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000011.log 
-2026/10/27-11:30:43.986 245c Level-0 table #15: started
-2026/10/27-11:30:43.992 245c Level-0 table #15: 16802 bytes OK
-2026/10/27-11:30:43.995 245c Delete type=0 #11
-2026/10/27-11:45:35.644 17a0 Level-0 table #17: started
-2026/10/27-11:45:35.653 17a0 Level-0 table #17: 15911 bytes OK
-2026/10/27-11:45:35.657 17a0 Delete type=0 #14
-2026/10/27-11:45:35.657 17a0 Compacting 4@0 + 1@1 files
-2026/10/27-11:45:35.666 17a0 Generated table #18@0: 173 keys, 8723 bytes
-2026/10/27-11:45:35.666 17a0 Compacted 4@0 + 1@1 files => 8723 bytes
-2026/10/27-11:45:35.668 17a0 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/10/27-11:45:35.669 17a0 Delete type=2 #7
-2026/10/27-11:45:35.669 17a0 Delete type=2 #10
-2026/10/27-11:45:35.669 17a0 Delete type=2 #12
-2026/10/27-11:45:35.669 17a0 Delete type=2 #15
-2026/10/27-11:45:35.670 17a0 Delete type=2 #17
+2026/10/28-12:20:42.019 7578 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/28-12:20:42.045 7578 Recovering log #16
+2026/10/28-12:20:42.047 7578 Level-0 table #20: started
+2026/10/28-12:20:42.057 7578 Level-0 table #20: 17356 bytes OK
+2026/10/28-12:20:42.067 7578 Delete type=0 #16
+2026/10/28-12:23:10.861 7578 Level-0 table #23: started
+2026/10/28-12:23:10.875 7578 Level-0 table #23: 16289 bytes OK
+2026/10/28-12:23:10.877 7578 Delete type=0 #21
