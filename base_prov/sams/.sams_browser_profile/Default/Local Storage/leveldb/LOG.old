@@ -1,9 +1,18 @@
-2026/10/28-12:20:41.900 6448 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/28-12:20:41.975 6448 Recovering log #16
-2026/10/28-12:20:41.989 6448 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000016.log 
-2026/10/28-12:21:42.040 7578 Level-0 table #21: started
-2026/10/28-12:21:42.055 7578 Level-0 table #21: 108308 bytes OK
-2026/10/28-12:21:42.058 7578 Delete type=0 #16
-2026/10/28-12:26:43.553 7578 Level-0 table #23: started
-2026/10/28-12:26:43.561 7578 Level-0 table #23: 102920 bytes OK
-2026/10/28-12:26:43.563 7578 Delete type=0 #20
+2026/10/29-11:06:47.304 6e8c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/29-11:06:47.415 6e8c Recovering log #22
+2026/10/29-11:06:47.428 6e8c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000022.log 
+2026/10/29-11:07:47.528 7908 Level-0 table #26: started
+2026/10/29-11:07:47.553 7908 Level-0 table #26: 107562 bytes OK
+2026/10/29-11:07:47.558 7908 Delete type=0 #22
+2026/10/29-11:12:49.214 7908 Level-0 table #28: started
+2026/10/29-11:12:49.223 7908 Level-0 table #28: 102998 bytes OK
+2026/10/29-11:12:49.225 7908 Delete type=0 #25
+2026/10/29-11:12:49.225 7908 Compacting 4@0 + 1@1 files
+2026/10/29-11:12:49.236 7908 Generated table #29@0: 18 keys, 107102 bytes
+2026/10/29-11:12:49.236 7908 Compacted 4@0 + 1@1 files => 107102 bytes
+2026/10/29-11:12:49.237 7908 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/10/29-11:12:49.240 7908 Delete type=2 #18
+2026/10/29-11:12:49.240 7908 Delete type=2 #21
+2026/10/29-11:12:49.240 7908 Delete type=2 #23
+2026/10/29-11:12:49.240 7908 Delete type=2 #26
+2026/10/29-11:12:49.240 7908 Delete type=2 #28

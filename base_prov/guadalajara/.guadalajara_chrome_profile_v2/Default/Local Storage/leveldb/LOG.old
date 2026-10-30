@@ -1,3 +1,6 @@
-2026/10/29-14:35:51.515 658c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/29-14:35:51.519 658c Recovering log #23
-2026/10/29-14:35:51.523 658c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/000023.log 
+2026/10/30-11:17:55.150 5a68 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/MANIFEST-000001
+2026/10/30-11:17:55.151 5a68 Recovering log #23
+2026/10/30-11:17:55.156 5a68 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/000023.log 
+2026/10/30-11:30:31.750 9b40 Level-0 table #27: started
+2026/10/30-11:30:31.755 9b40 Level-0 table #27: 18864 bytes OK
+2026/10/30-11:30:31.758 9b40 Delete type=0 #23
