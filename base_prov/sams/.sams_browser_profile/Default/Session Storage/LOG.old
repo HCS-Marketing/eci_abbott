@@ -1,20 +1,9 @@
-2026/10/29-11:06:47.495 7908 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/10/29-11:06:47.519 7908 Recovering log #22
-2026/10/29-11:06:47.519 7908 Level-0 table #25: started
-2026/10/29-11:06:47.534 7908 Level-0 table #25: 17858 bytes OK
-2026/10/29-11:06:47.542 7908 Delete type=0 #22
-2026/10/29-11:09:23.614 7908 Level-0 table #28: started
-2026/10/29-11:09:23.623 7908 Level-0 table #28: 18575 bytes OK
-2026/10/29-11:09:23.626 7908 Delete type=0 #26
-2026/10/29-11:09:23.627 7908 Compacting 4@0 + 1@1 files
-2026/10/29-11:09:23.635 7908 Generated table #29@0: 318 keys, 8462 bytes
-2026/10/29-11:09:23.636 7908 Compacted 4@0 + 1@1 files => 8462 bytes
-2026/10/29-11:09:23.638 7908 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/10/29-11:09:23.640 7908 Delete type=2 #18
-2026/10/29-11:09:23.640 7908 Delete type=2 #20
-2026/10/29-11:09:23.640 7908 Delete type=2 #23
-2026/10/29-11:09:23.640 7908 Delete type=2 #25
-2026/10/29-11:09:23.640 7908 Delete type=2 #28
-2026/10/29-11:12:26.034 7908 Level-0 table #31: started
-2026/10/29-11:12:26.042 7908 Level-0 table #31: 15790 bytes OK
-2026/10/29-11:12:26.046 7908 Delete type=0 #27
+2026/10/30-11:03:24.383 3bcc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/10/30-11:03:24.399 3bcc Recovering log #30
+2026/10/30-11:03:24.404 3bcc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000030.log 
+2026/10/30-11:06:25.677 7790 Level-0 table #34: started
+2026/10/30-11:06:25.688 7790 Level-0 table #34: 19770 bytes OK
+2026/10/30-11:06:25.690 7790 Delete type=0 #30
+2026/10/30-11:09:43.094 7790 Level-0 table #36: started
+2026/10/30-11:09:43.109 7790 Level-0 table #36: 13431 bytes OK
+2026/10/30-11:09:43.112 7790 Delete type=0 #33

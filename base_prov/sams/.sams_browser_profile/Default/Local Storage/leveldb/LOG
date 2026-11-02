@@ -1,8 +1,22 @@
-2026/10/30-11:03:24.241 3bcc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/10/30-11:03:24.263 3bcc Recovering log #27
-2026/10/30-11:03:24.268 3bcc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000027.log 
-2026/10/30-11:04:24.303 7790 Level-0 table #32: started
-2026/10/30-11:04:24.311 7790 Level-0 table #32: 107604 bytes OK
-2026/10/30-11:04:24.315 7790 Delete type=0 #27
-2026/10/30-11:09:58.910 7790 Level-0 table #34: started
-2026/10/30-11:09:58.941 7790 Level-0 table #34: 103026 bytes OK
+2026/11/02-15:07:49.142 99cc Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/11/02-15:07:49.169 99cc Recovering log #31
+2026/11/02-15:07:49.264 99cc Level-0 table #34: started
+2026/11/02-15:07:49.301 99cc Level-0 table #34: 103026 bytes OK
+2026/11/02-15:07:49.329 99cc Recovering log #33
+2026/11/02-15:07:49.335 99cc Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000033.log 
+2026/11/02-15:07:49.362 99cc Delete type=0 #31
+2026/11/02-15:08:49.406 8e1c Level-0 table #36: started
+2026/11/02-15:08:49.416 8e1c Level-0 table #36: 107554 bytes OK
+2026/11/02-15:08:49.418 8e1c Delete type=0 #33
+2026/11/02-15:14:06.544 8e1c Level-0 table #38: started
+2026/11/02-15:14:06.551 8e1c Level-0 table #38: 102854 bytes OK
+2026/11/02-15:14:06.554 8e1c Delete type=0 #35
+2026/11/02-15:14:06.554 8e1c Compacting 4@0 + 1@1 files
+2026/11/02-15:14:06.564 8e1c Generated table #39@0: 18 keys, 107144 bytes
+2026/11/02-15:14:06.564 8e1c Compacted 4@0 + 1@1 files => 107144 bytes
+2026/11/02-15:14:06.565 8e1c compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/11/02-15:14:06.566 8e1c Delete type=2 #29
+2026/11/02-15:14:06.566 8e1c Delete type=2 #32
+2026/11/02-15:14:06.566 8e1c Delete type=2 #34
+2026/11/02-15:14:06.566 8e1c Delete type=2 #36
+2026/11/02-15:14:06.566 8e1c Delete type=2 #38
