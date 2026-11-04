@@ -1,18 +1,21 @@
-2026/11/02-15:07:49.367 8e1c Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/11/02-15:07:49.386 8e1c Recovering log #35
-2026/11/02-15:07:49.392 8e1c Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000035.log 
-2026/11/02-15:13:07.654 99cc Level-0 table #39: started
-2026/11/02-15:13:07.665 99cc Level-0 table #39: 19125 bytes OK
-2026/11/02-15:13:07.669 99cc Delete type=0 #35
-2026/11/02-15:13:07.671 99cc Compacting 4@0 + 1@1 files
-2026/11/02-15:13:07.684 99cc Generated table #40@0: 473 keys, 14521 bytes
-2026/11/02-15:13:07.684 99cc Compacted 4@0 + 1@1 files => 14521 bytes
-2026/11/02-15:13:07.686 99cc compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/11/02-15:13:07.688 99cc Delete type=2 #29
-2026/11/02-15:13:07.688 99cc Delete type=2 #31
-2026/11/02-15:13:07.688 99cc Delete type=2 #34
-2026/11/02-15:13:07.688 99cc Delete type=2 #36
-2026/11/02-15:13:07.688 99cc Delete type=2 #39
-2026/11/02-15:17:10.859 8e1c Level-0 table #42: started
-2026/11/02-15:17:10.869 8e1c Level-0 table #42: 18760 bytes OK
-2026/11/02-15:17:10.871 8e1c Delete type=0 #38
+2026/11/03-09:29:27.654 d024 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/11/03-09:29:27.667 d024 Recovering log #41
+2026/11/03-09:29:27.672 d024 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000041.log 
+2026/11/03-09:31:30.408 d024 Level-0 table #45: started
+2026/11/03-09:31:30.421 d024 Level-0 table #45: 17618 bytes OK
+2026/11/03-09:31:30.425 d024 Delete type=0 #41
+2026/11/03-09:36:30.407 d024 Level-0 table #47: started
+2026/11/03-09:36:30.420 d024 Level-0 table #47: 20573 bytes OK
+2026/11/03-09:36:30.423 d024 Delete type=0 #44
+2026/11/03-09:38:34.090 d024 Level-0 table #49: started
+2026/11/03-09:38:34.102 d024 Level-0 table #49: 16885 bytes OK
+2026/11/03-09:38:34.107 d024 Delete type=0 #46
+2026/11/03-09:38:34.108 d024 Compacting 4@0 + 1@1 files
+2026/11/03-09:38:34.117 d024 Generated table #50@0: 570 keys, 17589 bytes
+2026/11/03-09:38:34.118 d024 Compacted 4@0 + 1@1 files => 17589 bytes
+2026/11/03-09:38:34.120 d024 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/11/03-09:38:34.121 d024 Delete type=2 #40
+2026/11/03-09:38:34.121 d024 Delete type=2 #42
+2026/11/03-09:38:34.122 d024 Delete type=2 #45
+2026/11/03-09:38:34.122 d024 Delete type=2 #47
+2026/11/03-09:38:34.122 d024 Delete type=2 #49
