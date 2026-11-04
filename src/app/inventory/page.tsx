@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react"
 import { useMarket } from "@/lib/use-market"
 import { useGlobalFilters } from "@/lib/filter-context"
 import PageHeader from "@/components/ui/PageHeader"
@@ -24,6 +24,7 @@ interface InventoryRow {
   dias_disponibles_7d: number
   dias_observados_7d: number
   porcentaje_disponibilidad_7d: number
+  codigosPostales?: Record<string, boolean>
 }
 
 interface FallbackInventoryRow {
@@ -114,13 +115,22 @@ export default function InventoryPage() {
   const [selectedEans, setSelectedEans] = useState<string[]>([])
   const [data,    setData]    = useState<InventoryRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const isColombia = country === "CO"
   const useLocalFallback = country === "MX"
+  const isMexico = country === "MX"
   const showCategoryFilter = availableCategories.length > 0
   const providerBasePath = isColombia ? "base_prov_co" : "base_prov"
   const providerFolders = isColombia
     ? ["base_prov_co/cruz_verde", "base_prov_co/farmatodo", "base_prov_co/larebaja", "base_prov_co/rappi", "base_prov_co/unidroga"]
-    : ["base_prov/amz", "base_prov/ml", "base_prov/heb", "base_prov/sams"]
+    : ["base_prov/amz", "base_prov/ml", "base_prov/heb", "base_prov/sams", "base_prov/guadalajara"]
+
+  const toggleRow = (id: string) => setExpandedRows(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  })
 
   const fallbackDateBounds = useMemo(() => {
     const typed = fallbackRows as Array<{ fecha?: string; ean?: string; categoria?: string; titulo?: string }>
@@ -411,61 +421,121 @@ export default function InventoryPage() {
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-center">Ultimo visto</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">% Disp 7 días</th>
+                  {isMexico && (
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Tiendas</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filtered.map((e, i) => (
-                  <tr key={`${e.id}-${i}`}
-                    className={clsx("transition-colors",
-                      e.stock_status === "break"
-                        ? "bg-red-50/60 hover:bg-red-50"
-                        : "bg-green-50/30 hover:bg-green-50/50"
-                    )}>
+                {filtered.map((e, i) => {
+                  const cp = e.codigosPostales || {}
+                  const cpKeys = Object.keys(cp)
+                  const cpTotal = cpKeys.length
+                  const cpAvail = cpKeys.filter(k => cp[k]).length
+                  const isExpanded = expandedRows.has(e.id)
+                  return (
+                    <Fragment key={`${e.id}-${i}`}>
+                      <tr
+                        className={clsx("transition-colors",
+                          e.stock_status === "break"
+                            ? "bg-red-50/60 hover:bg-red-50"
+                            : "bg-green-50/30 hover:bg-green-50/50"
+                        )}>
 
-                    {/* Estado */}
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      {e.estado === "NO DISPONIBLE" ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit text-red-700 bg-red-100 border-red-200">
-                          <AlertTriangle size={9} />No disponible
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full w-fit">
-                          Disponible
-                        </span>
+                        {/* Estado */}
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {e.estado === "NO DISPONIBLE" ? (
+                            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border w-fit text-red-700 bg-red-100 border-red-200">
+                              <AlertTriangle size={9} />No disponible
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full w-fit">
+                              Disponible
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Producto */}
+                        <td className="px-3 py-2.5 max-w-xs">
+                          <div className="font-medium text-gray-800 leading-snug truncate">{e.producto}</div>
+                          {e.categoria && (
+                            <div className="text-[10px] text-gray-500 mt-0.5">{e.categoria}</div>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">
+                          {e.ean || "-"}
+                        </td>
+
+                        {/* Canal */}
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.canal}</span>
+                        </td>
+
+                        {/* Ultimo visto */}
+                        <td className="px-3 py-2.5 text-center">
+                          {e.ultimo_visto ? (
+                            <span className="text-[10px] font-medium text-gray-700">{e.ultimo_visto}</span>
+                          ) : (
+                            <span className="text-[10px] font-medium text-gray-400">—</span>
+                          )}
+                        </td>
+
+                        <td className="px-3 py-2.5">
+                          <AvailabilityBar row={e} />
+                        </td>
+
+                        {/* Tiendas (MX only) */}
+                        {isMexico && (
+                          <td className="px-3 py-2.5 whitespace-nowrap">
+                            {cpTotal > 0 ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className={clsx(
+                                  "text-[11px] font-semibold",
+                                  cpAvail === 0 ? "text-red-600" : cpAvail === cpTotal ? "text-green-600" : "text-amber-600"
+                                )}>
+                                  {cpAvail}/{cpTotal}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRow(e.id)}
+                                  className="text-[10px] text-purple-600 hover:text-purple-800 underline underline-offset-2 transition-colors"
+                                >
+                                  {isExpanded ? "ver menos" : "ver más"}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-gray-400">—</span>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+
+                      {/* Expanded postal codes row */}
+                      {isMexico && isExpanded && cpTotal > 0 && (
+                        <tr key={`${e.id}-cp`} className="bg-gray-50/80 border-b border-gray-100">
+                          <td colSpan={7} className="px-6 py-3">
+                            <div className="flex flex-wrap gap-1.5">
+                              {cpKeys.map(k => (
+                                <span
+                                  key={k}
+                                  className={clsx(
+                                    "text-[10px] font-medium px-2 py-0.5 rounded-full border",
+                                    cp[k]
+                                      ? "bg-green-50 text-green-700 border-green-200"
+                                      : "bg-red-50 text-red-600 border-red-200"
+                                  )}
+                                >
+                                  {k}: {cp[k] ? "SI" : "NO"}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-
-                    {/* Producto */}
-                    <td className="px-3 py-2.5 max-w-xs">
-                      <div className="font-medium text-gray-800 leading-snug truncate">{e.producto}</div>
-                      {e.categoria && (
-                        <div className="text-[10px] text-gray-500 mt-0.5">{e.categoria}</div>
-                      )}
-                    </td>
-
-                    <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[11px] text-gray-700">
-                      {e.ean || "-"}
-                    </td>
-
-                    {/* Canal */}
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <span className="text-[10px] bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded-full border border-purple-100">{e.canal}</span>
-                    </td>
-
-                    {/* Ultimo visto */}
-                    <td className="px-3 py-2.5 text-center">
-                      {e.ultimo_visto ? (
-                        <span className="text-[10px] font-medium text-gray-700">{e.ultimo_visto}</span>
-                      ) : (
-                        <span className="text-[10px] font-medium text-gray-400">—</span>
-                      )}
-                    </td>
-
-                    <td className="px-3 py-2.5">
-                      <AvailabilityBar row={e} />
-                    </td>
-                  </tr>
-                ))}
+                    </Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>

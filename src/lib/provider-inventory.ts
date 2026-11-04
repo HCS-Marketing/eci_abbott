@@ -7,6 +7,7 @@ export interface ProviderInventorySourceRow {
   disponibilidad: string
   disponible: boolean
   posicion?: number | null
+  codigosPostales?: Record<string, boolean>
 }
 
 export interface ProviderInventoryFilters {
@@ -27,6 +28,7 @@ export interface ProviderInventoryRow {
   dias_disponibles_7d: number
   dias_observados_7d: number
   porcentaje_disponibilidad_7d: number
+  codigosPostales: Record<string, boolean>
 }
 
 function inventoryKey(row: ProviderInventorySourceRow): string {
@@ -121,6 +123,7 @@ export function buildProviderInventoryRows(
       porcentaje_disponibilidad_7d: observedDays > 0
         ? Math.round((availableDays / observedDays) * 100)
         : 0,
+      codigosPostales: current.codigosPostales || {},
     }
   })
 }

@@ -7,7 +7,7 @@ import coFallbackRowsJson from "@/data/co-provider-rows.json"
 const PROVIDER_CONFIG = {
   MX: {
     baseDir: "base_prov",
-    dirs: ["amz", "ml", "heb", "sams"],
+    dirs: ["amz", "ml", "heb", "sams", "guadalajara"],
     retailByDir: {} as Record<string, string>,
   },
   CO: {
@@ -57,6 +57,7 @@ export interface MxProviderRow {
   url_producto: string
   disponibilidad: string
   disponible: boolean
+  codigosPostales: Record<string, boolean>
 }
 
 function normalizeProviderCountry(country?: string | null): ProviderCountry {
@@ -214,6 +215,10 @@ function readField(row: Record<string, unknown>, keys: string[]): unknown {
   return undefined
 }
 
+function isPostalCodeKey(key: string): boolean {
+  return /^\d{4,6}$/.test(String(key))
+}
+
 function normalizeDisponibilidad(value: unknown): { disponibilidad: string; disponible: boolean } {
   const raw = String(value ?? "").trim().toUpperCase()
   if (raw.includes("NO")) return { disponibilidad: "NO DISPONIBLE", disponible: false }
@@ -255,6 +260,13 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
       if (!fecha || !retail || (!titulo && !ean)) continue
 
       const { disponibilidad, disponible } = normalizeDisponibilidad(readField(r, ["disponibilidad"]))
+      const codigosPostales: Record<string, boolean> = {}
+      for (const [key, value] of Object.entries(r)) {
+        if (isPostalCodeKey(String(key))) {
+          const v = String(value || "").trim().toUpperCase()
+          codigosPostales[String(key)] = v === "SI" || v === "SÍ" || v === "YES"
+        }
+      }
       rows.push({
         fecha,
         retail,
@@ -277,6 +289,7 @@ function readExcelFilesFromDir(dirPath: string, retailOverride = ""): MxProvider
         url_producto: readTextField(r, ["url_producto"]),
         disponibilidad,
         disponible,
+        codigosPostales,
       })
     }
   }
@@ -326,6 +339,7 @@ export function loadMxProviderRows(country?: string | null): MxProviderRow[] {
     bullet_points: Number(r.bullet_points || 0),
     description: String(r.description || "").trim(),
     url_imagen: String(r.url_imagen || "").trim(),
+    codigosPostales: r.codigosPostales || {},
   })))
   base.sort((a, b) => {
     if (a.fecha !== b.fecha) return a.fecha.localeCompare(b.fecha)
