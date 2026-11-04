@@ -274,20 +274,44 @@ export default function InventoryPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // Lookup de codigosPostales desde el JSON local, agrupado por canal|||ean (fecha más reciente primero)
+  // Esto permite suplementar los datos del API si éste usa código compilado anterior sin codigosPostales
+  const cpLookup = useMemo(() => {
+    if (!isMexico) return new Map<string, Record<string, boolean>>()
+    const map = new Map<string, Record<string, boolean>>()
+    const sorted = (fallbackRows as FallbackInventoryRow[]).slice().sort((a, b) => b.fecha.localeCompare(a.fecha))
+    for (const row of sorted) {
+      if (!row.codigosPostales || Object.keys(row.codigosPostales).length === 0) continue
+      const ean = String(row.EAN || row.ean || "").trim()
+      const retail = normalizeInventoryChannel(row.retail)
+      if (!ean || !retail) continue
+      const key = `${retail}|||${ean}`
+      if (!map.has(key)) map.set(key, row.codigosPostales)
+    }
+    return map
+  }, [isMexico])
+
   const filtered = useMemo(() =>
-    data.filter(e =>
-      (!showCategoryFilter || !category || e.categoria === category) &&
-      (!showOnlyUnavailable || e.stock_status === "break") &&
-      (selectedEans.length === 0 || selectedEans.includes(e.ean)) && (
-        !search ||
-        e.producto?.toLowerCase().includes(search.toLowerCase()) ||
-        e.ean?.toLowerCase().includes(search.toLowerCase()) ||
-        e.categoria?.toLowerCase().includes(search.toLowerCase()) ||
-        e.canal?.toLowerCase().includes(search.toLowerCase()) ||
-        e.estado?.toLowerCase().includes(search.toLowerCase())
+    data
+      .filter(e =>
+        (!showCategoryFilter || !category || e.categoria === category) &&
+        (!showOnlyUnavailable || e.stock_status === "break") &&
+        (selectedEans.length === 0 || selectedEans.includes(e.ean)) && (
+          !search ||
+          e.producto?.toLowerCase().includes(search.toLowerCase()) ||
+          e.ean?.toLowerCase().includes(search.toLowerCase()) ||
+          e.categoria?.toLowerCase().includes(search.toLowerCase()) ||
+          e.canal?.toLowerCase().includes(search.toLowerCase()) ||
+          e.estado?.toLowerCase().includes(search.toLowerCase())
+        )
       )
-    )
-  , [data, search, selectedEans, category, showOnlyUnavailable, showCategoryFilter])
+      .map(e => {
+        if (!isMexico) return e
+        if (e.codigosPostales && Object.keys(e.codigosPostales).length > 0) return e
+        const cp = cpLookup.get(`${e.canal}|||${e.ean}`)
+        return cp ? { ...e, codigosPostales: cp } : e
+      })
+  , [data, search, selectedEans, category, showOnlyUnavailable, showCategoryFilter, isMexico, cpLookup])
 
   // KPIs
   const inStock = data.filter(e => e.stock_status === "in_stock").length
