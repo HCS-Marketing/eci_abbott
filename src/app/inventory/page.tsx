@@ -36,6 +36,7 @@ interface FallbackInventoryRow {
   ean?: string
   categoria?: string
   posicion?: number | null
+  codigosPostales?: Record<string, boolean>
 }
 
 function normalizeInventoryChannel(value: string): string {
@@ -67,6 +68,7 @@ function buildLocalInventoryRows(
         posicion: row.posicion ?? null,
         disponibilidad,
         disponible: !disponibilidad.toUpperCase().includes("NO"),
+        codigosPostales: row.codigosPostales || {},
       }
     })
     .filter(row => !channel || row.retail === channel)
