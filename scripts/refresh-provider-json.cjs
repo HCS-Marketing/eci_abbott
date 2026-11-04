@@ -7,7 +7,7 @@ const PROVIDER_CONFIGS = [
   {
     label: "mx",
     baseDir: "base_prov",
-    dirs: ["amz", "ml", "heb", "sams"],
+    dirs: ["amz", "ml", "heb", "sams", "guadalajara"],
     outputFile: path.join(ROOT, "src", "data", "mx-provider-rows.json"),
     retailByDir: {},
   },
@@ -173,6 +173,13 @@ function readExcelFilesFromDir(dirPath, retailOverride = "", stats) {
 
       const { disponibilidad, disponible } = normalizeDisponibilidad(rawDisponibilidad)
       const marca = readTextField(r, ["MARCA", "marca"])
+      const codigosPostales = {}
+      for (const [key, value] of Object.entries(r)) {
+        if (/^\d{4,6}$/.test(String(key))) {
+          const v = String(value ?? "").trim().toUpperCase()
+          codigosPostales[String(key)] = v === "SI" || v === "SÍ" || v === "YES"
+        }
+      }
       rows.push({
         fecha,
         retail,
@@ -195,6 +202,7 @@ function readExcelFilesFromDir(dirPath, retailOverride = "", stats) {
         url_producto: readTextField(r, ["url_producto"]),
         disponibilidad,
         disponible,
+        ...(Object.keys(codigosPostales).length > 0 ? { codigosPostales } : {}),
       })
     }
   }
