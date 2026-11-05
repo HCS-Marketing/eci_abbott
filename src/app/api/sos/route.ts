@@ -2141,7 +2141,7 @@ export async function GET(req: Request) {
           producto:                 r.producto ?? r.titulo,
           marca:                    r.marca,
           country:                  r.pais,
-          seller:                   r.seller ?? r.retail,
+          seller:                   r.seller ?? null,
           plataforma:               r.plataforma ?? r.retail,
           subcategoria:             r.subcategoria ?? r.categoria,
           fabricante:               r.fabricante,
@@ -2185,7 +2185,7 @@ export async function GET(req: Request) {
           titulo AS producto,
           marca,
           pais,
-          retail AS seller,
+          NULLIF(NULLIF(TRIM(seller),''),'false') AS seller,
           retail AS plataforma,
           categoria AS subcategoria,
           CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'

@@ -11,7 +11,7 @@ import { useGlobalFilters } from "@/lib/filter-context"
 
 // ─── TYPES ────────────────────────────────────────────────────
 interface PriceRow {
-  id: string; producto: string; marca: string; seller: string; fabricante: string
+  id: string; producto: string; marca: string; seller: string | null; fabricante: string
   country?: string
   plataforma: string; subcategoria: string
   precio_venta: number; precio: number; descuento: number
@@ -26,7 +26,7 @@ interface PriceRow {
 
 // ─── HELPERS ──────────────────────────────────────────────────
 
-type SortCol = "precio_venta" | "descuento" | "seller"
+type SortCol = "precio_venta" | "descuento" | "fabricante" | "seller"
 
 // ─── PAGE ─────────────────────────────────────────────────────
 export default function PricingPage() {
@@ -34,8 +34,9 @@ export default function PricingPage() {
   const COLORS  = market.colors
   const SELLERS = market.sellers
   const { country } = useGlobalFilters()
+  const showSeller = country === "MX"
 
-  const [segmento,       setSegmento]       = useState("")
+  const [segmento,      setSegmento]       = useState("")
   const [mercado,        setMercado]        = useState("")
   const [channel,        setChannel]        = useState("")
   const [category,       setCategory]       = useState("")
@@ -75,6 +76,7 @@ export default function PricingPage() {
     if (country !== "MX") {
       setMercado("")
       setSegmento("")
+      setSortBy(s => s === "seller" ? "precio_venta" : s)
     }
     setCategory("")
     setAvailableCategories([])
@@ -184,13 +186,15 @@ export default function PricingPage() {
       !search ||
       e.producto?.toLowerCase().includes(search.toLowerCase()) ||
       e.fabricante?.toLowerCase().includes(search.toLowerCase()) ||
-      e.marca?.toLowerCase().includes(search.toLowerCase())
+      e.marca?.toLowerCase().includes(search.toLowerCase()) ||
+      (showSeller && e.seller?.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
       let v = 0
       if      (sortBy === "precio_venta") v = (a.precio_venta || 0) - (b.precio_venta || 0)
       else if (sortBy === "descuento")    v = (a.descuento    || 0) - (b.descuento    || 0)
-      else if (sortBy === "seller")       v = (a.fabricante || "").localeCompare(b.fabricante || "")
+      else if (sortBy === "fabricante")   v = (a.fabricante || "").localeCompare(b.fabricante || "")
+      else if (sortBy === "seller")       v = (a.seller     || "").localeCompare(b.seller     || "")
       return sortDir === "asc" ? v : -v
     })
 
@@ -372,7 +376,7 @@ export default function PricingPage() {
           </div>
           <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-2.5 py-1.5 bg-gray-50">
             <Search size={12} className="text-gray-400" />
-            <input type="text" placeholder="Buscar producto, fabricante, marca..." value={search}
+            <input type="text" placeholder={showSeller ? "Buscar producto, fabricante, seller, marca..." : "Buscar producto, fabricante, marca..."} value={search}
               onChange={e => setSearch(e.target.value)}
               className="text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400 w-52" />
           </div>
@@ -391,9 +395,15 @@ export default function PricingPage() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-left">
                   <th className="px-4 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Producto</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold cursor-pointer hover:text-gray-700 select-none"
-                    onClick={() => toggleSort("seller")}>
-                    Fabricante <SortIcon col="seller" />
+                    onClick={() => toggleSort("fabricante")}>
+                    Fabricante <SortIcon col="fabricante" />
                   </th>
+                  {showSeller && (
+                    <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold cursor-pointer hover:text-gray-700 select-none"
+                      onClick={() => toggleSort("seller")}>
+                      Seller <SortIcon col="seller" />
+                    </th>
+                  )}
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Canal</th>
                   <th className="px-3 py-2.5 text-[10px] uppercase tracking-wider text-gray-400 font-semibold text-right cursor-pointer hover:text-gray-700 select-none"
                     onClick={() => toggleSort("precio_venta")}>
@@ -429,13 +439,20 @@ export default function PricingPage() {
                         </div>
                       </td>
 
-                      {/* Seller */}
+                      {/* Fabricante */}
                       <td className="px-3 py-3 whitespace-nowrap">
                         <span className="flex items-center gap-1.5">
                           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                           <span className="font-medium" style={{ color }}>{e.fabricante}</span>
                         </span>
                       </td>
+
+                      {/* Seller (solo México) */}
+                      {showSeller && (
+                        <td className="px-3 py-3 whitespace-nowrap text-gray-700">
+                          {e.seller || <span className="text-gray-300">—</span>}
+                        </td>
+                      )}
 
                       {/* Canal */}
                       <td className="px-3 py-3 whitespace-nowrap">
