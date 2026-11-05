@@ -1,9 +1,18 @@
-2026/11/03-09:29:27.528 aa04 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/11/03-09:29:27.557 aa04 Recovering log #37
-2026/11/03-09:29:27.568 aa04 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000037.log 
-2026/11/03-09:30:27.642 d024 Level-0 table #42: started
-2026/11/03-09:30:27.650 d024 Level-0 table #42: 108435 bytes OK
-2026/11/03-09:30:27.653 d024 Delete type=0 #37
-2026/11/03-09:36:30.403 b870 Level-0 table #44: started
-2026/11/03-09:36:30.420 b870 Level-0 table #44: 103186 bytes OK
-2026/11/03-09:36:30.422 b870 Delete type=0 #41
+2026/11/04-09:15:27.864 bd70 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/11/04-09:15:27.890 bd70 Recovering log #43
+2026/11/04-09:15:27.895 bd70 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Local Storage\leveldb/000043.log 
+2026/11/04-09:16:27.919 6ef0 Level-0 table #47: started
+2026/11/04-09:16:27.936 6ef0 Level-0 table #47: 108122 bytes OK
+2026/11/04-09:16:27.940 6ef0 Delete type=0 #43
+2026/11/04-09:21:36.581 6ef0 Level-0 table #49: started
+2026/11/04-09:21:36.593 6ef0 Level-0 table #49: 102891 bytes OK
+2026/11/04-09:21:36.596 6ef0 Delete type=0 #46
+2026/11/04-09:21:36.597 6ef0 Compacting 4@0 + 1@1 files
+2026/11/04-09:21:36.610 6ef0 Generated table #50@0: 18 keys, 107166 bytes
+2026/11/04-09:21:36.610 6ef0 Compacted 4@0 + 1@1 files => 107166 bytes
+2026/11/04-09:21:36.611 6ef0 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/11/04-09:21:36.612 6ef0 Delete type=2 #39
+2026/11/04-09:21:36.612 6ef0 Delete type=2 #42
+2026/11/04-09:21:36.612 6ef0 Delete type=2 #44
+2026/11/04-09:21:36.612 6ef0 Delete type=2 #47
+2026/11/04-09:21:36.613 6ef0 Delete type=2 #49
