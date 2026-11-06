@@ -1,18 +1,6 @@
-2026/11/05-10:07:49.908 f064 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/MANIFEST-000001
-2026/11/05-10:07:49.911 f064 Recovering log #41
-2026/11/05-10:07:49.917 f064 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/000041.log 
-2026/11/05-10:12:54.241 fea4 Level-0 table #45: started
-2026/11/05-10:12:54.251 fea4 Level-0 table #45: 19039 bytes OK
-2026/11/05-10:12:54.256 fea4 Delete type=0 #41
-2026/11/05-10:12:54.257 fea4 Compacting 4@0 + 1@1 files
-2026/11/05-10:12:54.269 fea4 Generated table #46@0: 22 keys, 1119 bytes
-2026/11/05-10:12:54.274 fea4 Compacted 4@0 + 1@1 files => 1119 bytes
-2026/11/05-10:12:54.278 fea4 compacted to: files[ 0 1 1 0 0 0 0 ]
-2026/11/05-10:12:54.280 fea4 Delete type=2 #34
-2026/11/05-10:12:54.280 fea4 Delete type=2 #37
-2026/11/05-10:12:54.280 fea4 Delete type=2 #39
-2026/11/05-10:12:54.280 fea4 Delete type=2 #42
-2026/11/05-10:12:54.280 fea4 Delete type=2 #45
-2026/11/05-10:43:38.142 fea4 Level-0 table #48: started
-2026/11/05-10:43:38.147 fea4 Level-0 table #48: 19222 bytes OK
-2026/11/05-10:43:38.149 fea4 Delete type=0 #44
+2026/11/06-10:13:14.915 1910 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/MANIFEST-000001
+2026/11/06-10:13:14.918 1910 Recovering log #47
+2026/11/06-10:13:14.923 1910 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\guadalajara\.guadalajara_chrome_profile_v2\Default\Local Storage\leveldb/000047.log 
+2026/11/06-10:34:13.746 10380 Level-0 table #51: started
+2026/11/06-10:34:13.752 10380 Level-0 table #51: 18866 bytes OK
+2026/11/06-10:34:13.755 10380 Delete type=0 #47

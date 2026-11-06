@@ -1,9 +1,21 @@
-2026/11/04-09:15:28.309 bd70 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
-2026/11/04-09:15:28.340 bd70 Recovering log #48
-2026/11/04-09:15:28.346 bd70 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000048.log 
-2026/11/04-09:19:05.152 6ef0 Level-0 table #53: started
-2026/11/04-09:19:05.160 6ef0 Level-0 table #53: 15677 bytes OK
-2026/11/04-09:19:05.163 6ef0 Delete type=0 #48
-2026/11/04-09:22:29.965 bd70 Level-0 table #55: started
-2026/11/04-09:22:29.972 bd70 Level-0 table #55: 17391 bytes OK
-2026/11/04-09:22:29.974 bd70 Delete type=0 #52
+2026/11/05-09:30:34.827 fe50 Reusing MANIFEST C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/MANIFEST-000001
+2026/11/05-09:30:34.853 fe50 Recovering log #54
+2026/11/05-09:30:34.882 fe50 Reusing old log C:\Users\User\Documents\como se me cante\retail-chatbot-main\eci_abbott-main\base_prov\sams\.sams_browser_profile\Default\Session Storage/000054.log 
+2026/11/05-09:31:36.646 73d0 Level-0 table #58: started
+2026/11/05-09:31:36.654 73d0 Level-0 table #58: 19606 bytes OK
+2026/11/05-09:31:36.658 73d0 Delete type=0 #54
+2026/11/05-09:37:36.647 fe50 Level-0 table #60: started
+2026/11/05-09:37:36.657 fe50 Level-0 table #60: 14108 bytes OK
+2026/11/05-09:37:36.660 fe50 Delete type=0 #57
+2026/11/05-09:37:36.661 fe50 Compacting 4@0 + 1@1 files
+2026/11/05-09:37:36.672 fe50 Generated table #61@0: 709 keys, 15573 bytes
+2026/11/05-09:37:36.672 fe50 Compacted 4@0 + 1@1 files => 15573 bytes
+2026/11/05-09:37:36.673 fe50 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/11/05-09:37:36.675 fe50 Delete type=2 #50
+2026/11/05-09:37:36.675 fe50 Delete type=2 #53
+2026/11/05-09:37:36.675 fe50 Delete type=2 #55
+2026/11/05-09:37:36.675 fe50 Delete type=2 #58
+2026/11/05-09:37:36.675 fe50 Delete type=2 #60
+2026/11/05-09:40:36.647 fe50 Level-0 table #63: started
+2026/11/05-09:40:36.659 fe50 Level-0 table #63: 19362 bytes OK
+2026/11/05-09:40:36.661 fe50 Delete type=0 #59
