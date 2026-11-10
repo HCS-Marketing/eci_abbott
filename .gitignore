@@ -62,3 +62,6 @@ scripts/create-*.cjs
 marca y fabricante.xlsx
 Catalogo Final*.xlsx
 .vercel
+
+# perfiles de navegador de los scrapers (cookies, caché, sesiones) — no versionar
+base_prov/**/.*_profile*/
