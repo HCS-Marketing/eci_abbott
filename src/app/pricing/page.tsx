@@ -47,7 +47,7 @@ export default function PricingPage() {
   const [topN,           setTopN]           = useState(100)
   const [search,         setSearch]         = useState("")
   const [selectedSeller, setSelectedSeller] = useState("")
-  const [selectedVendor, setSelectedVendor] = useState("")
+  const [selectedVendors, setSelectedVendors] = useState<string[]>([])
   const [sortBy,         setSortBy]         = useState<SortCol>("precio_venta")
   const [sortDir,        setSortDir]        = useState<"asc" | "desc">("asc")
 
@@ -78,7 +78,10 @@ export default function PricingPage() {
         setAvailableFabricantes(fabs)
         setAvailableVendors(vens)
         setSelectedSeller(s => (s && fabs.length && !fabs.includes(s) ? "" : s))
-        setSelectedVendor(v => (v && !vens.includes(v) ? "" : v))
+        setSelectedVendors(v => {
+          const kept = v.filter(x => vens.includes(x))
+          return kept.length === v.length ? v : kept
+        })
       })
       .catch(e => { if (e?.name !== "AbortError") console.error(e) })
     return () => ac.abort()
@@ -89,7 +92,7 @@ export default function PricingPage() {
     if (country !== "MX") {
       setMercado("")
       setSegmento("")
-      setSelectedVendor("")
+      setSelectedVendors([])
       setSortBy(s => s === "seller" ? "precio_venta" : s)
     }
     setCategory("")
@@ -184,14 +187,14 @@ export default function PricingPage() {
     if (category)       p.set("category", category)
     if (country)        p.set("country",  country)
     if (selectedSeller) p.set("seller",   selectedSeller)
-    if (selectedVendor) p.set("vendor",   selectedVendor)
+    selectedVendors.forEach(v => p.append("vendor", v))
     if (segmento)       p.set("segmento", segmento)
     if (mercado)        p.set("mercado",  mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, endDate, topN, selectedSeller, selectedVendor, segmento, mercado])
+  }, [channel, category, country, endDate, topN, selectedSeller, selectedVendors, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -302,13 +305,13 @@ export default function PricingPage() {
 
         {/* Seller — only Mexico */}
         {showSeller && (
-          <FilterDropdown
+          <MultiFilterDropdown
             label="Seller"
-            value={selectedVendor}
+            values={selectedVendors}
             options={availableVendors}
             allLabel="Todos los sellers"
             searchPlaceholder="Buscar seller..."
-            onChange={setSelectedVendor}
+            onChange={setSelectedVendors}
           />
         )}
 
@@ -553,6 +556,94 @@ function FilterDropdown({
                 <div className="px-3 py-2 text-xs text-gray-400">Sin opciones</div>
               )}
             </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MultiFilterDropdown({
+  label, values, options, allLabel, searchPlaceholder, onChange,
+}: {
+  label: string
+  values: string[]
+  options: string[]
+  allLabel: string
+  searchPlaceholder: string
+  onChange: (v: string[]) => void
+}) {
+  const [open,  setOpen]  = useState(false)
+  const [query, setQuery] = useState("")
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false); setQuery("")
+      }
+    }
+    document.addEventListener("mousedown", h)
+    return () => document.removeEventListener("mousedown", h)
+  }, [])
+
+  const q = query.toLowerCase()
+  const visible = options.filter(o => o.toLowerCase().includes(q))
+  const toggle = (o: string) =>
+    onChange(values.includes(o) ? values.filter(v => v !== o) : [...values, o])
+  const buttonText =
+    values.length === 0 ? "Todos" :
+    values.length === 1 ? values[0] :
+    `${values.length} seleccionados`
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-400">{label}</span>
+      <div className="relative" ref={ref}>
+        <button onClick={() => { setOpen(p => !p); setQuery("") }}
+          className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
+          <span className="truncate max-w-[160px]">{buttonText}</span>
+          <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {open && (
+          <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg w-64">
+            <div className="p-2 border-b border-gray-100">
+              <input autoFocus type="text" placeholder={searchPlaceholder} value={query}
+                onChange={e => setQuery(e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400" />
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {q === "" && (
+                <label className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100 cursor-pointer">
+                  <input type="checkbox" className="accent-purple-600"
+                    checked={values.length === 0}
+                    onChange={() => onChange([])} />
+                  <span className={values.length === 0 ? "text-purple-700 font-semibold" : "text-gray-500"}>{allLabel}</span>
+                </label>
+              )}
+              {visible.map(o => {
+                const checked = values.includes(o)
+                return (
+                  <label key={o} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-gray-50 cursor-pointer">
+                    <input type="checkbox" className="accent-purple-600"
+                      checked={checked}
+                      onChange={() => toggle(o)} />
+                    <span className={clsx("truncate", checked ? "text-purple-700 font-semibold" : "text-gray-700")}>{o}</span>
+                  </label>
+                )
+              })}
+              {visible.length === 0 && (
+                <div className="px-3 py-2 text-xs text-gray-400">Sin opciones</div>
+              )}
+            </div>
+            {values.length > 0 && (
+              <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100">
+                <span className="text-[10px] text-gray-400">{values.length} seleccionados</span>
+                <button onClick={() => onChange([])}
+                  className="text-[11px] text-purple-700 hover:underline">Limpiar</button>
+              </div>
+            )}
           </div>
         )}
       </div>

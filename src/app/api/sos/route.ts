@@ -2147,7 +2147,7 @@ export async function GET(req: Request) {
     if (action === "pricing") {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
-      const vendor = searchParams.get("vendor") || ""
+      const vendors = searchParams.getAll("vendor").map(v => v.trim()).filter(Boolean)
 
       // Some sources store discount as fraction (0.05) while UI expects percent (5).
       const normalizeDiscountPercent = (raw: unknown): number => {
@@ -2198,9 +2198,9 @@ export async function GET(req: Request) {
         p2.push(seller)
         sellerCond2 = ` AND (CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante,'DESCONOCIDO') END) = $${p2.length}`
       }
-      if (vendor) {
-        p2.push(vendor)
-        sellerCond2 += ` AND TRIM(seller) = $${p2.length}`
+      if (vendors.length) {
+        p2.push(vendors)
+        sellerCond2 += ` AND TRIM(seller) = ANY($${p2.length}::text[])`
       }
       const mfCond2 = marcaFilter(p2)
       const sqlDirect = `
