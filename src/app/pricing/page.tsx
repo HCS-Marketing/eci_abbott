@@ -47,6 +47,7 @@ export default function PricingPage() {
   const [topN,           setTopN]           = useState(100)
   const [search,         setSearch]         = useState("")
   const [selectedSeller, setSelectedSeller] = useState("")
+  const [selectedVendor, setSelectedVendor] = useState("")
   const [sortBy,         setSortBy]         = useState<SortCol>("precio_venta")
   const [sortDir,        setSortDir]        = useState<"asc" | "desc">("asc")
 
@@ -57,25 +58,38 @@ export default function PricingPage() {
   const [data,    setData]    = useState<PriceRow[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Seller dropdown
-  const [sellerOpen,   setSellerOpen]   = useState(false)
-  const [sellerSearch, setSellerSearch] = useState("")
-  const sellerRef = useRef<HTMLDivElement>(null)
+  // Opciones de fabricante / seller según país, fecha, canal y categoría
+  const [availableFabricantes, setAvailableFabricantes] = useState<string[]>([])
+  const [availableVendors,     setAvailableVendors]     = useState<string[]>([])
   useEffect(() => {
-    function h(e: MouseEvent) {
-      if (sellerRef.current && !sellerRef.current.contains(e.target as Node)) {
-        setSellerOpen(false); setSellerSearch("")
-      }
-    }
-    document.addEventListener("mousedown", h)
-    return () => document.removeEventListener("mousedown", h)
-  }, [])
+    if (!endDate) return
+    const ac = new AbortController()
+    const p = new URLSearchParams({ action: "pricing_filters", date: endDate })
+    if (channel)  p.set("channel",  channel)
+    if (category) p.set("category", category)
+    if (country)  p.set("country",  country)
+    if (segmento) p.set("segmento", segmento)
+    if (mercado)  p.set("mercado",  mercado)
+    fetch(`/api/sos?${p}`, { signal: ac.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { fabricantes?: string[]; sellers?: string[] } | null) => {
+        const fabs = Array.isArray(d?.fabricantes) ? d!.fabricantes! : []
+        const vens = Array.isArray(d?.sellers) ? d!.sellers! : []
+        setAvailableFabricantes(fabs)
+        setAvailableVendors(vens)
+        setSelectedSeller(s => (s && fabs.length && !fabs.includes(s) ? "" : s))
+        setSelectedVendor(v => (v && !vens.includes(v) ? "" : v))
+      })
+      .catch(e => { if (e?.name !== "AbortError") console.error(e) })
+    return () => ac.abort()
+  }, [channel, category, country, endDate, segmento, mercado])
 
   // Mercado / Segmento solo aplican a MX
   useEffect(() => {
     if (country !== "MX") {
       setMercado("")
       setSegmento("")
+      setSelectedVendor("")
       setSortBy(s => s === "seller" ? "precio_venta" : s)
     }
     setCategory("")
@@ -170,13 +184,14 @@ export default function PricingPage() {
     if (category)       p.set("category", category)
     if (country)        p.set("country",  country)
     if (selectedSeller) p.set("seller",   selectedSeller)
+    if (selectedVendor) p.set("vendor",   selectedVendor)
     if (segmento)       p.set("segmento", segmento)
     if (mercado)        p.set("mercado",  mercado)
     fetch(`/api/sos?${p}`)
       .then(r => r.json())
       .then(d => setData(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false))
-  }, [channel, category, country, endDate, topN, selectedSeller, segmento, mercado])
+  }, [channel, category, country, endDate, topN, selectedSeller, selectedVendor, segmento, mercado])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -276,43 +291,26 @@ export default function PricingPage() {
         <div className="w-px h-5 bg-gray-200 hidden sm:block" />
 
         {/* Fabricante */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">Fabricante</span>
-          <div className="relative" ref={sellerRef}>
-            <button onClick={() => { setSellerOpen(p => !p); setSellerSearch("") }}
-              className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
-              <span className="truncate">{selectedSeller || "Todos"}</span>
-              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {sellerOpen && (
-              <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg w-56">
-                <div className="p-2 border-b border-gray-100">
-                  <input autoFocus type="text" placeholder="Buscar seller..." value={sellerSearch}
-                    onChange={e => setSellerSearch(e.target.value)}
-                    className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400" />
-                </div>
-                <div className="max-h-60 overflow-y-auto">
-                  {("todos".includes(sellerSearch.toLowerCase()) || sellerSearch === "") && (
-                    <button onClick={() => { setSelectedSeller(""); setSellerOpen(false); setSellerSearch("") }}
-                      className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100",
-                        selectedSeller === "" ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-500")}>
-                      Todos los sellers
-                    </button>
-                  )}
-                  {SELLERS.filter(s => s.toLowerCase().includes(sellerSearch.toLowerCase())).map(s => (
-                    <button key={s} onClick={() => { setSelectedSeller(s); setSellerOpen(false); setSellerSearch("") }}
-                      className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50",
-                        selectedSeller === s ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-700")}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <FilterDropdown
+          label="Fabricante"
+          value={selectedSeller}
+          options={availableFabricantes.length ? availableFabricantes : SELLERS}
+          allLabel="Todos los fabricantes"
+          searchPlaceholder="Buscar fabricante..."
+          onChange={setSelectedSeller}
+        />
+
+        {/* Seller — only Mexico */}
+        {showSeller && (
+          <FilterDropdown
+            label="Seller"
+            value={selectedVendor}
+            options={availableVendors}
+            allLabel="Todos los sellers"
+            searchPlaceholder="Buscar seller..."
+            onChange={setSelectedVendor}
+          />
+        )}
 
         {/* Categoría */}
         <div className="flex items-center gap-2">
@@ -485,6 +483,76 @@ export default function PricingPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FilterDropdown({
+  label, value, options, allLabel, searchPlaceholder, onChange,
+}: {
+  label: string
+  value: string
+  options: string[]
+  allLabel: string
+  searchPlaceholder: string
+  onChange: (v: string) => void
+}) {
+  const [open,  setOpen]  = useState(false)
+  const [query, setQuery] = useState("")
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false); setQuery("")
+      }
+    }
+    document.addEventListener("mousedown", h)
+    return () => document.removeEventListener("mousedown", h)
+  }, [])
+
+  const select = (v: string) => { onChange(v); setOpen(false); setQuery("") }
+  const q = query.toLowerCase()
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-400">{label}</span>
+      <div className="relative" ref={ref}>
+        <button onClick={() => { setOpen(p => !p); setQuery("") }}
+          className="flex items-center gap-2 border border-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg bg-white hover:border-gray-400 transition-colors min-w-[130px] justify-between">
+          <span className="truncate">{value || "Todos"}</span>
+          <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {open && (
+          <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-xl shadow-lg w-56">
+            <div className="p-2 border-b border-gray-100">
+              <input autoFocus type="text" placeholder={searchPlaceholder} value={query}
+                onChange={e => setQuery(e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg outline-none focus:border-purple-400" />
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {("todos".includes(q) || q === "") && (
+                <button onClick={() => select("")}
+                  className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100",
+                    value === "" ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-500")}>
+                  {allLabel}
+                </button>
+              )}
+              {options.filter(o => o.toLowerCase().includes(q)).map(o => (
+                <button key={o} onClick={() => select(o)}
+                  className={clsx("w-full text-left px-3 py-2 text-xs hover:bg-gray-50",
+                    value === o ? "text-purple-700 font-semibold bg-purple-50" : "text-gray-700")}>
+                  {o}
+                </button>
+              ))}
+              {options.length === 0 && (
+                <div className="px-3 py-2 text-xs text-gray-400">Sin opciones</div>
+              )}
+            </div>
           </div>
         )}
       </div>

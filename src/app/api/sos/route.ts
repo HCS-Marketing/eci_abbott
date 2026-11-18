@@ -2120,9 +2120,34 @@ export async function GET(req: Request) {
       return NextResponse.json(info)
     }
 
+    // ── pricing filter options (fabricantes + sellers) for the selected day ──
+    if (action === "pricing_filters") {
+      const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const p: unknown[] = [dateParam]
+      let w = `fecha::date = $1::date AND id IS NOT NULL`
+      w += fabricanteNotMarcaLocalSql()
+      if (channel)  { p.push(channel);  w += ` AND retail = $${p.length}` }
+      if (category) { w += categorySqlCondition(categoryFilterColumnForSource(country, "base"), p, category) }
+      w += countrySqlCondition(p, country)
+      w += marcaFilter(p)
+      const rows = await prisma.$queryRawUnsafe<{ fabricante: string | null; seller: string | null }[]>(`
+        SELECT DISTINCT
+          CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT'
+               ELSE COALESCE(fabricante,'DESCONOCIDO') END AS fabricante,
+          NULLIF(NULLIF(TRIM(seller),''),'false') AS seller
+        FROM eci.sos
+        WHERE ${w}
+      `, ...p)
+      return NextResponse.json({
+        fabricantes: uniqueNonEmpty(rows.map(r => r.fabricante || "")),
+        sellers:     uniqueNonEmpty(rows.map(r => r.seller || "")),
+      })
+    }
+
     if (action === "pricing") {
       const limit = Math.min(500, parseInt(searchParams.get("limit") || "100", 10))
       const dateParam = searchParams.get("date") || endDate || new Date().toISOString().split("T")[0]
+      const vendor = searchParams.get("vendor") || ""
 
       // Some sources store discount as fraction (0.05) while UI expects percent (5).
       const normalizeDiscountPercent = (raw: unknown): number => {
@@ -2172,6 +2197,10 @@ export async function GET(req: Request) {
       if (seller) {
         p2.push(seller)
         sellerCond2 = ` AND (CASE WHEN UPPER(fabricante) LIKE '%ABBOT%' THEN 'ABBOTT' ELSE COALESCE(fabricante,'DESCONOCIDO') END) = $${p2.length}`
+      }
+      if (vendor) {
+        p2.push(vendor)
+        sellerCond2 += ` AND TRIM(seller) = $${p2.length}`
       }
       const mfCond2 = marcaFilter(p2)
       const sqlDirect = `
