@@ -313,6 +313,43 @@ export default function InventoryPage() {
       })
   , [data, search, selectedEans, category, showOnlyUnavailable, showCategoryFilter, isMexico, cpLookup])
 
+  // CSV: en México se expanden los códigos postales como columnas (SI / NO / vacío si el retail no tiene ese CP)
+  const handleDownloadCSV = useCallback(() => {
+    if (!isMexico) {
+      downloadCSV(data as unknown as Record<string, unknown>[], "inventory")
+      return
+    }
+    const rows = data.map(e => {
+      if (e.codigosPostales && Object.keys(e.codigosPostales).length > 0) return e
+      const cp = cpLookup.get(`${e.canal}|||${e.ean}`)
+      return cp ? { ...e, codigosPostales: cp } : e
+    })
+    const cpCodes: string[] = []
+    const seen = new Set<string>()
+    for (const r of rows) {
+      for (const k of Object.keys(r.codigosPostales || {})) {
+        if (!seen.has(k)) { seen.add(k); cpCodes.push(k) }
+      }
+    }
+    const baseCols: string[] = []
+    const baseSeen = new Set<string>()
+    for (const r of rows) {
+      for (const k of Object.keys(r)) {
+        if (k !== "codigosPostales" && !baseSeen.has(k)) { baseSeen.add(k); baseCols.push(k) }
+      }
+    }
+    const csvRows = rows.map(r => {
+      const { codigosPostales, ...rest } = r
+      const out: Record<string, unknown> = { ...rest }
+      const cp = codigosPostales || {}
+      for (const k of cpCodes) {
+        out[k] = k in cp ? (cp[k] ? "SI" : "NO") : ""
+      }
+      return out
+    })
+    downloadCSV(csvRows, "inventory", [...baseCols, ...cpCodes])
+  }, [data, isMexico, cpLookup])
+
   // KPIs
   const inStock = data.filter(e => e.stock_status === "in_stock").length
   const breaks = data.filter(e => e.stock_status === "break").length
@@ -388,7 +425,7 @@ export default function InventoryPage() {
         />
 
         <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => downloadCSV(data as unknown as Record<string, unknown>[], "inventory")}
+          <button onClick={handleDownloadCSV}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors" title="Descargar CSV">
             <Download size={12} /><span>CSV</span>
           </button>

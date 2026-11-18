@@ -3,9 +3,9 @@
  */
 
 /** Download data as CSV */
-export function downloadCSV(data: Record<string, unknown>[], filename: string) {
+export function downloadCSV(data: Record<string, unknown>[], filename: string, columns?: string[]) {
   if (!data.length) return
-  const headers = Object.keys(data[0])
+  const headers = columns && columns.length ? columns : Object.keys(data[0])
   const csvRows = [
     headers.join(","),
     ...data.map(row =>
