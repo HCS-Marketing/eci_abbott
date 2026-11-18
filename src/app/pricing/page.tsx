@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useMarket } from "@/lib/use-market"
 import PageHeader from "@/components/ui/PageHeader"
 import DateInput from "@/components/ui/DateInput"
@@ -59,8 +59,33 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false)
 
   // Opciones de fabricante / seller según país, fecha, canal y categoría
-  const [availableFabricantes, setAvailableFabricantes] = useState<string[]>([])
-  const [availableVendors,     setAvailableVendors]     = useState<string[]>([])
+  // y además filtradas en cascada entre sí (fabricante ↔ seller)
+  const [filterPairs, setFilterPairs] = useState<{ fabricante: string; seller: string | null }[]>([])
+  const [allFabricantes, setAllFabricantes] = useState<string[]>([])
+  const [allVendors,     setAllVendors]     = useState<string[]>([])
+
+  // Fabricantes disponibles: si hay sellers elegidos, solo los que venden esos sellers
+  const availableFabricantes = useMemo(() => {
+    if (!showSeller || selectedVendors.length === 0) return allFabricantes
+    const set = new Set(filterPairs.filter(p => p.seller && selectedVendors.includes(p.seller)).map(p => p.fabricante))
+    return allFabricantes.filter(f => set.has(f))
+  }, [showSeller, selectedVendors, filterPairs, allFabricantes])
+
+  // Sellers disponibles: si hay fabricante elegido, solo los sellers que venden ese fabricante
+  const availableVendors = useMemo(() => {
+    if (!selectedSeller) return allVendors
+    const set = new Set(filterPairs.filter(p => p.fabricante === selectedSeller && p.seller).map(p => p.seller as string))
+    return allVendors.filter(v => set.has(v))
+  }, [selectedSeller, filterPairs, allVendors])
+
+  // Quitar sellers seleccionados que ya no aplican al fabricante elegido
+  useEffect(() => {
+    setSelectedVendors(v => {
+      const kept = v.filter(x => availableVendors.includes(x))
+      return kept.length === v.length ? v : kept
+    })
+  }, [availableVendors])
+
   useEffect(() => {
     if (!endDate) return
     const ac = new AbortController()
@@ -72,16 +97,13 @@ export default function PricingPage() {
     if (mercado)  p.set("mercado",  mercado)
     fetch(`/api/sos?${p}`, { signal: ac.signal })
       .then(r => r.ok ? r.json() : null)
-      .then((d: { fabricantes?: string[]; sellers?: string[] } | null) => {
+      .then((d: { fabricantes?: string[]; sellers?: string[]; pairs?: { fabricante: string; seller: string | null }[] } | null) => {
         const fabs = Array.isArray(d?.fabricantes) ? d!.fabricantes! : []
         const vens = Array.isArray(d?.sellers) ? d!.sellers! : []
-        setAvailableFabricantes(fabs)
-        setAvailableVendors(vens)
+        setAllFabricantes(fabs)
+        setAllVendors(vens)
+        setFilterPairs(Array.isArray(d?.pairs) ? d!.pairs! : [])
         setSelectedSeller(s => (s && fabs.length && !fabs.includes(s) ? "" : s))
-        setSelectedVendors(v => {
-          const kept = v.filter(x => vens.includes(x))
-          return kept.length === v.length ? v : kept
-        })
       })
       .catch(e => { if (e?.name !== "AbortError") console.error(e) })
     return () => ac.abort()
@@ -297,7 +319,7 @@ export default function PricingPage() {
         <FilterDropdown
           label="Fabricante"
           value={selectedSeller}
-          options={availableFabricantes.length ? availableFabricantes : SELLERS}
+          options={allFabricantes.length ? availableFabricantes : SELLERS}
           allLabel="Todos los fabricantes"
           searchPlaceholder="Buscar fabricante..."
           onChange={setSelectedSeller}

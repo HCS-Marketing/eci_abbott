@@ -2141,6 +2141,9 @@ export async function GET(req: Request) {
       return NextResponse.json({
         fabricantes: uniqueNonEmpty(rows.map(r => r.fabricante || "")),
         sellers:     uniqueNonEmpty(rows.map(r => r.seller || "")),
+        pairs:       rows
+          .filter(r => r.fabricante)
+          .map(r => ({ fabricante: r.fabricante as string, seller: r.seller ? r.seller.trim() : null })),
       })
     }
 
