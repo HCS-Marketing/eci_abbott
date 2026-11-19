@@ -139,13 +139,15 @@ export async function POST(req: Request) {
   ]
 
   const queries: string[] = []
+  let askedForFinal = false
+  let forceFinal = false
   console.info(JSON.stringify({ type: "ai_request_start", request_id: requestId, country, messages: messages.length }))
 
   try {
     for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
       const remaining = TOTAL_BUDGET_MS - elapsed()
       // En la última vuelta (o sin tiempo para otra ronda) pedimos la respuesta final sin herramientas.
-      const finalRound = iter === MAX_ITERATIONS - 1 || remaining < MIN_MS_FOR_ANOTHER_ROUND
+      const finalRound = forceFinal || iter === MAX_ITERATIONS - 1 || remaining < MIN_MS_FOR_ANOTHER_ROUND
 
       const response = await client.beta.messages.create(
         {
@@ -198,6 +200,24 @@ export async function POST(req: Request) {
 
       // end_turn, max_tokens, stop_sequence, etc.
       let text = textOf(response.content)
+
+      // A veces el modelo cierra el turno sin bloque de texto (solo thinking) después de muchas
+      // consultas. En ese caso le pedimos explícitamente la respuesta final, sin herramientas.
+      if (!text && response.stop_reason === "end_turn" && !askedForFinal) {
+        askedForFinal = true
+        console.warn(JSON.stringify({
+          type: "ai_empty_answer", request_id: requestId, iter,
+          blocks: response.content.map(b => b.type), elapsed_ms: elapsed(),
+        }))
+        messages.push({ role: "assistant", content: response.content })
+        messages.push({
+          role: "user",
+          content: "Con los datos que ya consultaste, escribí ahora la respuesta final para el usuario. No hagas más consultas.",
+        })
+        forceFinal = true
+        continue
+      }
+
       if (response.stop_reason === "max_tokens") text += "\n\n_(Respuesta cortada por longitud.)_"
       console.info(JSON.stringify({ type: "ai_request_end", request_id: requestId, status: "ok", elapsed_ms: elapsed() }))
       return reply(text || "No obtuve una respuesta. Intentá reformular la pregunta.", country, queries)
