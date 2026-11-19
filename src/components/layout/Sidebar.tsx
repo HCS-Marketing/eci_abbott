@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import {
   Search, ChevronLeft, ChevronRight, ListOrdered,
-  Tag, LogOut, ScanSearch, LayoutGrid, Boxes, Trophy, BookOpenText, Megaphone,
+  Tag, LogOut, ScanSearch, LayoutGrid, Boxes, Trophy, BookOpenText, Megaphone, Sparkles,
 } from "lucide-react"
 import { useClient } from "@/lib/client-context"
 import { useGlobalFilters } from "@/lib/filter-context"
@@ -16,6 +16,7 @@ const NAV = [
   { href: "/search",          label: "Search",        icon: ScanSearch  },
   { href: "/ranking",         label: "Ranking",       icon: ListOrdered },
   { href: "/pricing",         label: "Pricing Live",  icon: Tag         },
+  { href: "/asistente",       label: "Asistente IA",  icon: Sparkles    },
 ]
 
 const MX_NAV = [

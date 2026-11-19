@@ -1,14 +1,11 @@
 "use client"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { usePathname } from "next/navigation"
-import { X, Send, Sparkles, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { X, Send, Sparkles, Loader2, Maximize2 } from "lucide-react"
 import clsx from "clsx"
-
-// ─── TYPES ────────────────────────────────────────────────────
-interface Message {
-  role: "user" | "assistant"
-  content: string
-}
+import AIMarkdown from "@/components/ai/AIMarkdown"
+import { useAIChat } from "@/lib/use-ai-chat"
 
 // ─── PAGE SUGGESTIONS ─────────────────────────────────────────
 const SUGGESTED_QUESTIONS: Record<string, string[]> = {
@@ -28,120 +25,43 @@ const DEFAULT_SUGGESTIONS = [
   "¿Qué acciones priorizar esta semana?",
 ]
 
-// ─── PAGE CONTEXT BUILDER (lightweight — dates/channels/categories only) ────
-// The heavy DB queries are done server-side by Claude via tool calls.
-async function buildLightContext(pathname: string): Promise<string> {
-  try {
-    const datesRes = await fetch("/api/sos?action=dates")
-    const dates    = await datesRes.json() as { min: string; max: string }
-    if (!dates.max) return ""
-
-    const [chRes, catRes] = await Promise.all([
-      fetch(`/api/sos?action=channels&startDate=${dates.max}&endDate=${dates.max}`),
-      fetch(`/api/sos?action=categories&startDate=${dates.max}&endDate=${dates.max}`),
-    ])
-    const channels   = await chRes.json()  as string[]
-    const categories = await catRes.json() as string[]
-
-    return [
-      `Rango de fechas disponible: ${dates.min} a ${dates.max} (más reciente: ${dates.max})`,
-      `Canales disponibles: ${Array.isArray(channels)   ? channels.join(", ")   : "no disponible"}`,
-      `Categorías disponibles: ${Array.isArray(categories) ? categories.join(", ") : "no disponible"}`,
-      `Página activa del usuario: ${pathname}`,
-    ].join("\n")
-  } catch {
-    return `Página activa: ${pathname}`
-  }
-}
-
-// ─── MESSAGE FORMATTER ────────────────────────────────────────
-function formatMessage(text: string) {
-  return text.split("\n").map((line, i) => {
-    if (line.startsWith("- ") || line.startsWith("• "))
-      return <div key={i} className="flex gap-2 text-gray-700 text-sm leading-relaxed"><span className="text-purple-500 flex-shrink-0 mt-0.5">·</span><span>{line.slice(2)}</span></div>
-    if (line.match(/^\d+\./))
-      return <div key={i} className="flex gap-2 text-gray-700 text-sm leading-relaxed"><span className="text-purple-500 flex-shrink-0 font-mono text-xs mt-0.5">{line.match(/^\d+/)?.[0]}.</span><span>{line.replace(/^\d+\./, "").trim()}</span></div>
-    if (line.startsWith("**") && line.endsWith("**"))
-      return <div key={i} className="font-semibold text-gray-900 mt-2 mb-1">{line.slice(2, -2)}</div>
-    if (line.trim() === "") return <div key={i} className="h-2" />
-    return <div key={i} className="text-sm text-gray-700 leading-relaxed">{line}</div>
-  })
-}
-
 // ─── COMPONENT ────────────────────────────────────────────────
 export default function AIAdvisor() {
-  const [open,            setOpen]            = useState(false)
-  const [messages,        setMessages]        = useState<Message[]>([])
-  const [input,           setInput]           = useState("")
-  const [loading,         setLoading]         = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(true)
-  const [pageContext,     setPageContext]      = useState("")
-  const [contextLoading,  setContextLoading]  = useState(false)
+  const [open,  setOpen]  = useState(false)
+  const [input, setInput] = useState("")
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLInputElement>(null)
   const pathname       = usePathname()
+
+  // El servidor consulta la base con las herramientas; acá solo le contamos en qué pantalla está el usuario.
+  const getPageContext = useCallback(() => `Página activa del usuario: ${pathname ?? "/"}`, [pathname])
+  const { country, messages, loading, send, reset } = useAIChat(getPageContext)
 
   const suggestions = (pathname ? SUGGESTED_QUESTIONS[pathname] : null) ?? DEFAULT_SUGGESTIONS
 
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [messages, loading])
 
   // Focus input when opened
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
   }, [open])
 
-  // Reset suggestions when page changes
-  useEffect(() => {
-    if (messages.length === 0) setShowSuggestions(true)
-  }, [pathname])
-
-  // Fetch lightweight context (dates/channels/categories) when panel opens or page changes
-  useEffect(() => {
-    if (!open) return
-    setPageContext("")
-    setContextLoading(true)
-    buildLightContext(pathname ?? "/").then(ctx => {
-      setPageContext(ctx)
-      setContextLoading(false)
-    })
-  }, [open, pathname])
-
-  const sendMessage = useCallback(async (text: string) => {
+  const sendMessage = (text: string) => {
     if (!text.trim() || loading) return
-    setShowSuggestions(false)
-    const userMsg: Message = { role: "user", content: text }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
+    send(text)
     setInput("")
-    setLoading(true)
-
-    try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-          pageContext,
-        }),
-      })
-      const data = await res.json()
-      const reply = data.content?.[0]?.text || data.error || "No se pudo procesar la consulta. Intentá nuevamente."
-      setMessages(prev => [...prev, { role: "assistant", content: reply }])
-    } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "Error de conexión. Intentá de nuevo." }])
-    }
-    setLoading(false)
-  }, [messages, loading, pageContext])
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input) }
   }
 
-  const resetChat = () => { setMessages([]); setShowSuggestions(true) }
+  // En la página del asistente el chat flotante sobra
+  if (pathname?.startsWith("/asistente")) return null
 
   return (
     <>
@@ -175,15 +95,21 @@ export default function AIAdvisor() {
             <div className="text-sm font-semibold text-gray-900">Abbott AI Advisor</div>
             <div className="flex items-center gap-1.5 text-[10px] text-green-600 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-              {contextLoading ? "Cargando datos..." : "Datos en tiempo real"}
+              Datos en tiempo real · {country}
             </div>
           </div>
-          {messages.length > 0 && (
-            <button onClick={resetChat}
-              className="ml-auto text-[10px] text-gray-400 hover:text-gray-600 transition-colors">
-              Nueva consulta
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {messages.length > 0 && (
+              <button onClick={reset}
+                className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors">
+                Nueva consulta
+              </button>
+            )}
+            <Link href="/asistente" onClick={() => setOpen(false)} title="Abrir Asistente IA en pantalla completa"
+              className="text-gray-400 hover:text-purple-600 transition-colors">
+              <Maximize2 size={14} />
+            </Link>
+          </div>
         </div>
 
         {/* Messages */}
@@ -193,7 +119,7 @@ export default function AIAdvisor() {
               <div className="text-2xl mb-2">🧠</div>
               <div className="text-sm font-semibold text-gray-800 mb-1">Consultor Abbott</div>
               <div className="text-xs text-gray-400 leading-relaxed">
-                Preguntame sobre estrategia en retailers, precios, BuyBox, assortment e inventario de Abbott.
+                Preguntame sobre precios, ranking, BuyBox, assortment e inventario de Abbott. Uso solo datos de {country}.
               </div>
             </div>
           )}
@@ -208,9 +134,9 @@ export default function AIAdvisor() {
               <div className={clsx("max-w-[88%] rounded-2xl px-3.5 py-2.5",
                 msg.role === "user"
                   ? "bg-purple-600 text-white text-sm"
-                  : "bg-gray-50 border border-gray-100"
+                  : msg.error ? "bg-red-50 border border-red-200 text-red-700 text-sm" : "bg-gray-50 border border-gray-100 min-w-0"
               )}>
-                {msg.role === "assistant" ? formatMessage(msg.content) : msg.content}
+                {msg.role === "assistant" && !msg.error ? <AIMarkdown text={msg.content} compact /> : msg.content}
               </div>
             </div>
           ))}
@@ -230,22 +156,13 @@ export default function AIAdvisor() {
         </div>
 
         {/* Suggestions */}
-        {showSuggestions && messages.length === 0 && !contextLoading && (
+        {messages.length === 0 && (
           <div className="px-4 pb-2 flex-shrink-0 space-y-1.5">
             {suggestions.map(s => (
               <button key={s} onClick={() => sendMessage(s)}
                 className="w-full text-left text-xs text-gray-600 px-3 py-2 bg-gray-50 hover:bg-purple-50 border border-gray-100 hover:border-purple-200 rounded-xl transition-colors hover:text-purple-700">
                 {s}
               </button>
-            ))}
-          </div>
-        )}
-
-        {/* Context loading placeholder */}
-        {showSuggestions && messages.length === 0 && contextLoading && (
-          <div className="px-4 pb-2 flex-shrink-0 space-y-1.5">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-8 bg-gray-100 rounded-xl animate-pulse" />
             ))}
           </div>
         )}
