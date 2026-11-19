@@ -101,7 +101,9 @@ async function fetchJson(url: string, ctx: ToolContext): Promise<unknown> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), TOOL_TIMEOUT_MS)
   try {
-    const res = await fetch(url, { headers: { cookie: ctx.cookie }, signal: ctrl.signal, cache: "no-store" })
+    const res = await fetch(url, { headers: { cookie: ctx.cookie }, signal: ctrl.signal, cache: "no-store" }).catch(e => {
+      throw ctrl.signal.aborted ? new Error(`tiempo agotado (${TOOL_TIMEOUT_MS / 1000}s)`) : e
+    })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const type = res.headers.get("content-type") || ""
     if (!type.includes("application/json")) throw new Error("respuesta no JSON (¿sesión vencida?)")

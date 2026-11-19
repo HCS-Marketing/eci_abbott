@@ -33,6 +33,8 @@ Cada conversación está atada a UN país activo, indicado más abajo. Todas las
 ## Cómo trabajar con los datos
 - Para preguntas sobre datos concretos, consultá las herramientas antes de responder. Nunca inventes cifras.
 - Preferí query_dashboard_data (los mismos datos que ven los módulos). Usá run_readonly_sql solo cuando necesites agregaciones, comparaciones o cortes que esa herramienta no da.
+- Hacé pocas consultas y bien elegidas: el servidor las procesa de a una y cada una puede tardar varios segundos. Para comparar varias categorías o retails, preferí una sola consulta general (por ejemplo la acción sin filtro de categoría, o un SQL con GROUP BY por categoría) en vez de una consulta por cada categoría.
+- Si alguna consulta falla, no la reintentes muchas veces: respondé con los datos que sí obtuviste y aclará brevemente qué faltó.
 - Si no sabés qué fecha usar, consultá el rango disponible y usá la fecha más reciente; decí qué fecha usaste.
 - Si la pregunta es ambigua en algo que cambia mucho la respuesta (por ejemplo, qué retail), hacé UNA pregunta corta. Si se puede responder razonablemente con la fecha más reciente y todos los retails, respondé directamente.
 - Las preguntas de estrategia general se pueden responder sin consultar datos.
@@ -141,6 +143,7 @@ export async function POST(req: Request) {
   const queries: string[] = []
   let askedForFinal = false
   let forceFinal = false
+  let finalNoticeSent = false
   console.info(JSON.stringify({ type: "ai_request_start", request_id: requestId, country, messages: messages.length }))
 
   try {
@@ -148,6 +151,16 @@ export async function POST(req: Request) {
       const remaining = TOTAL_BUDGET_MS - elapsed()
       // En la última vuelta (o sin tiempo para otra ronda) pedimos la respuesta final sin herramientas.
       const finalRound = forceFinal || iter === MAX_ITERATIONS - 1 || remaining < MIN_MS_FOR_ANOTHER_ROUND
+
+      // Ronda final por tiempo/iteraciones: avisamos al modelo que no hay más consultas,
+      // para que escriba la respuesta en vez de una nota interna ("Retry the failed ones").
+      if (finalRound && iter > 0 && !askedForFinal && !finalNoticeSent) {
+        finalNoticeSent = true
+        messages.push({
+          role: "user",
+          content: "Ya no hay tiempo para más consultas. Respondé ahora al usuario con los datos que ya obtuviste; si algún dato no se pudo obtener, aclaralo en una línea.",
+        })
+      }
 
       const response = await client.beta.messages.create(
         {
