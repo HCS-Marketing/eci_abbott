@@ -7,7 +7,7 @@ import coFallbackRowsJson from "@/data/co-provider-rows.json"
 const PROVIDER_CONFIG = {
   MX: {
     baseDir: "base_prov",
-    dirs: ["amz", "ml", "heb", "sams", "guadalajara"],
+    dirs: ["amz", "ml", "heb", "sams", "guadalajara", "walmart"],
     retailByDir: {} as Record<string, string>,
   },
   CO: {

@@ -7,7 +7,7 @@ const PROVIDER_CONFIGS = [
   {
     label: "mx",
     baseDir: "base_prov",
-    dirs: ["amz", "ml", "heb", "sams", "guadalajara"],
+    dirs: ["amz", "ml", "heb", "sams", "guadalajara", "walmart"],
     outputFile: path.join(ROOT, "src", "data", "mx-provider-rows.json"),
     retailByDir: {},
   },

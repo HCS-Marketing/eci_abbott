@@ -125,7 +125,7 @@ export default function InventoryPage() {
   const providerBasePath = isColombia ? "base_prov_co" : "base_prov"
   const providerFolders = isColombia
     ? ["base_prov_co/cruz_verde", "base_prov_co/farmatodo", "base_prov_co/larebaja", "base_prov_co/rappi", "base_prov_co/unidroga"]
-    : ["base_prov/amz", "base_prov/ml", "base_prov/heb", "base_prov/sams", "base_prov/guadalajara"]
+    : ["base_prov/amz", "base_prov/ml", "base_prov/heb", "base_prov/sams", "base_prov/guadalajara", "base_prov/walmart"]
 
   const toggleRow = (id: string) => setExpandedRows(prev => {
     const next = new Set(prev)
